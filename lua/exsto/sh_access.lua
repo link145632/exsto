@@ -652,7 +652,8 @@ if SERVER then
 	
 	function exsto.SendRankTable( ply, sid, uid )
 	
-		timer.Simple( 2, function() datastream.StreamToClients( ply, "SendLevels", exsto.Levels ) end )
+		//timer.Simple( 2, function() datastream.StreamToClients( ply, "SendLevels", exsto.Levels ) end )
+		datastream.StreamToClients( ply, "SendLevels", exsto.Levels )
 	
 	end
 	hook.Add( "exsto_InitSpawn", "exsto_SendRanks", exsto.SendRankTable )
@@ -680,9 +681,9 @@ if SERVER then
 	
 		local function MainLoad()
 			if ply:SteamID() == "STEAM_ID_PENDING" or !ply:IsValid() or !ply:IsPlayer() then
-				exsto.Error( ply:Nick() .. " does not have a SteamID!  Waiting a little bit to check again." )
+				exsto.ErrorNoHalt( ply:Nick() .. " does not have a SteamID!  Waiting a little bit to check again." )
 				ply.HasID = false
-				timer.Simple( 1, MainLoad )
+				timer.Simple( 0.1, MainLoad )
 				return
 			end
 			
@@ -693,7 +694,7 @@ if SERVER then
 				if ply.InitSpawn then -- If the client is clear to load.
 					hook.Call( "exsto_InitSpawn", nil, ply, sid, uid )
 				else
-					timer.Simple( 1, PingForClient )
+					timer.Simple( 0.1, PingForClient )
 				end
 			end
 			PingForClient()

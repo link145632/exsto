@@ -14,6 +14,10 @@ if SERVER then
 
 	function PLUGIN.Search( ply, command )
 		
+		if !ply.LastSearch then ply.LastSearch = CurTime() end
+		if CurTime() < ply.LastSearch then return { ply, COLOR.NORM, "Please wait, you are trying to search for commands too ", COLOR.NAME, "fast", COLOR.NORM, "!" } end
+		ply.LastSearch = CurTime() + 10
+		
 		local data = {}
 		-- Grab all the commands that contain the command
 		for k,v in pairs( exsto.Commands ) do
@@ -77,7 +81,7 @@ if SERVER then
 		
 		exsto.Print( exsto_CLIENT, ply, " ---- End of Exsto help ---- \n" )
 		
-		return { COLOR.NORM, "Printing all commands to your ", COLOR.NAME, "console", COLOR.NORM, "!" }
+		return { ply, COLOR.NORM, "Printing all commands to your ", COLOR.NAME, "console", COLOR.NORM, "!" }
 	end
 	PLUGIN:AddCommand( "search", {
 		Call = PLUGIN.Search,
