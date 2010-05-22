@@ -201,6 +201,38 @@ if SERVER then
 		end
 		
 	end
+	
+	function FEL.CheckTable( name, data )
+	
+		-- First, lets check if the table exists.
+		local tbl = FEL.Query( "SELECT * FROM " .. name .. ";" )
+		
+		if !tbl then return false end
+		
+		-- He exists, lets see if his columns are all correct.
+		local columns = {}
+		for k,v in pairs( tbl[1] ) do
+			table.insert( columns, k )
+		end
+		
+		local missing = false
+		for k,v in pairs( data ) do
+			if !table.HasValue( columns, k ) then
+				-- The saved data is missing a SQL column!
+				missing = true
+				break
+			end
+		end
+		
+		if !missing then return false end
+		
+		-- We already have the table data stored, so lets delete the old table and transfer in the new data.
+		FEL.Query( "DROP TABLE " .. name .. ";" ) -- Bye.
+		exsto.Print( exsto_CONSOLE_DEBUG, "FEL --> Table " .. name .. " doesn't contain all required columns!  Recreating!" )
+		
+		return tbl 
+		
+	end
 
 	function FEL.MakeTable_Internal( name, data )
 
@@ -210,6 +242,9 @@ if SERVER then
 		local columns = "";
 		local num = exsto.SmartNumber( data )
 		local curSlot = 1
+		
+		-- Check and make sure if there is an existing table, and it is up to date.
+		local savedInfo = FEL.CheckTable( name, data )
 		
 		for k,v in pairs( data ) do
 			
@@ -226,6 +261,15 @@ if SERVER then
 		local query = string.format( "CREATE TABLE IF NOT EXISTS %s (%s);", name, columns );
 		FEL.Query( query );
 		exsto.Print( exsto_CONSOLE_DEBUG, "SQL --> Creating table " .. name .. "!" )
+		
+		-- Save the data if the table had to be broken down.
+		if savedInfo then 
+			for k,v in pairs( savedInfo ) do
+				FEL.AddData( name, {
+					Data = v,
+				} )
+			end
+		end		
 		
 	end
 
