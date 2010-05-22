@@ -302,15 +302,13 @@ if SERVER then
 		local syntax = "%s (%s) VALUES(%s);"
 		local update = false
 		local args = ""
-		local threaded = false
-		local update = true
-
-		if info.Options and info.Options.Threaded then threaded = true end
+		
+		local options = info.Options or {}
 
 		local item
 		if info.Look then
 			item = FEL.DataExists( tab, look, data )
-			if item and info.Options and !info.Options.Update then return end
+			if item and !options.Update then return end
 		end
 		
 		if item then
@@ -375,7 +373,7 @@ if SERVER then
 			syntax = string.format( syntax, args )
 		end
 		
-		return FEL.Query( syntax, threaded )
+		return FEL.Query( syntax, options.Threaded )
 	end	
 
 	-- Specific functions for plugins
