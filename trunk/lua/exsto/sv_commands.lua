@@ -163,7 +163,7 @@ end
 	
 function exsto.ParseStrings( text )
 
-	-- Pattern look for string.
+	--[[-- Pattern look for string.
 	local stringStart, stringEnd, content = string.find( text, "[\"\'](.-)[\"\']" )
 	
 	-- If theres no strings, lets see if we atleast have the start of one.
@@ -251,7 +251,27 @@ function exsto.ParseStrings( text )
 		args[k] = v:Trim():gsub( "\'", "" ):gsub( "\"", "" )
 	end
 	
-	return args
+	return args]]
+	
+	-- Code from raBBish, which is from Lexi, that completely lit up my string finding pattern on fire.
+	-- http://www.facepunch.com/showthread.php?t=827179
+	
+	local quote = string.sub( text, 1, 1 ) ~= '"'
+	local data = {}
+	
+	for chunk in string.gmatch( text, '[^"]+' ) do
+		quote = not quote
+		
+		if quote then
+			table.insert( data, chunk )
+		else
+			for chunk in string.gmatch( chunk, "%S+" ) do
+				table.insert( data, chunk )
+			end
+		end
+	end
+	
+	return data
 	
 end
 
@@ -270,34 +290,18 @@ function exsto.ParseArguments( ply, text, data, alreadyString )
 		exsto.Print( exsto_CONSOLE_DEBUG, "COMMANDS --> Command \"" .. data.ID .. "\" could not be parsed due to incompatibilities with Exsto.  Please contact plugin coder." )
 		return
 	end
-	
-	
-	//PrintTable( stringed_args )
+
 	local text_args = text
 	if !alreadyString then
 		text_args = exsto.ParseStrings( text:Trim() )
 	end
-	PrintTable( text_args )
-	
-	--PrintTable( data )
-	--print( PAC.SmartNumber( args ) )
-	
-	//exsto.ParseStrings( text )
-	
-	print( "------- COMMAND DEBUG HELP" )
-	print( "** Text Slots said " .. exsto.SmartNumber( text_args ) )
-	print( "** Arguments required " .. exsto.SmartNumber( args ) )
-	
-	//PrintTable( returnOrder )
-	
+
 	for I = 1, #returnOrder do
-	--for k,v in pairs( args ) do
 	
 		local data = args[returnOrder[I]]
 		local argName = returnOrder[I]
 	
 		local argkey = exsto.GetArgumentKey( data )
-		print( data )
 		if not argkey then exsto.Error( "Invalid argument is being used!" ) return end
 		
 		-- Easy thing.
@@ -305,9 +309,7 @@ function exsto.ParseArguments( ply, text, data, alreadyString )
 		
 		-- Lets look at the first text slot we have, and *assume* its going to be our first argument.
 		local textSlot = text_args[I]
-		
-		//print( argName )
-		
+
 		-- Now hang on, if we have gone over the number of text slots, then we need to start placing optionals.
 		if !textSlot then
 		
@@ -323,9 +325,6 @@ function exsto.ParseArguments( ply, text, data, alreadyString )
 			end
 			
 		else
-		
-			print( "** Looking at first text slot " .. textSlot )
-			
 			-- Run the text slot through the data type the argument is, see if it works.
 			local data = argTable.Func( textSlot )
 			
@@ -348,8 +347,7 @@ function exsto.ParseArguments( ply, text, data, alreadyString )
 		end
 
 	end
-	//print( Return )
-	PrintTable( Return )
+
 	return Return
 end
 

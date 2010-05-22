@@ -767,7 +767,10 @@ function meta:IsAllowed( flag, victim )
 	if !rank then return false end
 	
 	if victim then
-		print( rank.Immunity, victimRank.Immunity )
+		if !rank.Immunity or !victimRank.Immunity then -- Just ignore it if they don't exist, we don't want to break Exsto.
+			if table.HasValue( rank.Flags, flag ) then return true end
+		end
+		
 		if rank.Immunity <= victimRank.Immunity then
 			if table.HasValue( rank.Flags, flag ) then return true end
 		end
