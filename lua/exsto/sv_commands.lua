@@ -298,10 +298,10 @@ function exsto.ParseArguments( ply, text, data, alreadyString )
 
 	for I = 1, #returnOrder do
 	
-		local data = args[returnOrder[I]]
+		local curArg = args[returnOrder[I]]
 		local argName = returnOrder[I]
 	
-		local argkey = exsto.GetArgumentKey( data )
+		local argkey = exsto.GetArgumentKey( curArg )
 		if not argkey then exsto.Error( "Invalid argument is being used!" ) return end
 		
 		-- Easy thing.
@@ -318,10 +318,17 @@ function exsto.ParseArguments( ply, text, data, alreadyString )
 			if optional[argName] then -- If an optional exists for this argument slot then continue
 				table.insert( Return, optional[argName] )
 				exsto.Print( exsto_CONSOLE_DEBUG, "COMMANDS --> Optional value \"" .. argName .. "\" is being inserted with a value of " .. tostring( optional[argName] ) ) 
-			else -- If it doesn't exist, the chat maker did not properly code the command.  Send debug data.
-				exsto.Print( exsto_CHAT, ply, COLOR.NORM, "The command you tried to run is not compatible with Exsto!" )
-				exsto.Print( exsto_CONSOLE_DEBUG, "COMMANDS --> Command \"" .. data.ID .. "\" could not be parsed due to incompatibilities with Exsto.  Please contact plugin coder." )
-				return
+			else
+				-- Lets see what hes trying to access.  If he is trying to access a PLAYER with no value, substitue himself.
+				if curArg == "PLAYER" then
+					table.insert( Return, ply )
+					exsto.Print( exsto_CONSOLE_DEBUG, "COMMANDS --> Adding in caller value for \"" .. argName .. "\'!" )
+				else
+					-- If it doesn't exist, the chat maker did not properly code the command.  Send debug data.
+					exsto.Print( exsto_CHAT, ply, COLOR.NORM, "The command you tried to run is missing an optional value!" )
+					exsto.Print( exsto_CONSOLE_DEBUG, "COMMANDS --> Command \"" .. data.ID .. "\" could not be parsed due to incompatibilities with Exsto.  The optional values did not match up with the required." )
+					return
+				end
 			end
 			
 		else

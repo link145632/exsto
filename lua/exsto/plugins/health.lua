@@ -60,15 +60,10 @@ PLUGIN:AddCommand( "sethealth", {
 	Optional = { Health = 100 }
 })
 
-function PLUGIN:OnEntityTakeDamage( ent, inflictor, attacker, amount )
-	if type( ent ) == "Player" then
-		if ent.God then return true end
-	end
-end
-
 function PLUGIN.God( self, victim )
 
 	if victim.God then
+		victim:GodDisable()
 		victim.God = false
 		
 		return {
@@ -77,6 +72,7 @@ function PLUGIN.God( self, victim )
 			Wording = " has de-godded ",
 		}
 	else
+		victim:GodEnable()
 		victim.God = true
 			
 		return {

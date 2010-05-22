@@ -175,6 +175,7 @@ exsto.DefaultRanks = {
 			"getvariable",
 			"helppage",
 			"playerlist",
+			"checkversion",
 		}
 	}
 }
