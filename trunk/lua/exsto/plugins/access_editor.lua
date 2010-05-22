@@ -87,6 +87,9 @@ if SERVER then
 				Immunity = Immunity,
 				Flags = FEL.NiceEncode( Flags ),
 			},
+			Options = {
+				Update = true,
+			}
 		} )
 		
 	end

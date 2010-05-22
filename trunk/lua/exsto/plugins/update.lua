@@ -17,7 +17,7 @@ local svn = require( "svn" )
 function PLUGIN.Update( owner, folder )
 
 	if !svn then
-		return { owner, CHAT.NORM, "Please install the gm_svn module to use this command!" }
+		return { owner, COLOR.NORM, "Please install the gm_svn module to use this command!" }
 	end
 
 	local update = svn.update( "garrysmod/addons/" .. folder )

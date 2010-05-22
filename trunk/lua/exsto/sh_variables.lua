@@ -111,6 +111,9 @@ if SERVER then
 				Description = var.Description,
 				Possible = FEL.NiceEncode( var.Possible ),
 			},
+			Options = {
+				Update = true,
+			}
 		} )
 	end
 
