@@ -38,20 +38,6 @@ local function LoadVariables()
 	
 end
 
--- Is this smart?
-local oldError = Error
-local oldNoHalt = ErrorNoHalt
-
-function Error( msg )
-	if FEL then table.insert( FEL.ErrorTable, msg ) end
-	return oldError( msg )
-end
-
-function ErrorNoHalt( msg )
-	if FEL then table.insert( FEL.ErrorTable, msg ) end
-	return oldNoHalt( msg )
-end
-
 function exstoInit()
 
 	if exsto then

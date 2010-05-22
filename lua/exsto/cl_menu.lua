@@ -621,7 +621,7 @@ Menu.CreatePage( {
 					if ply then
 						local menu = DermaMenu()
 						for k,v in pairs( Reasons ) do
-							menu:AddOption( v, function() LocalPlayer():ConCommand( "exsto_Kick \'" .. ply .. "\' " .. v ) plylist.UpdatePlayers() end )
+							menu:AddOption( v, function() RunConsoleCommand( "exsto", "kick",  ply, v ) plylist.UpdatePlayers() end )
 						end
 						menu:Open()
 					end
@@ -642,7 +642,7 @@ Menu.CreatePage( {
 							if v == "1 Day" then v = 60 * 24 end
 							if v == "1 Week" then v = (60 * 24) * 7 end
 							if v == "1 Month" then v = ((60 * 24) * 7) * 4 end
-							menu:AddOption( v, function() LocalPlayer():ConCommand( "exsto_Ban \'" .. ply .. "\' " .. v ) plylist.UpdatePlayers() end )
+							menu:AddOption( v, function() RunConsoleCommand( "exsto", "ban", ply, v ) plylist.UpdatePlayers() end )
 						end
 						menu:Open()
 					end
@@ -661,7 +661,7 @@ Menu.CreatePage( {
 						end
 						local menu = DermaMenu()
 						for k,v in pairs( exsto.Levels ) do
-							menu:AddOption( v.Name, function() LocalPlayer():ConCommand( "exsto_SetAccess \'" .. ply .. "\' " .. v.Short ) plylist.UpdatePlayers() end )
+							menu:AddOption( v.Name, function() RunConsoleCommand( "exsto", "rank", ply, v.Short ) plylist.UpdatePlayers() end )
 						end
 						menu:Open()
 					end
