@@ -10,7 +10,18 @@ PLUGIN:SetInfo({
 	Owner = "Prefanatic",
 } )
 
-if not SERVER then return end
+if CLIENT then
+	function PLUGIN.GagPlayer( ply, ungag )
+		if ply:IsMuted( ply ) and ungag then
+			LocalPlayer():SetMuted( ply )
+		elseif !ply:IsMuted( ply ) then
+			LocalPlayer():SetMuted( ply )
+		end
+	end
+	exsto.UMHook( "exsto_GagPlayer", PLUGIN.GagPlayer )
+end
+
+if CLIENT then return end
 
 PLUGIN.Sayings = {
 	"You smell like me.",
@@ -60,7 +71,7 @@ function PLUGIN.Mute( owner, ply )
 
 	local style = " has muted "
 	
-	if PLUGIN.IsMuted( ply ) then
+	if ply.Muted then
 		ply.Muted = false	
 		style = " has un-muted "
 	else
@@ -88,7 +99,7 @@ local mutedList = {}
 
 function PLUGIN.MuteOnJoin( ply )
 	for k,v in pairs( mutedList ) do
-		ply:SetMuted( v )
+		exsto.UMStart( "exsto_GagPlayer", ply, v )
 	end
 end
 PLUGIN:AddHook( "exsto_InitSpawn", PLUGIN.MuteOnJoin )
@@ -96,16 +107,18 @@ PLUGIN:AddHook( "exsto_InitSpawn", PLUGIN.MuteOnJoin )
 function PLUGIN.Gag( owner, ply )
 
 	local style = " has gagged "
+	local ungag = false
 	
-	if ply:IsMuted() then
-		table.remove( mutedList, exsto.GetTableID( ply ) )
+	if table.HasValue( mutedList, ply ) then
+		table.remove( mutedList, exsto.GetTableID( mutedList, ply ) )
+		ungag = true
 		style = " has un-gagged "
 	else
 		table.insert( mutedList, ply )
 	end
 	
 	for k,v in pairs( player.GetAll() ) do
-		v:SetMuted( ply )
+		exsto.UMStart( "exsto_GagPlayer", v, ply, ungag )
 	end
 		
 	return {

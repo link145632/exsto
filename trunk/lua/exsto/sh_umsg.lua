@@ -23,12 +23,6 @@ require( "glon" )
 
 if SERVER then
 
-concommand.Add( "_PerformanceTest", function()
-	for I = 1, 200 do
-		exsto.Print( exsto_CHAT_ALL, COLOR.NORM, "We are testing some ", COLOR.EXSTO, "networking performance ", COLOR.RED, "!" )
-	end
-end )
-
 	function exsto.UMStart( name, ply, ... )
 		if type( name ) != "string" then exsto.Error( "No name to send usermessage to!" ) return end
 		if type( ply ) != "Player" then exsto.Error( "No player to send usermessage to!" ) return end
