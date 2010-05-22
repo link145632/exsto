@@ -598,12 +598,14 @@ function exsto.RunCommand( ply, command, args )
 		
 		if not args then return end
 		
-		local allowed = ply:IsAllowed( Found.ID )
-		local onPlayer = false
-		for k,v in pairs( Found.ReturnOrder ) do
-			if Found.Args[v] == "PLAYER" then
-				allowed = ply:IsAllowed( Found.ID, args[k] )
-				break
+		if !IsConsole then
+			local allowed = ply:IsAllowed( Found.ID )
+			local onPlayer = false
+			for k,v in pairs( Found.ReturnOrder ) do
+				if Found.Args[v] == "PLAYER" then
+					allowed = ply:IsAllowed( Found.ID, args[k] )
+					break
+				end
 			end
 		end
 		
