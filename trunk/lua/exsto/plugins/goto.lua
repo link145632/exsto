@@ -92,7 +92,7 @@ function PLUGIN.Bring( owner, ply )
 	
 	local pos = PLUGIN.SendPlayer( owner, ply, force )
 
-	if !pos then return { COLOR.NORM, "Not enough space to bring ", ply } end
+	if !pos then return { owner, COLOR.NORM, "Not enough space to bring ", COLOR.NAME, ply } end
 	
 	ply:SetPos( pos  )
 	return {

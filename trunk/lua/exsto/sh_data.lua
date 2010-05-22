@@ -185,7 +185,7 @@ if SERVER then
 	timer.Create( "FEL_MySQLHeartbeat", 30 * 60, 0, FEL.MySQLHeartbeat )
 
 	function FEL.PrintError( info )
-		Error( "\n---- FEL SQL Error ----\n ** Running - \n ** Error Msg - " .. info.Error .. "\n" );
+		ErrorNoHalt( "\n---- FEL SQL Error ----\n ** Running - \n ** Error Msg - " .. info.Error .. "\n" );
 	end
 
 	function FEL.Escape( str )
