@@ -35,21 +35,9 @@ if SERVER then
 
 	local meta = FindMetaTable( "Player" )
 	
-	-- Overrides, fa;slkjdfaushfdasdf
-	--[[local oldPrintMessage = meta.PrintMessage
-	
-	function meta:PrintMessage( type, str )
-		if type == HUD_PRINTTALK then self:ChatPrint( str ) return end
-		oldPrintMessage( self, type, str )
-	end
-	
-	function meta:ChatPrint( str ) 
-		exsto.Print( exsto_CHAT_NOLOGO, self, COLOR.WHITE, str )
-	end]]
-	
 	hook.Add( "exsto_InitSpawn", "exsto_SendComTable", function( ply )
 	
-		timer.Simple( 2, function()
+		--timer.Simple( 2, function()
 	
 			local Send = {}
 			for k,v in pairs( exsto.Commands ) do
@@ -59,6 +47,8 @@ if SERVER then
 					Desc = v.Desc,
 					Args = v.Args,
 					Chat = v.Chat,
+					ReturnOrder = v.ReturnOrder,
+					Optional = v.Optional,
 				}
 				
 			end
@@ -66,7 +56,7 @@ if SERVER then
 			--Send = glon.encode( Send )
 		
 			datastream.StreamToClients( ply, "exsto_RecieveCommands", Send )
-		end)
+		--end)
 		
 		PLUGIN.SetExstoColors( ply, exsto.GetVar( "native_exsto_colors" ).Value )
 		
@@ -224,11 +214,11 @@ elseif CLIENT then
 			
 			local look = string.sub( first[1], 1 )
 		
-			for k,v in pairs( Commands ) do
+			for k, data in pairs( Commands ) do
 			
-				if v.Chat then
+				if data.Chat then
 			
-					for k,v in pairs( v.Chat ) do
+					for k,v in pairs( data.Chat ) do
 					
 						local command = string.sub( v, 1 )
 					
@@ -239,7 +229,7 @@ elseif CLIENT then
 							if width == 0 then print( "Ugh, width == 0" ) end
 							if height == 0 then print( "Ugh, height == 0" ) end
 						
-							table.insert( Find_List, {Name = v, Width = width, Height = height } )
+							table.insert( Find_List, { Name = v, Width = width, Height = height, ReturnOrder = data.ReturnOrder, Args = data.Args, Optional = data.Optional } )
 							
 						end
 						
@@ -668,10 +658,37 @@ elseif CLIENT then
 					local w = command.Width
 					local h = command.Height - 4
 					local name = command.Name
+					local returnOrder = command.ReturnOrder
+					local args = command.Args
+					local optional = command.Optional
 					
 					if w >= width then width = w + 10 end
 					
-					table.insert( ToDraw, {Name = name, Place = place} )
+					-- We need to increase width depending on the list of argumentals.
+					local comInfo = ""
+					for I = 1, #returnOrder do
+						
+						-- We need to build the argument text for this command
+						local argument = returnOrder[I]
+						local dataType = args[argument]
+						local optional = optional[argument]
+						
+						if argument then
+							argument = argument:Trim():lower()
+							
+							local format = argument
+							if optional then format = "[" .. argument .. "]" end
+							
+							comInfo = comInfo .. format .. " "
+						end
+						
+					end
+					
+					local w, h = surface.GetTextSize( comInfo )
+					
+					if w >= width then width = w + 50 end
+					
+					table.insert( ToDraw, { Name = name, Place = place, Args = comInfo } )
 					
 					place = place + h
 					height = height + h
@@ -688,7 +705,11 @@ elseif CLIENT then
 			
 			for k,v in pairs( ToDraw ) do
 			
-				draw.SimpleTextOutlined( v.Name, pchat.Font, pchat.X + 5, v.Place, Color( 255, 255, 255, pchat.Box_Alpha ), 0, 0, 1, outlinecol )
+				local commandColor = Color( COLOR.NAME.r, COLOR.NAME.g, COLOR.NAME.b, pchat.Box_Alpha )
+				local w, h = surface.GetTextSize( v.Name )
+				
+				draw.SimpleTextOutlined( v.Name, pchat.Font, pchat.X + 5, v.Place, commandColor, 0, 0, 1, outlinecol )
+				draw.SimpleTextOutlined( v.Args, pchat.Font, pchat.X + 10 + w, v.Place, COLOR.NORM, 0, 0, 1, outlinecol )
 				
 			end
 			
@@ -699,12 +720,11 @@ elseif CLIENT then
 	
 		if Find_List then
 		
+			local split = string.Explode( " ", text )
 			local command = Find_List[1]
 			
-			if command then
-			
+			if command and #split == 1 then
 				return command.Name
-				
 			end
 			
 		end
