@@ -40,6 +40,9 @@ if SERVER then
 					Time = 0,
 					Last = os.time(),
 				},
+				Options = {
+					Update = true,
+				}
 			} )
 			
 			ply:SetFixedTime( 0 )
@@ -81,6 +84,9 @@ if SERVER then
 				Time = 0,
 				Last = os.time(),
 			},
+			Options = {
+				Update = true,
+			}
 		} )
 		
 	end

@@ -114,6 +114,9 @@ if SERVER then
 				Name = ply:Nick(), -- Don't forget to insert his name.
 				Number = num, -- Add this data into the number column!
 			},
+			Options = {
+				Update = true,
+			}
 		})			
 
 		-- This may look weird, but Exsto supports return printing.  This way, plugins can return a message, instead of using exsto.Print.

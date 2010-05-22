@@ -303,7 +303,8 @@ if SERVER then
 		local update = false
 		local args = ""
 		local threaded = false
-		
+		local update = true
+
 		if info.Options and info.Options.Threaded then threaded = true end
 
 		local item
@@ -514,7 +515,10 @@ if SERVER then
 			
 			for _,v in pairs( v ) do
 				FEL.AddData( k, {
-					Data = v
+					Data = v,
+					Options = {
+						Update = true,
+					}
 				} )
 			end
 		end

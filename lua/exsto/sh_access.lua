@@ -386,6 +386,9 @@ if SERVER then
 					Immunity = v.Immunity,
 					Flags = FEL.NiceEncode( newFlags ),
 					//CanModify, "false",
+				},
+				Options = {
+					Update = true,
 				}
 			} )
 		end
@@ -436,6 +439,7 @@ if SERVER then
 							Rank = v.group,
 						},
 						Options = {
+							Update = true,
 							Threaded = true,
 						},
 					} )
@@ -482,6 +486,7 @@ if SERVER then
 						BannedAt = v["time"],
 					},
 					Options = {
+						Update = true,
 						Threaded = true,
 					},
 				} )
