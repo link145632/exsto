@@ -395,6 +395,7 @@ if SERVER then
 			},
 			Options = {
 				Threaded = true,
+				Update = true,
 			}
 		} )
 		
@@ -427,6 +428,7 @@ if SERVER then
 			},
 			Options = {
 				Threaded = true,
+				Update = true,
 			}
 		} )
 		exsto.Print( exsto_CONSOLE_DEBUG, "Saving data for " .. ply:Nick() .. "!" )
