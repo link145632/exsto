@@ -95,7 +95,7 @@ if SERVER then
 	
 		for k,v in pairs( player.GetAll() ) do
 			
-			PLUGIN.OnPlayerDisconneced( v )
+			PLUGIN.OnPlayerDisconneced( PLUGIN, v )
 			
 		end
 		

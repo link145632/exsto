@@ -372,7 +372,7 @@ elseif CLIENT then
 			DeriveEntryText = data
 			
 			-- Emulate his derive moving.
-			if data != "NONE" then
+			if data != "NONE" and levels[Short] then
 				levels[Short].Derive = data
 			
 				PLUGIN.UpdateFlagList( Flag_UsingList, Flag_PossibleList, NoDeriveFlags, FullFlags, Short )
