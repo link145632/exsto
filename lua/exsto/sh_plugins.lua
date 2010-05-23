@@ -32,10 +32,12 @@ exsto.PlugLocation = "exsto/plugins/"
 
 local runningLocation = ""
 
--- Functions
+--[[ -----------------------------------
+	Function: exsto.RegisterPlugin
+	Description: DEPRICATED: Registers a plugin into Exsto.
+     ----------------------------------- ]]
 function exsto.RegisterPlugin( plugin )
-
-	if !plugin then exsto.Error( "Trying to register nil plugin!" ) return end
+	if !plugin then exsto.ErrorNoHalt( "Trying to register nil plugin!" ) return end
 	if !plugin.Enabled then exsto.Print( exsto_CONSOLE, "PLUGIN --> " .. plugin.Name .. " is not enabled!  Skipping!" ) return end
 	
 	plugin.Hooks = plugin.Hooks or {}
@@ -64,17 +66,22 @@ function exsto.RegisterPlugin( plugin )
 	
 end
 
+--[[ -----------------------------------
+	Function: exsto.LoadPlugins
+	Description: Reads all the plugins from the plugin folder.
+     ----------------------------------- ]]
 function exsto.LoadPlugins()
 	local plugins = file.FindInLua( exsto.PlugLocation .. "*.lua" )
 	exsto.PluginLocations = plugins
 end
 
+--[[ -----------------------------------
+	Function: exsto.InitPlugins
+	Description: Initializes all the plugins that were loaded.
+     ----------------------------------- ]]
 function exsto.InitPlugins()
 
 	exsto.PluginSettings = FEL.LoadSettingsFile( "exsto_plugin_settings" )
-	
-	print( "Settings table..." )
-	PrintTable( exsto.PluginSettings )
 
 	for k,v in pairs( exsto.PluginLocations ) do
 		if !v then exsto.Error( "Issue initializing plugin, no location set!" ) return end
@@ -90,6 +97,10 @@ function exsto.InitPlugins()
 
 end
 
+--[[ -----------------------------------
+	Function: exsto.UnloadAllPlugins
+	Description: Unloads all hooks from plugins.
+     ----------------------------------- ]]
 function exsto.UnloadAllPlugins()
 	exsto.NumberHooks = 0
 	for k,v in pairs( exsto.Plugins ) do
@@ -101,6 +112,10 @@ function exsto.UnloadAllPlugins()
 	end
 end
 
+--[[ -----------------------------------
+	Function: exsto.AddHook
+	Description: DEPRICATED: Adds a hook to a plugin.
+     ----------------------------------- ]]
 function exsto.AddHook( name, func, module )
 
 	-- Construct the unique name.
@@ -113,29 +128,11 @@ function exsto.AddHook( name, func, module )
 	hook.Add( name, id, func )
 	exsto.Print( exsto_CONSOLE_DEBUG, "PLUGIN --> " .. module.ID .. " --> Adding " .. name .. " hook!" )
 end
---[[
-local oldHookCall = hook.Call
-hook.Call = function( name, gm, ... )
-	for k,v in pairs( exsto.Plugins ) do
-		if type( v.Object.Hooks ) == "table" then
-			if table.HasValue( v.Object.Hooks, name ) then
-				local ret = { pcall( v.Object.Hooks[name], v, ... ) }
-				
-				if ret[1] and ret[2] != nil then
-					table.remove( ret, 1 )
-					return unpack( ret )
-				elseif !ret[1] then
-					exsto.ErrorNoHalt( "PLUGIN --> " .. name .. " --> Hook failed with error -" )
-					extso.ErrorNoHalt( ret[2] )
-				end
-			end
-		end
-	end
-	
-	return oldHookCall( name, gm, ... )
-	
-end]]
 
+--[[ -----------------------------------
+	Function: exsto.PluginStatus
+	Description: Returns if a plugin is enabled or disabled.
+     ----------------------------------- ]]
 function exsto.PluginStatus( plug )
 	for k,v in pairs( exsto.PluginSettings ) do
 		if k == plug.Info.ID then return v end
@@ -143,6 +140,10 @@ function exsto.PluginStatus( plug )
 	return false
 end
 
+--[[ -----------------------------------
+	Function: exsto.PluginSaved
+	Description: Returns true if a plugin has saved into the settings table.
+     ----------------------------------- ]]
 function exsto.PluginSaved( plug )
 	for k,v in pairs( exsto.PluginSettings ) do
 		if k == plug.Info.ID then return true end
@@ -150,6 +151,10 @@ function exsto.PluginSaved( plug )
 	return false
 end
 
+--[[ -----------------------------------
+	Function: exsto.PluginDisabled
+	Description: Returns true if a plugin is disabled.
+     ----------------------------------- ]]
 function exsto.PluginDisabled( plug )
 	for k,v in pairs( exsto.PluginSettings ) do
 		if k == plug.Info.ID and !v then return true end
@@ -157,6 +162,10 @@ function exsto.PluginDisabled( plug )
 	return false
 end
 
+--[[ -----------------------------------
+	Function: exsto.GetPlugin
+	Description: Returns the plugin's data object.
+     ----------------------------------- ]]
 function exsto.GetPlugin( id )
 	for k,v in pairs( exsto.Plugins ) do
 		if k == id then return v.Object end

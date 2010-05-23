@@ -8,7 +8,7 @@ PLUGIN:SetInfo({
 	ID = "grave-death",
 	Desc = "A plugin that creates graves when you die!",
 	Owner = "Prefanatic",
-	Enabled = false,
+	Enabled = true,
 } )
 
 if not SERVER then return end

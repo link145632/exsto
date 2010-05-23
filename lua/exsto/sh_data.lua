@@ -48,7 +48,10 @@ if SERVER then
 
 	-- Functions
 
-	// Data Initialize
+--[[ -----------------------------------
+	Function: FEL.Init
+	Description: Loads up the File Exstension Library
+     ----------------------------------- ]]
 	function FEL.Init()
 
 		-- Lets load our settings file first!
@@ -100,6 +103,10 @@ if SERVER then
 		end
 	end
 
+--[[ -----------------------------------
+	Function: mysqlQuery
+	Description: Helper function to query MySQL.
+     ----------------------------------- ]]
 	local function mysqlQuery( run, threaded )
 		local data, success, err = mysql.query( FEL.Database, run, mysql.QUERY_FIELDS )
 		
@@ -136,6 +143,10 @@ if SERVER then
 		return data		
 	end
 
+--[[ -----------------------------------
+	Function: sqliteQuery
+	Description: Helper function to query into SQLite
+     ----------------------------------- ]]
 	local function sqliteQuery( run )
 		local result = sql.Query( run )
 			
@@ -152,6 +163,10 @@ if SERVER then
 		return result
 	end
 
+--[[ -----------------------------------
+	Function: FEL.Query
+	Description: Main query, returns data from SQL query
+     ----------------------------------- ]]
 	function FEL.Query( run, treaded )
 
 		exsto.Print( exsto_CONSOLE_DEBUG, "FEL --> Running - " .. run )
@@ -174,6 +189,10 @@ if SERVER then
 		
 	end
 	
+--[[ -----------------------------------
+	Function: FEL.MySQLHeartbeat
+	Description: Pings the MySQL server every 30 minutes to prevent going away.
+     ----------------------------------- ]]
 	function FEL.MySQLHeartbeat()
 	
 		-- If we are in MySQL
@@ -184,10 +203,18 @@ if SERVER then
 	end
 	timer.Create( "FEL_MySQLHeartbeat", 30 * 60, 0, FEL.MySQLHeartbeat )
 
+--[[ -----------------------------------
+	Function: FEL.PrintError
+	Description: Prints an error recieved from the FEL.Query
+     ----------------------------------- ]]
 	function FEL.PrintError( info )
 		ErrorNoHalt( "\n---- FEL SQL Error ----\n ** Running - \n ** Error Msg - " .. info.Error .. "\n" );
 	end
-
+	
+--[[ -----------------------------------
+	Function: FEL.Escape
+	Description: Makes a string nice.
+     ----------------------------------- ]]
 	function FEL.Escape( str )
 
 		if FEL.Settings["MySQL"] then
@@ -202,6 +229,10 @@ if SERVER then
 		
 	end
 	
+--[[ -----------------------------------
+	Function: FEL.CheckTable
+	Description: Checks a table to see if it has all the correct columns.  Will recreate if not.
+     ----------------------------------- ]]
 	function FEL.CheckTable( name, data )
 	
 		-- First, lets check if the table exists.
@@ -234,6 +265,10 @@ if SERVER then
 		
 	end
 
+--[[ -----------------------------------
+	Function: FEL.MakeTable_Internal
+	Description: Creates a table
+     ----------------------------------- ]]
 	function FEL.MakeTable_Internal( name, data )
 
 		if type( data ) != "table" then exsto.Error( "Error while trying to create table " .. name .. "!  Data variable is not a table!" ) return end
@@ -273,43 +308,36 @@ if SERVER then
 		
 	end
 
+--[[ -----------------------------------
+	Function: FEL.MakeTable
+	Description: Creates a table and inserts it into the Exsto list of tables.
+     ----------------------------------- ]]
 	function FEL.MakeTable( name, data )
-
 		FEL.CreatedTables[name] = data;
 		FEL.MakeTable_Internal( name, data )
-		
 	end
 
-	function FEL.PurgeData( ply, _, args )
-		local tbl = args[1]
-		if !ply:IsSuperAdmin() then return end
-		FEL.Query( "DELETE * FROM " .. tbl, true )
-	end
-	concommand.Add( "FEL_DeleteTableRows", FEL.PurgeData )
-
+--[[ -----------------------------------
+	Function: FEL.DeleteTable
+	Description: Deletes a table created by FEL
+     ----------------------------------- ]]
 	function FEL.DeleteTable( ply, _, args )
-
 		local tbl = args[1]
-		
-		if ply:EntIndex() == 0 or ply:IsSuperAdmin() then
-		
-			if FEL.CreatedTables[tbl] then
-			
-				FEL.Query( "DROP TABLE " .. tbl .. ";", true )
-				//FEL.MakeTable_Internal( tbl, FEL.CreatedTables[tbl].Args, true )
-			
-			else
-			
-				exsto.Print( exsto_CLIENT, ply, "No table called " .. tbl .. "!" )
-			
+		if ply:IsSuperAdmin() then
+			if FEL.CreatedTables[tbl] then	
+				FEL.Query( "DROP TABLE " .. tbl .. ";", true )			
+			else	
+				exsto.Print( exsto_CLIENT, ply, "No table called " .. tbl .. "!" )	
 			end
-		end
-		
+		end	
 	end
 	concommand.Add( "FEL_DeleteTable", FEL.DeleteTable )
 
-	function FEL.LoadData( tab, select, where, where_data, callback )
-
+--[[ -----------------------------------
+	Function: FEL.LoadData
+	Description: Loads a select data from a table where a value is another value.
+     ----------------------------------- ]]
+	function FEL.LoadData( tab, select, where, where_data  )
 		local syntax = "SELECT " .. select .. " FROM " .. tab
 		if where and where_data then
 			if type( where_data ) == "string" then where_data = FEL.Escape( where_data ) end
@@ -318,21 +346,26 @@ if SERVER then
 		end
 		syntax = syntax .. ";"
 
-		-- Hey guys new module.
 		local data = FEL.Query( syntax )
 
 		if data then for k,v in pairs( data[1] ) do return v end end	
-		
 		return
 	end
 
+--[[ -----------------------------------
+	Function: FEL.Query
+	Description: Main query, returns data from SQL query
+     ----------------------------------- ]]
 	function FEL.LoadTable( tab, mysql )
 		return FEL.Query( "SELECT * FROM " .. tab .. ";", mysql )
 	end
 
-	function FEL.AddData( tab, info, callback )
+--[[ -----------------------------------
+	Function: FEL.AddData
+	Description: Inserts data into a table.
+     ----------------------------------- ]]
+	function FEL.AddData( tab, info )
 
-		-- Better way of doing this?
 		local look = nil
 		local data = nil
 		if info.Look then
@@ -420,7 +453,10 @@ if SERVER then
 		return FEL.Query( syntax, options.Threaded )
 	end	
 
-	-- Specific functions for plugins
+--[[ -----------------------------------
+	Function: FEL.SaveUserInfo
+	Description: Saves a player's information
+     ----------------------------------- ]]
 	function FEL.SaveUserInfo( ply )
 
 		local nick = ply:Nick()
@@ -446,10 +482,18 @@ if SERVER then
 		
 	end
 
+--[[ -----------------------------------
+	Function: FEL.LoadUserInfo
+	Description: Loads user's information
+     ----------------------------------- ]]
 	function FEL.LoadUserInfo( ply )
 		return FEL.LoadData( "exsto_data_users", "Rank", "SteamID", ply:SteamID() )
 	end
 
+--[[ -----------------------------------
+	Function: FEL.SaveBanInfo
+	Description: Saves a player's banned information.
+     ----------------------------------- ]]
 	function FEL.SaveBanInfo( ply, len, reason, banned_by, time )
 
 		local nick = ply:Nick()
@@ -478,6 +522,10 @@ if SERVER then
 		
 	end
 
+--[[ -----------------------------------
+	Function: FEL.LoadBanInfo
+	Description: Loads user ban information.
+     ----------------------------------- ]]
 	function FEL.LoadBanInfo( SteamID )
 		
 		local data = FEL.Query( "SELECT Length, BannedAt FROM exsto_data_bans WHERE SteamID = " .. FEL.Escape( SteamID ) .. ";" )
@@ -489,6 +537,9 @@ if SERVER then
 		
 	end
 
+--[[ -----------------------------------
+		FEL Helper Functions
+     ----------------------------------- ]]
 	function FEL.DataExists( tab, where, value )
 
 		if type( value ) == "string" then value = FEL.Escape( value ) end
@@ -509,9 +560,11 @@ if SERVER then
 
 		return FEL.Query( "DELETE FROM " .. tab .. " WHERE " .. column .. " = " .. value .. ";", true )
 	end
-	concommand.Add( "FEL_PrintTable", function( ply, _, args ) PrintTable( FEL.LoadTable( args[1] ) ) end )
 
-	// UTILITIES
+--[[ -----------------------------------
+	Function: FEL.ConvertToDatabase
+	Description: Converts a database to one style.
+     ----------------------------------- ]]
 	function FEL.ConvertToDatabase( style )
 		style = style:lower():Trim()
 		
@@ -575,6 +628,10 @@ if SERVER then
 		FEL.ConvertToDatabase( args[1] )
 	end )
 
+--[[ -----------------------------------
+	Function: FEL.DropAllTables
+	Description: Cleans all tables from FEL and drops them.
+     ----------------------------------- ]]
 	function FEL.DropAllTables()
 
 		for k,v in pairs( FEL.CreatedTables ) do
@@ -608,8 +665,10 @@ if SERVER then
 		
 end
 
--- Put the shared stuff we want here.
-
+--[[ -----------------------------------
+	Function: FEL.MakeSteamNice
+	Description: Main query, returns data from SQL query
+     ----------------------------------- 
 function FEL.MakeSteamNice( steamid, reverse )
 
 	if !reverse then
@@ -620,12 +679,20 @@ function FEL.MakeSteamNice( steamid, reverse )
 	
 	return steamid
 	
-end
+end]]
 
+--[[ -----------------------------------
+	Function: FEL.NiceColor
+	Description: Makes a color nice.
+     ----------------------------------- ]]
 function FEL.NiceColor( color )
 	return "c," .. color.r .. "," .. color.g .. "," .. color.b .. "," .. color.a
 end
 
+--[[ -----------------------------------
+	Function: FEL.MakeColor
+	Description: Makes a nice color a color.
+     ----------------------------------- ]]
 function FEL.MakeColor( str )
 	local split = string.Explode( ",", str )
 	table.remove( split, 1 )
@@ -637,12 +704,14 @@ function FEL.MakeColor( str )
 	return Color( split[1], split[2], split[3], split[4] )
 end
 
+--[[ -----------------------------------
+	Function: FEL.NiceEncode
+	Description: Encodes a table to a readable string.
+     ----------------------------------- ]]
 function FEL.NiceEncode( data )
 	
 	local form = type( data )
 	local encoded = "[form=" .. form .. "]";
-	
-	//print( "Encoding data with type " .. form .. "!" )
 	
 	if form == "Vector" then
 		local oldData = data
@@ -672,16 +741,15 @@ function FEL.NiceEncode( data )
 		cur = cur +1
 	end
 	encoded = encoded .. "[/form, " .. index .. ", " .. tostring( stringIndex ) .. "]"
-
-	
-	//print( "Finished encoding!\n ** " .. encoded )
 	
 	return encoded
 end
 
+--[[ -----------------------------------
+	Function: FEL.NiceDecode
+	Description: Decodes a nice string into a table
+     ----------------------------------- ]]
 function FEL.NiceDecode( str )
-
-	//print( "Decoding data!\n ** Encoded: " .. str )
 	
 	local startPos, endPos, startTag, form = string.find( str, "(%[form=(%a+)%])" )
 	local endStart, endEnd, endTag, count, stringIndex = string.find( str, "(%[/form, (%d+), (%a+)%])" )
@@ -697,24 +765,19 @@ function FEL.NiceDecode( str )
 	
 	count = tonumber( count )
 	stringIndex = tobool( stringIndex )
-	
-	//print( " ** Tag: " .. startTag .. "\n ** Index: " .. count .. "\n ** Form: " .. form )
-	
+
 	local sub = string.sub( str, endPos + 1, endStart - 1 )
 	local capture = string.gmatch( sub, "%[([%d%%.]+)%]([%a%d-%.]+)" )
 	local data = {}
 	
 	for k,v in capture do
 		if !stringIndex then
-			//print( "RAGE" )
 			data[tonumber(k)] = v
 		else
 			data[k] = v
 		end
 	end
-	
-	//PrintTable( data )
-	
+
 	if form == "table" then 
 		return data
 	elseif form == "Vector" then
@@ -726,7 +789,7 @@ function FEL.NiceDecode( str )
 	return data
 	
 end
-
+--[[
 function FEL.MakeDir( dir )
 
 	if !file.IsDir( dir ) then
@@ -749,8 +812,12 @@ function FEL.Write( f, ... )
 
 	file.Write( f, glon.encode( {...} ) )
 	
-end
+end]]
 
+--[[ -----------------------------------
+	Function: FEL.FindTableDifference
+	Description: Finds a difference in a table.
+     ----------------------------------- ]]
 function FEL.FindTableDifference( original, new )
 
 	local addTo = {}
@@ -772,6 +839,10 @@ function FEL.FindTableDifference( original, new )
 
 end
 
+--[[ -----------------------------------
+	Function: FEL.LoadSettingsFile
+	Description: Loads a file with settings in it.
+     ----------------------------------- ]]
 function FEL.LoadSettingsFile( id )
 	
 	if file.Exists( id .. ".txt" ) then
@@ -802,6 +873,10 @@ function FEL.LoadSettingsFile( id )
 	
 end
 
+--[[ -----------------------------------
+	Function: FEL.CreateSettingsFile
+	Description: Creates a .txt settings file.
+     ----------------------------------- ]]
 function FEL.CreateSettingsFile( id, tbl )
 	local readData
 	
@@ -829,6 +904,10 @@ function FEL.CreateSettingsFile( id, tbl )
 	file.Write( id .. ".txt", data )
 end
 
+--[[ -----------------------------------
+	Function: FEL.DumpErrorLog
+	Description: Dumps all known errors to a .txt file.
+     ----------------------------------- ]]
 function FEL.DumpErrorLog()
 
 	local data = "************ EXSTO ERROR LOG ************\n"

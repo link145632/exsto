@@ -645,7 +645,7 @@ elseif CLIENT then
 		-- Find Commands
 		if #Find_List >= 1 then
 			local height = 20
-			local width = 40
+			local width = 50
 			local place = pchat.Y + 25
 			local ToDraw = {}
 
@@ -662,7 +662,7 @@ elseif CLIENT then
 					local args = command.Args
 					local optional = command.Optional
 					
-					if w >= width then width = w + 10 end
+					if w >= width then width = w + 20 end
 					
 					-- We need to increase width depending on the list of argumentals.
 					local comInfo = ""

@@ -18,6 +18,21 @@
 
 
 -- Server Access
+-- Pretty much Misc.
+
+--[[ -----------------------------------
+	Category:  Console Utils
+     ----------------------------------- ]]
+local console = _R.Entity
+
+function console:Nick() if !self:IsValid() then return "Console" end end
+function console:IsAllowed() if !self:IsValid() then return true end end
+function console:IsSuperAdmin() if !self:IsValid() then return true end end
+function console:IsAdmin() if !self:IsValid() then return true end end
+
+--[[ -----------------------------------
+	Category:  Player Extras
+     ----------------------------------- ]]
 
 function exsto.FindPlayer( ply )
 

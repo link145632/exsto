@@ -34,22 +34,16 @@ if SERVER then
 
 	exsto.Variables = {}
 	
-	--[[exsto.AddVariable({
-		Pretty = "Hello",
-		Dirty = "hello",
-		Default = true,
-		OnChange = thisFunction,
-		Description = "This is hello!",
-		Possible = { true, false }
-		})
-	]]
-	
 	local dataTypes = {
 		string = function( data ) return tostring( data ), "string" end,
 		boolean = function( data ) return tobool( data ), "boolean" end,
 		number = function( data ) return tonumber( data ), "number" end,
 	}
 
+	--[[ -----------------------------------
+	Function: exsto.AddVariable
+	Description: Creates a variable and inserts it into the Exsto table.
+     ----------------------------------- ]]
 	function exsto.AddVariable( data )
 		if type( data ) != "table" then exsto.ErrorNoHalt( "Issue creating variable!  Not continuing in this function call!" ) return end
 		
@@ -76,6 +70,10 @@ if SERVER then
 
 	end
 	
+	--[[ -----------------------------------
+	Function: exsto.SetVar
+	Description: Sets a variable to be a certian value, then calls the callback.
+     ----------------------------------- ]]
 	function exsto.SetVar( dirty, value )
 		local var = exsto.FindVar( dirty ) 
 		if !var then return end
@@ -97,6 +95,10 @@ if SERVER then
 		return false		
 	end
 	
+	--[[ -----------------------------------
+	Function: exsto.SaveVarInfo
+	Description: Saves the variable's information to FEL.
+     ----------------------------------- ]]
 	function exsto.SaveVarInfo( dirty )
 		local var = exsto.FindVar( dirty )		
 		FEL.AddData( "exsto_data_variables", {
@@ -116,27 +118,20 @@ if SERVER then
 			}
 		} )
 	end
-
+	
+	--[[ -----------------------------------
+	Function: exsto.GetVar
+	Description: Returns a variable's data table.
+     ----------------------------------- ]]
 	function exsto.GetVar( dirty )
 		return exsto.Variables[dirty]
 	end
+	exsto.FindVar = exsto.GetVar
 	
-	concommand.Add( "_PrintVarTable", function() PrintTable( exsto.Variables ) end)
-	
-	function exsto.ParseVarType( value )
-	
-		if type( value ) == "boolean" then return "boolean" end
-		if type( value ) == "number" then return "number" end
-
-		value = value:lower():Trim()
-	
-		if value == "true" or value == "false" then return "boolean" end
-		if tonumber( value ) then return "number" end
-		
-		return "string"
-		
-	end
-	
+	--[[ -----------------------------------
+	Function: exsto.Variable_Load
+	Description: Loads all existing exsto variables.
+     ----------------------------------- ]]
 	function exsto.Variable_Load()
 		local vars = FEL.LoadTable( "exsto_data_variables" )
 
@@ -152,9 +147,6 @@ if SERVER then
 			-- Fix the data type.
 			local datatype = exsto.ParseVarType( v.Value )
 			local value = dataTypes[datatype]( v.Value )
-			//print( "New type is " .. tostring( datatype ) )
-			
-			print( datatype, value )
 			
 			exsto.Variables[v.Dirty] = {
 				Pretty = v.Pretty,
@@ -167,14 +159,6 @@ if SERVER then
 			}
 		end
 		
-	end
-	
-	concommand.Add( "_LoadVars", function() exsto.Variable_Load() end )
-	concommand.Add( "_SaveVars", function() exsto.Variable_Save() end )
-
-	function exsto.FindVar( var )
-		if !exsto.Variables then return false end
-		return exsto.Variables[var]
 	end
 
 	exsto.Variable_Load()

@@ -23,9 +23,13 @@ require( "glon" )
 
 if SERVER then
 
+	--[[ -----------------------------------
+	Function: exsto.UMStart
+	Description: Sends a set of data to the client on a hook.
+     ----------------------------------- ]]
 	function exsto.UMStart( name, ply, ... )
-		if type( name ) != "string" then exsto.Error( "No name to send usermessage to!" ) return end
-		if type( ply ) != "Player" then exsto.Error( "No player to send usermessage to!" ) return end
+		if type( name ) != "string" then exsto.ErrorNoHalt( "No name to send usermessage to!" ) return end
+		if type( ply ) != "Player" then exsto.ErrorNoHalt( "No player to send usermessage to!" ) return end
 	
 		local arg = {...}
 		local nothing = false
@@ -69,9 +73,13 @@ end
 
 if CLIENT then
 
+	--[[ -----------------------------------
+	Function: exsto.UMHook
+	Description: Hooks into a usermessage that recieves data.
+     ----------------------------------- ]]
 	function exsto.UMHook( name, func )
-		if type( name ) != "string" then exsto.Error( "No name specified for UM Hook!" ) return end
-		if type( func ) != "function" then exsto.Error( "No function callback for " .. name .. "!" ) return end
+		if type( name ) != "string" then exsto.ErrorNoHalt( "No name specified for UM Hook!" ) return end
+		if type( func ) != "function" then exsto.ErrorNoHalt( "No function callback for " .. name .. "!" ) return end
 
 		local function um( UMSG )
 		

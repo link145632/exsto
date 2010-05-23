@@ -33,7 +33,7 @@ local function LoadVariables()
 	exsto = {}
 	exsto.Info = {}
 		exsto.Info.Author = "Prefanatic"
-		exsto.Info.Version = "PRIVATE 1.0"
+		exsto.Info.Version = "Release"
 	exsto.DebugEnabled = true
 	
 end
@@ -42,7 +42,9 @@ function exstoInit()
 
 	if exsto then
 	
-		exsto.Print( exsto_CHAT_ALL, COLOR.NORM, "Exsto is reloading the core!" )
+		if exsto.Print then
+			exsto.Print( exsto_CHAT_ALL, COLOR.NORM, "Exsto is reloading the core!" )
+		end
 		
 		if exsto.Plugins then
 			exsto.UnloadAllPlugins()

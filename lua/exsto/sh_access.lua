@@ -28,6 +28,10 @@ exsto.Levels = {}
 exsto.LoadedLevels = {}
 exsto.RankErrors = {} -- For storing errors from ranks.
 
+--[[ -----------------------------------
+	Function: AddLevel
+	Description: Inserts a rank into Exsto's rank table.
+     ----------------------------------- ]]
 local function AddLevel( data )
 
 	exsto.Levels[data.Short] = {
@@ -59,8 +63,11 @@ if SERVER then
 
 	local Default_Access = exsto.DefaultRanks
 	
-	// Initialize standard access controls.
-	function ACCESS_CreateDefaults( force )
+--[[ -----------------------------------
+	Function: ACCESS_CreateDefaults
+	Description: Creates the default ranks from sh_tables.
+	----------------------------------- ]]
+	function ACCESS_CreateDefaults()
 		for k,v in pairs( Default_Access ) do
 		
 			FEL.AddData( "exsto_data_access", {
@@ -86,6 +93,10 @@ if SERVER then
 		
 	end
 	
+--[[ -----------------------------------
+	Function: ACCESS_ForceRefresh
+	Description: Reloads the ranks.
+	----------------------------------- ]]
 	function ACCESS_ForceRefresh( ply, _, args )
 	
 		if !ply:IsAdmin() then return end
@@ -93,7 +104,6 @@ if SERVER then
 		exsto.Levels = {}
 		exsto.LoadedLevels = {}
 		
-		ACCESS_CreateDefaults( true )
 		ACCESS_LoadFiles()
 		ACCESS_InitLevels()
 		
@@ -102,6 +112,10 @@ if SERVER then
 	end
 	concommand.Add( "exsto_RecreateRankData", ACCESS_ForceRefresh )
 
+--[[ -----------------------------------
+	Function: ACCESS_LoadFiles
+	Description: Loads all the ranks.
+	----------------------------------- ]]
 	function ACCESS_LoadFiles()
 
 		local ranks = FEL.LoadTable( "exsto_data_access" )
@@ -140,6 +154,10 @@ if SERVER then
 		ACCESS_InitLevels()	
 	end		
 
+--[[ -----------------------------------
+	Function: ACCESS_UpdateDefaultFlags
+	Description: Updates the saved default flags with the new ones in sh_tables.
+	----------------------------------- ]]
 	function ACCESS_UpdateDefaultFlags( short )
 		local data = table.Copy( exsto.LoadedLevels[short] )
 		local defaultData = exsto.DefaultRanks[short]
@@ -147,76 +165,78 @@ if SERVER then
 		local addToFlags = table.Copy( data.Flags )
 		
 		local tableChanged = false
+			
+		-- First, we need to check and see if hes missing any.
+		for k,v in pairs( defaultData.Flags ) do
+			if !table.HasValue( data.DefaultFlags, v ) then
+				tableChanged = true
+				-- Hes mising a flag!
+				table.insert( addToFlags, v )
+				table.insert( checkedFlags, v )
+			end
+		end
 		
-		--if #data.DefaultFlags != #defaultData.Flags then
-			
-			-- First, we need to check and see if hes missing any.
-			for k,v in pairs( defaultData.Flags ) do
-				if !table.HasValue( data.DefaultFlags, v ) then
+		-- Now, we need to check and see if the saved data has one more than it should.
+		if #data.DefaultFlags > #defaultData.Flags then
+			for k,v in pairs( data.DefaultFlags ) do
+				if !table.HasValue( defaultData.Flags, v ) then
 					tableChanged = true
-					-- Hes mising a flag!
-					table.insert( addToFlags, v )
-					table.insert( checkedFlags, v )
+					table.remove( addToFlags, k )
+					table.remove( checkedFlags, k )
 				end
 			end
-			
-			-- Now, we need to check and see if the saved data has one more than it should.
-			if #data.DefaultFlags > #defaultData.Flags then
-				for k,v in pairs( data.DefaultFlags ) do
-					if !table.HasValue( defaultData.Flags, v ) then
-						tableChanged = true
-						table.remove( addToFlags, k )
-						table.remove( checkedFlags, k )
-					end
-				end
-			end
-			
-			if tableChanged then
-			
-				exsto.Print( exsto_CONSOLE, "RANKS --> " .. short .. " --> Rank has been updated with new flag information!" )
+		end
+		
+		if tableChanged then
+		
+			exsto.Print( exsto_CONSOLE, "RANKS --> " .. short .. " --> Rank has been updated with new flag information!" )
 
-				FEL.AddData( "exsto_data_access", {
-					Look = {
-						Short = data.Short,
-					},
-					Data = {
-						Name = data.Name,
-						Description = data.Desc,
-						Short = data.Short,
-						Derive = data.Derive,
-						Color = FEL.NiceColor( data.Color ),
-						Immunity = data.Immunity,
-						Flags = FEL.NiceEncode( addToFlags ),
-						DefaultFlags = FEL.NiceEncode( checkedFlags ),
-					},
-					Options = {
-						Update = true,
-					}
-				} )
-					
-				exsto.LoadedLevels[short] = {
+			FEL.AddData( "exsto_data_access", {
+				Look = {
+					Short = data.Short,
+				},
+				Data = {
 					Name = data.Name,
-					Desc = data.Desc,
+					Description = data.Desc,
 					Short = data.Short,
 					Derive = data.Derive,
-					Color = data.Color,
+					Color = FEL.NiceColor( data.Color ),
 					Immunity = data.Immunity,
-					Flags = addToFlags,
-					DefaultFlags = checkedFlags,
+					Flags = FEL.NiceEncode( addToFlags ),
+					DefaultFlags = FEL.NiceEncode( checkedFlags ),
+				},
+				Options = {
+					Update = true,
 				}
+			} )
 				
-			end
-		--end
+			exsto.LoadedLevels[short] = {
+				Name = data.Name,
+				Desc = data.Desc,
+				Short = data.Short,
+				Derive = data.Derive,
+				Color = data.Color,
+				Immunity = data.Immunity,
+				Flags = addToFlags,
+				DefaultFlags = checkedFlags,
+			}
+			
+		end
 	end
 
+--[[ -----------------------------------
+	Function: RANK_Loaded
+	Description: Returns true if the rank is loaded
+	----------------------------------- ]]
 	function RANK_Loaded( rank )
-	
 		if exsto.Levels[rank] then return true end
-		
 		return false
-	
 	end
 	
+--[[ -----------------------------------
+	Function: ACCESS_CheckIfEndless
+	Description: Checks if a rank is broken, or gets stuck in an endless derive
+	----------------------------------- ]]
 	function ACCESS_CheckIfEndless( rank )
 	
 		local checkedRanks = { rank }
@@ -232,7 +252,6 @@ if SERVER then
 			if !info then return true end
 
 			if info.Derive == "" or !info.Derive then -- He has no derive somehow
-				print( "REEH" )
 				exsto.RankErrors[info.Short] = {info, "nonexistant derive"}
 				return true
 			end
@@ -281,6 +300,10 @@ if SERVER then
 		
 	end
 	
+--[[ -----------------------------------
+	Function: ACCESS_Derive
+	Description: Derives a rank off another
+	----------------------------------- ]]	
 	function ACCESS_Derive( rank )
 	
 		local derive = exsto.LoadedLevels[rank]
@@ -316,6 +339,10 @@ if SERVER then
 		
 	end
 	
+--[[ -----------------------------------
+	Function: ACCESS_InitLevels
+	Description: Initializes all the ranks
+	----------------------------------- ]]
 	function ACCESS_InitLevels()
 
 		for k,v in pairs( exsto.LoadedLevels ) do
@@ -353,19 +380,29 @@ if SERVER then
 		
 	end
 
+--[[ -----------------------------------
+	Function: ACCESS_PrepReload
+	Description: Deletes the rank tables
+	----------------------------------- ]]
 	function ACCESS_PrepReload()
-	
 		exsto.Levels = {}
 		exsto.LoadedLevels = {}
-		
 	end
 	
+--[[ -----------------------------------
+	Function: ACCESS_ResendRanks
+	Description: Resends the ranks to all players
+	----------------------------------- ]]
 	function ACCESS_ResendRanks()
 		datastream.StreamToClients( player.GetAll(), "SendLevels", exsto.Levels )
 		hook.Call( "exsto_ResendRanks", nil )
 	end
 	
-	function ACCESS_ConvertLegacyFlags()
+--[[ -----------------------------------
+	Function: FEL.Query
+	Description: Main query, returns data from SQL query
+	----------------------------------- ]]
+	--[[function ACCESS_ConvertLegacyFlags()
 		for k,v in pairs( exsto.Levels ) do
 		
 			local newFlags = {}
@@ -397,18 +434,13 @@ if SERVER then
 	concommand.Add( "ACCESS_ConvertLegacyFlags", function( ply )
 		if !ply:IsSuperAdmin() then return end
 		ACCESS_ConvertLegacyFlags()
-	end )
+	end )]]
 	
+--[[ -----------------------------------
+	Function: ACCESS_LoadFromULX
+	Description: Loads data from ULX
+	----------------------------------- ]]
 	function ACCESS_LoadFromULX( style )
-
-		--[[
-		if file.Exists( "Ulib/groups.txt" ) then
-			exsto.Print( exsto_CONSOLE, "UCS --> Loading groups from ULX!" )
-			
-			local data = file.Read( "Ulib/groups.txt" )
-			local info = {}
-		
-		]]
 		
 		if file.Exists( "Ulib/users.txt" ) and style == "users" then
 			exsto.Print( exsto_CONSOLE, "UCS --> Loading user information from ULX!" )
@@ -454,9 +486,7 @@ if SERVER then
 			
 			local data = file.Read( "Ulib/bans.txt" )
 			local info = {}
-			
-			//%c-{([%a%c%p%s]+)}
-			
+
 			for steamID, data in string.gmatch( data, "\"(STEAM_[0-9]:[0-9]:[0-9]-)\"%c-{(.-)}" ) do
 				info[steamID] = {}
 				-- Grab all the key entries that don't have tables following them.
@@ -503,7 +533,6 @@ if SERVER then
 	end)
 	
 	ACCESS_CreateDefaults()
-
 	ACCESS_LoadFiles()
 
 end
@@ -514,11 +543,13 @@ if SERVER then
 
 	hook.Add( "AcceptStream", "exsto_AcceptDS", function( ply, handler, id ) return true end )
 
+--[[ -----------------------------------
+	Function: exsto.SetAccess
+	Description: Sets a player's rank.
+	----------------------------------- ]]
 	function exsto.SetAccess( ply, user, rank )
 	
 		local plydata = FEL.LoadUserInfo( user )
-		
-		--if not plydata then PAC.Error( "Couldnt load rank for " .. ply:Nick() .. "!" ) return end
 		
 		local Found = false
 		for k,v in pairs( exsto.Levels ) do
@@ -544,6 +575,10 @@ if SERVER then
 		Optional = {Rank = "guest"},
 	})
 	
+--[[ -----------------------------------
+	Function: exsto.PrintRank
+	Description: Prints a users rank
+	----------------------------------- ]]
 	function exsto.PrintRank( ply, victim )
 	
 		if victim:IsPlayer() then
@@ -563,6 +598,10 @@ if SERVER then
 		Optional = {Victim = nil},
 	})
 	
+--[[ -----------------------------------
+	Function: exsto.AddUsersOnJoin
+	Description: Monitors on join, and prints any relevant information to the chat.
+	----------------------------------- ]]
 	function exsto.AddUsersOnJoin( ply, steamid, uniqueid )
 
 		local plydata = FEL.LoadUserInfo( ply )
@@ -596,6 +635,10 @@ if SERVER then
 	end
 	hook.Add( "exsto_InitSpawn", "exsto_AddUsersOnJoin", exsto.AddUsersOnJoin )
 	
+--[[ -----------------------------------
+	Function: exsto.UpdateOwnerRank
+	Description: Updates a player to superadmin if enough info is given.
+	----------------------------------- ]]
 	function exsto.UpdateOwnerRank( self, rcon, location )
 		if !isDedicatedServer() then
 			if self:IsListenServerHost() then
@@ -607,7 +650,7 @@ if SERVER then
 				return { self, COLOR.NORM, "You are not the host of this listen server!" }
 			end
 		else
-			if !rcon then return { COLOR.NORM, "No RCON password inputed!" } end
+			if rcon == "" then return { COLOR.NORM, "No RCON password inputed!" } end
 			local rconPass = exsto.ReadRCONPass( location )
 			if !rconPass then return { self, COLOR.NORM, "There was an issue reading the RCON pass!" } end
 			rconPass = string.Trim( rconPass )
@@ -629,9 +672,13 @@ if SERVER then
 		Chat = { "!updateowner" },
 		ReturnOrder = "RCON-Location",
 		Args = { RCON = "STRING", Location = "STRING" },
-		Optional = { RCON = nil, Location = "cfg/server.cfg" }
+		Optional = { RCON = "", Location = "cfg/server.cfg" }
 	})
 	
+--[[ -----------------------------------
+	Function: exsto.ReadRCONPass
+	Description: Reads the rcon pass from a location
+	----------------------------------- ]]
 	function exsto.ReadRCONPass( location )
 		local cfg = file.Read( "../" .. location )
 		
@@ -643,45 +690,35 @@ if SERVER then
 		return pass
 	end
 	
+--[[ -----------------------------------
+	Function: exsto.AnyAdmins
+	Description: Checks to see if there are any admin in the data server.
+	----------------------------------- ]]
 	function exsto.AnyAdmins()
 		local plys = FEL.LoadTable( "exsto_data_users" )
 		if !plys then return false end
 		
 		for k,v in pairs( plys ) do
-			print( k, v.Rank )
 			if v.Rank == "superadmin" then return true end
 		end
 		
 		return false
 	end
 	
+--[[ -----------------------------------
+	Function: exsto.SendRankTable
+	Description: Sends the rank table.
+	----------------------------------- ]]
 	function exsto.SendRankTable( ply, sid, uid )
-	
-		//timer.Simple( 2, function() datastream.StreamToClients( ply, "SendLevels", exsto.Levels ) end )
 		datastream.StreamToClients( ply, "SendLevels", exsto.Levels )
-	
 	end
 	hook.Add( "exsto_InitSpawn", "exsto_SendRanks", exsto.SendRankTable )
 	concommand.Add( "_ResendRanks", exsto.SendRankTable )
 	
-	function exsto.CheckIDOnSpawn( ply )
-	
-		if not ply.HasID then
-		
-			timer.Simple( 3, function()
-			
-				if ply.HasID then return end
-		
-				exsto.Print( exsto_CHAT, ply, Color( 255, 0, 0 ), "It seems that you don't have a SteamID right now, ", Color( 0, 255, 0 ), "TELL SOMEONE!" )
-			
-			end )
-			
-		end
-		
-	end
-	hook.Add( "PlayerInitialSpawn", "exsto_NotifySteamID", exsto.CheckIDOnSpawn )
-	
-	-- SteamID PENDING Fix
+	--[[ -----------------------------------
+	Function: exsto.FixInitSpawn
+	Description: Pings the client and waits till hes loaded, then calls the exsto_InitSpawn hook.
+	----------------------------------- ]]
 	function exsto.FixInitSpawn( ply, sid, uid )
 	
 		local function MainLoad()
@@ -716,10 +753,8 @@ if SERVER then
 elseif CLIENT then
 
 	datastream.Hook( "SendLevels", function( ply, handler, id, encoded, decoded )
-	
 		exsto.Levels = encoded
 		hook.Call( "exsto_RecievedRanks", nil )
-		
 	end )
 	
 	-- exsto_InitSpawn client call.  Instead of assuming when the client is active, we can use this to call the hook.  Allows for awesomeness.
@@ -732,32 +767,42 @@ elseif CLIENT then
 	
 end
 
+--[[ -----------------------------------
+	Function: exsto.GetRankData
+	Description: Returns the rank information based on short or name.
+	----------------------------------- ]]
 function exsto.GetRankData( rank )
-
 	for k,v in pairs( exsto.Levels ) do
-	
 		if v.Short == rank or v.Name == rank then return v end
-		
 	end
-	
 	return nil
-	
 end
 
+--[[ -----------------------------------
+	Function: exsto.GetRankColor
+	Description: Returns the rank color, or white if there is none.
+	----------------------------------- ]]
 function exsto.GetRankColor( rank )
-		for k,v in pairs( exsto.Levels ) do
-
-			if v.Short == rank or v.Name == rank then return v.Color end
-			
-		end
-
-		return Color( 255, 255, 255, 255 )	
+	for k,v in pairs( exsto.Levels ) do
+		if v.Short == rank or v.Name == rank then return v.Color end
+	end
+	return Color( 255, 255, 255, 255 )	
 end
 
-local meta = FindMetaTable( "Player" )
+--[[ -----------------------------------
+	Function: exsto.RankExists
+	Description: Returns true if a rank exists
+	----------------------------------- ]]
+function exsto.RankExists( rank )
+	if exsto.Levels[rank] then return true end
+	return false
+end
 
-function meta:IsAllowed( flag, victim )
-
+--[[ -----------------------------------
+	Function: player:IsAllowed
+	Description: Checks to see if a player has a flag, and is immune
+	----------------------------------- ]]
+function _R.Player:IsAllowed( flag, victim )
 	if self:EntIndex() == 0 then return true end -- If we are console :3
 
 	local rank = self:GetRank()
@@ -784,26 +829,28 @@ function meta:IsAllowed( flag, victim )
 	end
 	
 	return false
-	
 end
 
-function exsto.RankExists( rank )
+--[[ -----------------------------------
+	Function: player:GetRank
+	Description: Returns the rank of a player.
+	----------------------------------- ]]
+function _R.Player:GetRank()
 
-	if exsto.Levels[rank] then return true end
-	return false
+	local rank = self:GetNetworkedString( "rank" )
 	
-end
-
-function meta:GetRank()
-
-	if self:GetNetworkedString( "rank" ) == "" then return "guest" end
-
+	if rank == "" then return "guest" end
+	if !rank then return "guest" end
+	if !exsto.RankExists( rank ) then return "guest" end
+	
 	return self:GetNetworkedString( "rank" )
-	
 end
 
-
-function meta:IsAdmin()
+--[[ -----------------------------------
+	Function: player:IsAdmin
+	Description: Returns true if the player is an admin
+	----------------------------------- ]]
+function _R.Player:IsAdmin()
 
 	if self:EntIndex() == 0 then return true end -- If we are console :3
 
@@ -814,10 +861,13 @@ function meta:IsAdmin()
 	if self:IsUserGroup( "admin" ) then return true end
 	
 	return false
-	
 end
 
-function meta:IsSuperAdmin()
+--[[ -----------------------------------
+	Function: player:IsSuperAdmin
+	Description: Returns true if the player is a superadmin
+	----------------------------------- ]]
+function _R.Player:IsSuperAdmin()
 
 	if self:EntIndex() == 0 then return true end -- If we are console :3
 
@@ -828,13 +878,13 @@ function meta:IsSuperAdmin()
 	if self:IsUserGroup( "superadmin" ) then return true end
 	
 	return false
-	
 end
 
-local oldGroup = meta.IsUserGroup
-function meta:IsUserGroup( id )
-	//if oldGroup( self, id ) then return true end
-	
+--[[ -----------------------------------
+	Function: player:IsUserGroup
+	Description: Checks if a player is a rank.
+	----------------------------------- ]]
+function _R.Player:IsUserGroup( id )	
 	local rank = self:GetRank()
 	if rank == id then return true end
 	return false
