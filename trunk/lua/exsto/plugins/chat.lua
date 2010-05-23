@@ -36,37 +36,14 @@ if SERVER then
 	local meta = FindMetaTable( "Player" )
 	
 	hook.Add( "exsto_InitSpawn", "exsto_SendComTable", function( ply )
-	
-		--timer.Simple( 2, function()
-	
-			local Send = {}
-			for k,v in pairs( exsto.Commands ) do
-				
-				Send[v.ID] = {
-					ID = v.ID,
-					Desc = v.Desc,
-					Args = v.Args,
-					Chat = v.Chat,
-					ReturnOrder = v.ReturnOrder,
-					Optional = v.Optional,
-				}
-				
-			end
-			
-			--Send = glon.encode( Send )
-		
-			datastream.StreamToClients( ply, "exsto_RecieveCommands", Send )
-		--end)
-		
 		PLUGIN.SetExstoColors( ply, exsto.GetVar( "native_exsto_colors" ).Value )
-		
 	end)
 	
 	local Anims = true
 	
 	function PLUGIN.ToggleAnims( owner )
 	
-		exsto.UMStart( "pchat_toggleanims", owner )
+		exsto.UMStart( "PLUGIN_toggleanims", owner )
 		
 	end	
 	PLUGIN:AddCommand( "togglechatanim", {
@@ -79,107 +56,95 @@ if SERVER then
 	})
 	
 	function PLUGIN.SetExstoColors( person, value )
-		exsto.UMStart( "pchat_setcolors", person, value )
+		exsto.UMStart( "PLUGIN_setcolors", person, value )
 	end
 	
 elseif CLIENT then
 
 	surface.CreateFont( "coolvetica", 20, 400, true, false, "ChatText" )
 
-	local Commands = nil
-
-	local function IncommingHook( ply, handler, id, encoded, decoded )
-
-		Commands = encoded
-		
-	end
-	datastream.Hook( "exsto_RecieveCommands", IncommingHook )
-
-	local pchat = {}
-		pchat.Lines = {}
-		pchat.Open = false
-		
-		pchat.Entry = nil
-		pchat.Panel = nil
-		pchat.CurrentText = ""
-		
-		pchat.W = ScrW()
-		pchat.H = ScrH()
-		pchat.X = 35
-		pchat.Y = pchat.H - 210
-		
-		pchat.G_W = 0
-		pchat.G_Text = "Chat"
-		
-		pchat.Font = "ChatText"
-		pchat.StayTime = 10
-		
-		pchat.NextInterval = 0
-		pchat.CursorInterval = 1
-		pchat.Blink = false
-		
-		pchat.OutlineCol = Color( 0, 0, 0, 100 )
-		pchat.Box_Alpha = 0
-		
-		pchat.UseAnims = true
-		
-		pchat.LastSound = 0
-		
-	function pchat.ToggleChatAnims()
+	PLUGIN.Lines = {}
+	PLUGIN.Open = false
 	
-		pchat.UseAnims = !pchat.UseAnims
+	PLUGIN.Entry = nil
+	PLUGIN.Panel = nil
+	PLUGIN.CurrentText = ""
+	
+	PLUGIN.W = ScrW()
+	PLUGIN.H = ScrH()
+	PLUGIN.X = 35
+	PLUGIN.Y = PLUGIN.H - 210
+	
+	PLUGIN.G_W = 0
+	PLUGIN.G_Text = "Chat"
+	
+	PLUGIN.Font = "ChatText"
+	PLUGIN.StayTime = 10
+	
+	PLUGIN.NextInterval = 0
+	PLUGIN.CursorInterval = 1
+	PLUGIN.Blink = false
+	
+	PLUGIN.OutlineCol = Color( 0, 0, 0, 100 )
+	PLUGIN.Box_Alpha = 0
+	
+	PLUGIN.UseAnims = true
+	
+	PLUGIN.LastSound = 0
+		
+	function PLUGIN.ToggleChatAnims()
+	
+		PLUGIN.UseAnims = !PLUGIN.UseAnims
 		
 		local Status = "ENABLED"
-		if !pchat.UseAnims then
+		if !PLUGIN.UseAnims then
 			Status = "DISABLED"
 		end
 		
 		chat.AddText( COLOR.PAC, "Chat animations have been ", COLOR.RED, Status )
 		
 	end
-	exsto.UMHook( "pchat_toggleanims", pchat.ToggleChatAnims )
+	exsto.UMHook( "PLUGIN_toggleanims", PLUGIN.ToggleChatAnims )
 	
-	function pchat.SetColors( val )
-		pchat.UseExstoColors = val
+	function PLUGIN.SetColors( val )
+		PLUGIN.UseExstoColors = val
 	end
-	exsto.UMHook( "pchat_setcolors", pchat.SetColors )
+	exsto.UMHook( "PLUGIN_setcolors", PLUGIN.SetColors )
 		
-	function pchat.Init()
+	function PLUGIN.Init()
 
-		pchat.Entry = vgui.Create( "DTextEntry" )
-		pchat.Entry:SetPos( 35, pchat.H - 310 )
-		pchat.Entry:SetSize( 0, 0 )
-		pchat.Entry:SetVisible( false )
-		pchat.Entry:SetEditable( false )
+		PLUGIN.Entry = vgui.Create( "DTextEntry" )
+		PLUGIN.Entry:SetPos( 35, PLUGIN.H - 310 )
+		PLUGIN.Entry:SetSize( 0, 0 )
+		PLUGIN.Entry:SetVisible( false )
+		PLUGIN.Entry:SetEditable( false )
 		
-		pchat.Open = false
+		PLUGIN.Open = false
 		
 	end
 
-	function pchat.Open( )
+	function PLUGIN:OnStartChat( )
 
-		pchat.Open = true
-		pchat.Entry:SetVisible( true )
+		PLUGIN.Open = true
+		PLUGIN.Entry:SetVisible( true )
 		gui.EnableScreenClicker( true )
 		
-		pchat.G_Text = "Chat"
-		pchat.UpdateGlobalW( pchat.G_Text )
+		PLUGIN.G_Text = "Chat"
+		PLUGIN.UpdateGlobalW( PLUGIN.G_Text )
 		
 		return true
 		
 	end
-	hook.Add( "StartChat", "exsto_OpenChat", pchat.Open )
 
-	function pchat.Close()
+	function PLUGIN:OnFinishChat()
 
-		pchat.Open = false
-		pchat.Entry:SetVisible( false )
+		PLUGIN.Open = false
+		PLUGIN.Entry:SetVisible( false )
 		gui.EnableScreenClicker( false )
 		
 		return true
 		
 	end
-	hook.Add( "FinishChat", "exsto_CloseChat", pchat.Close )
 
 	function string.FindStart( norm, find )
 
@@ -197,24 +162,24 @@ elseif CLIENT then
 	
 	local Find_List = {}
 
-	function pchat.Think( text )
+	function PLUGIN:OnChatTextChanged( text )
 	
-		surface.SetFont( pchat.Font )
+		surface.SetFont( PLUGIN.Font )
 
 		-- TODO: Arguments inside the find table
 		
 		-- CPU Intensive? test.
 		local first = string.Explode( " ", text )
-		if Commands and first[1] != "" and first[1]:First() == "!" then
+		if exsto.Commands and first[1] != "" and first[1]:First() == "!" then
 		
 			Find_List = {}
 			
-			pchat.G_Text = "Exsto"
-			pchat.UpdateGlobalW( "Exsto" )
+			PLUGIN.G_Text = "Exsto"
+			PLUGIN.UpdateGlobalW( "Exsto" )
 			
 			local look = string.sub( first[1], 1 )
 		
-			for k, data in pairs( Commands ) do
+			for k, data in pairs( exsto.Commands ) do
 			
 				if data.Chat then
 			
@@ -240,25 +205,22 @@ elseif CLIENT then
 			end
 			
 		elseif first[1]:First() != "!" and Find_List then
-			pchat.G_Text = "Chat"
-			pchat.UpdateGlobalW( "Chat" )
+			PLUGIN.G_Text = "Chat"
+			PLUGIN.UpdateGlobalW( "Chat" )
 			Find_List = {}
 		end
 
-		pchat.CurrentText = text
+		PLUGIN.CurrentText = text
 		
 	end
-	hook.Add( "ChatTextChanged", "exsto_ThinkChat", pchat.Think )
 
-	function pchat.PlyMsg( ply, msg, team, dead )
+	function PLUGIN:OnOnPlayerChat( ply, msg, team, dead )
 	end
-	hook.Add( "OnPlayerChat", "exsto_PlayerChat", pchat.PlyMsg )
 
-	function pchat.EventMsg( ply, nick, msg, type )
+	function PLUGIN:OnChatText( ply, nick, msg, type )
 		chat.AddText( COLOR.NORM, msg )	
 		return true
 	end
-	hook.Add( "ChatText", "exsto_EventChat", pchat.EventMsg )
 	
 	// Stolen from lua-users.org
 	local function StringDist( s, t )
@@ -289,21 +251,14 @@ elseif CLIENT then
 			if found then return found end
 			
 		end
-
-		--[[for k,v in pairs( split ) do
-		
-			local found = string.find( find, v )
-			if found and StringDist( find, v ) < 9 then return found end
-			
-		end]]
 		
 		return false
 		
 	end
 
-	function pchat.ParseLine( ply, line )
+	function PLUGIN.ParseLine( ply, line )
 
-		surface.SetFont( pchat.Font )
+		surface.SetFont( PLUGIN.Font )
 
 		local data = {}
 			data.Type = {}
@@ -365,9 +320,9 @@ elseif CLIENT then
 								
 							end
 							
-							if pchat.LastSound < CurTime() and sound then
+							if PLUGIN.LastSound < CurTime() and sound then
 								LocalPlayer():EmitSound( sound, 100, math.random( 70, 130 ) )
-								pchat.LastSound = CurTime() + 1
+								PLUGIN.LastSound = CurTime() + 1
 							end
 							
 						end
@@ -415,20 +370,17 @@ elseif CLIENT then
 		end
 		
 		data.Length = id
-		data.Time = CurTime() + pchat.StayTime
+		data.Time = CurTime() + PLUGIN.StayTime
 		data.Alpha = 255
-		data.Last_Y = pchat.Y + 10
+		data.Last_Y = PLUGIN.Y + 10
 		data.Last_X = 70
 		data.Total_W = total_w
 		data.Text_Full = fulltext
-		table.insert( pchat.Lines, data )			
+		table.insert( PLUGIN.Lines, data )			
 		
 	end
 	
-	local oldChat = chat.AddText
-	function chat.AddText( ... )
-		//oldChat( unpack( {...} ) )  -- For console + stuff.  It wont print to the custom chat for some reason.
-		
+	function PLUGIN.AddText( ... )
 		local data = ""
 		local cprint = ""
 		local numColors = 0
@@ -454,7 +406,7 @@ elseif CLIENT then
 			
 				local rank = v:GetRank()
 				local col = team.GetColor( v:Team() )
-				if pchat.UseExstoColors then	
+				if PLUGIN.UseExstoColors then	
 					col = exsto.GetRankColor( rank )
 				end
 				
@@ -480,25 +432,25 @@ elseif CLIENT then
 		end
 		
 		print( cprint )
-		pchat.ParseLine( ply, data )
-		
+		PLUGIN.ParseLine( ply, data )	
 	end
-		
-	function pchat.UpdateGlobalW( text )
+	PLUGIN:AddOverride( "AddText", "AddText", chat )
+	
+	function PLUGIN.UpdateGlobalW( text )
 
-		surface.SetFont( pchat.Font )
+		surface.SetFont( PLUGIN.Font )
 
 		local w, h = surface.GetTextSize( text ) 
 		
-		pchat.G_W = w + 10
+		PLUGIN.G_W = w + 10
 		
 	end
 
-	function pchat.DrawLine( x, y, line )
+	function PLUGIN.DrawLine( x, y, line )
 		
-		surface.SetFont( pchat.Font ) 
+		surface.SetFont( PLUGIN.Font ) 
 		
-		local outline = Color( pchat.OutlineCol.r, pchat.OutlineCol.g, pchat.OutlineCol.b, line.Alpha / 2 )
+		local outline = Color( PLUGIN.OutlineCol.r, PLUGIN.OutlineCol.g, PLUGIN.OutlineCol.b, line.Alpha / 2 )
 
 		local pw = 0
 
@@ -516,7 +468,7 @@ elseif CLIENT then
 			
 			if t == 1 then
 			
-				draw.SimpleTextOutlined( text, pchat.Font, curX, curY, Color( 255, 255, 255, line.Alpha ), 0, 0, 1, outline )
+				draw.SimpleTextOutlined( text, PLUGIN.Font, curX, curY, Color( 255, 255, 255, line.Alpha ), 0, 0, 1, outline )
 				
 			elseif t == 2 then
 			
@@ -527,7 +479,7 @@ elseif CLIENT then
 								val.a )
 				end
 			
-				draw.SimpleTextOutlined( text, pchat.Font, curX, curY, Color( val.r, val.g, val.b, line.Alpha ), 0, 0, 1, outline )
+				draw.SimpleTextOutlined( text, PLUGIN.Font, curX, curY, Color( val.r, val.g, val.b, line.Alpha ), 0, 0, 1, outline )
 				
 			end
 			
@@ -537,19 +489,19 @@ elseif CLIENT then
 
 	end
 
-	function pchat.DrawKeyBlinker( x, alpha )
+	function PLUGIN.DrawKeyBlinker( x, alpha )
 
 		local col
 		
-		if pchat.NextInterval < CurTime() then
+		if PLUGIN.NextInterval < CurTime() then
 
-			pchat.Blink = !pchat.Blink
+			PLUGIN.Blink = !PLUGIN.Blink
 		
-			pchat.NextInterval = CurTime() + pchat.CursorInterval
+			PLUGIN.NextInterval = CurTime() + PLUGIN.CursorInterval
 			
 		end
 		
-		if pchat.Blink then
+		if PLUGIN.Blink then
 		
 			col = Color( 0, 0, 0, 0 )
 			
@@ -560,13 +512,13 @@ elseif CLIENT then
 		end
 		
 		surface.SetDrawColor( col.r, col.g, col.b, col.a )
-		surface.DrawRect( x, pchat.Y + 2, 1, 16 )
+		surface.DrawRect( x, PLUGIN.Y + 2, 1, 16 )
 		
 	end
 
-	function pchat.AnimateInputBox( olda, newa, mul )
+	function PLUGIN.AnimateInputBox( olda, newa, mul )
 
-		if !pchat.UseAnims then
+		if !PLUGIN.UseAnims then
 			return newa
 		end
 
@@ -583,29 +535,29 @@ elseif CLIENT then
 		
 	end
 
-	function pchat.DrawCautionChars( w )
+	function PLUGIN.DrawCautionChars( w )
 
-		surface.SetFont( pchat.Font )
+		surface.SetFont( PLUGIN.Font )
 		
-		local outlinecol = Color( pchat.OutlineCol.r, pchat.OutlineCol.g, pchat.OutlineCol.b, pchat.Box_Alpha )
+		local outlinecol = Color( PLUGIN.OutlineCol.r, PLUGIN.OutlineCol.g, PLUGIN.OutlineCol.b, PLUGIN.Box_Alpha )
 		
-		draw.SimpleTextOutlined( "You are getting close to the max char limit!", pchat.Font, pchat.X + pchat.G_W - 20 + w, pchat.Y + 30, Color( 255, 255, 255, pchat.Box_Alpha ), 0, 0, 1, outlinecol )
-		draw.SimpleTextOutlined( "You currently have " .. string.len( pchat.CurrentText ) .. " characters!", pchat.Font, pchat.X + pchat.G_W - 20 + w, pchat.Y + 50, Color( 255, 255, 255, pchat.Box_Alpha ), 0, 0, 1, outlinecol )
-		draw.SimpleTextOutlined( "The limit is 127!", pchat.Font, pchat.X + pchat.G_W - 20 + w, pchat.Y + 70, Color( 255, 255, 255, pchat.Box_Alpha ), 0, 0, 1, outlinecol )
+		draw.SimpleTextOutlined( "You are getting close to the max char limit!", PLUGIN.Font, PLUGIN.X + PLUGIN.G_W - 20 + w, PLUGIN.Y + 30, Color( 255, 255, 255, PLUGIN.Box_Alpha ), 0, 0, 1, outlinecol )
+		draw.SimpleTextOutlined( "You currently have " .. string.len( PLUGIN.CurrentText ) .. " characters!", PLUGIN.Font, PLUGIN.X + PLUGIN.G_W - 20 + w, PLUGIN.Y + 50, Color( 255, 255, 255, PLUGIN.Box_Alpha ), 0, 0, 1, outlinecol )
+		draw.SimpleTextOutlined( "The limit is 127!", PLUGIN.Font, PLUGIN.X + PLUGIN.G_W - 20 + w, PLUGIN.Y + 70, Color( 255, 255, 255, PLUGIN.Box_Alpha ), 0, 0, 1, outlinecol )
 
 	end
 
-	function pchat.DrawInputBox()
+	function PLUGIN.DrawInputBox()
 
-		surface.SetFont( pchat.Font )
+		surface.SetFont( PLUGIN.Font )
 
-		local w, h = surface.GetTextSize( pchat.CurrentText )
+		local w, h = surface.GetTextSize( PLUGIN.CurrentText )
 		
 		local alpha = 255
 		local mul = 10
 		local add_w = 510
 		
-		if not pchat.Open then
+		if not PLUGIN.Open then
 		
 			alpha = 0
 			mul = 40
@@ -616,37 +568,37 @@ elseif CLIENT then
 			add_w = w + 10
 		end
 		
-		if string.len( pchat.CurrentText ) >= 110 then
+		if string.len( PLUGIN.CurrentText ) >= 110 then
 		
-			pchat.DrawCautionChars( w )
+			PLUGIN.DrawCautionChars( w )
 			
 		end
 		
-		pchat.Box_Alpha = pchat.AnimateInputBox( pchat.Box_Alpha, alpha, mul )
+		PLUGIN.Box_Alpha = PLUGIN.AnimateInputBox( PLUGIN.Box_Alpha, alpha, mul )
 		
-		local outlinecol = Color( pchat.OutlineCol.r, pchat.OutlineCol.g, pchat.OutlineCol.b, pchat.Box_Alpha )
+		local outlinecol = Color( PLUGIN.OutlineCol.r, PLUGIN.OutlineCol.g, PLUGIN.OutlineCol.b, PLUGIN.Box_Alpha )
 
-		draw.SimpleTextOutlined( pchat.CurrentText, pchat.Font, pchat.X + pchat.G_W + 5, pchat.Y, Color( 255, 255, 255, pchat.Box_Alpha ), 0, 0, 1, outlinecol )
+		draw.SimpleTextOutlined( PLUGIN.CurrentText, PLUGIN.Font, PLUGIN.X + PLUGIN.G_W + 5, PLUGIN.Y, Color( 255, 255, 255, PLUGIN.Box_Alpha ), 0, 0, 1, outlinecol )
 		
-		surface.SetDrawColor( 50, 50, 50, pchat.Box_Alpha / 2 )
-		surface.DrawRect( pchat.X + pchat.G_W, pchat.Y, add_w, 20 )
+		surface.SetDrawColor( 50, 50, 50, PLUGIN.Box_Alpha / 2 )
+		surface.DrawRect( PLUGIN.X + PLUGIN.G_W, PLUGIN.Y, add_w, 20 )
 		
-		surface.SetDrawColor( 119, 255, 91, pchat.Box_Alpha / 2 )
-		surface.DrawRect( pchat.X, pchat.Y, pchat.G_W, 20 )
+		surface.SetDrawColor( 119, 255, 91, PLUGIN.Box_Alpha / 2 )
+		surface.DrawRect( PLUGIN.X, PLUGIN.Y, PLUGIN.G_W, 20 )
 		
-		surface.SetDrawColor( 255, 255, 255, pchat.Box_Alpha / 2 )
-		surface.DrawOutlinedRect( pchat.X + pchat.G_W, pchat.Y, add_w, 20 )
-		surface.DrawOutlinedRect( pchat.X, pchat.Y, pchat.G_W, 20 )
+		surface.SetDrawColor( 255, 255, 255, PLUGIN.Box_Alpha / 2 )
+		surface.DrawOutlinedRect( PLUGIN.X + PLUGIN.G_W, PLUGIN.Y, add_w, 20 )
+		surface.DrawOutlinedRect( PLUGIN.X, PLUGIN.Y, PLUGIN.G_W, 20 )
 		
-		draw.SimpleTextOutlined( pchat.G_Text, pchat.Font, pchat.X + 5, pchat.Y, Color( 255, 255, 255, pchat.Box_Alpha ), 0, 0, 1, outlinecol )
+		draw.SimpleTextOutlined( PLUGIN.G_Text, PLUGIN.Font, PLUGIN.X + 5, PLUGIN.Y, Color( 255, 255, 255, PLUGIN.Box_Alpha ), 0, 0, 1, outlinecol )
 		
-		pchat.DrawKeyBlinker( w + 6 + pchat.X + pchat.G_W, pchat.Box_Alpha )
+		PLUGIN.DrawKeyBlinker( w + 6 + PLUGIN.X + PLUGIN.G_W, PLUGIN.Box_Alpha )
 		
 		-- Find Commands
 		if #Find_List >= 1 then
 			local height = 20
 			local width = 50
-			local place = pchat.Y + 25
+			local place = PLUGIN.Y + 25
 			local ToDraw = {}
 
 			for I = 1, 4 do -- Processing lines ONLY!
@@ -697,26 +649,26 @@ elseif CLIENT then
 				
 			end
 			
-			surface.SetDrawColor( 119, 255, 91, pchat.Box_Alpha / 2 )
-			surface.DrawRect( pchat.X, pchat.Y + 20, width, height )
+			surface.SetDrawColor( 119, 255, 91, PLUGIN.Box_Alpha / 2 )
+			surface.DrawRect( PLUGIN.X, PLUGIN.Y + 20, width, height )
 			
-			surface.SetDrawColor( 255, 255, 255, pchat.Box_Alpha / 2 )
-			surface.DrawOutlinedRect( pchat.X, pchat.Y + 20, width, height )
+			surface.SetDrawColor( 255, 255, 255, PLUGIN.Box_Alpha / 2 )
+			surface.DrawOutlinedRect( PLUGIN.X, PLUGIN.Y + 20, width, height )
 			
 			for k,v in pairs( ToDraw ) do
 			
-				local commandColor = Color( COLOR.NAME.r, COLOR.NAME.g, COLOR.NAME.b, pchat.Box_Alpha )
+				local commandColor = Color( COLOR.NAME.r, COLOR.NAME.g, COLOR.NAME.b, PLUGIN.Box_Alpha )
 				local w, h = surface.GetTextSize( v.Name )
 				
-				draw.SimpleTextOutlined( v.Name, pchat.Font, pchat.X + 5, v.Place, commandColor, 0, 0, 1, outlinecol )
-				draw.SimpleTextOutlined( v.Args, pchat.Font, pchat.X + 10 + w, v.Place, COLOR.NORM, 0, 0, 1, outlinecol )
+				draw.SimpleTextOutlined( v.Name, PLUGIN.Font, PLUGIN.X + 5, v.Place, commandColor, 0, 0, 1, outlinecol )
+				draw.SimpleTextOutlined( v.Args, PLUGIN.Font, PLUGIN.X + 10 + w, v.Place, COLOR.NORM, 0, 0, 1, outlinecol )
 				
 			end
 			
 		end
 	end
 	
-	function pchat.OnChatTab( text )
+	function PLUGIN:OnOnChatTab( text )
 	
 		if Find_List then
 		
@@ -730,11 +682,10 @@ elseif CLIENT then
 		end
 		
 	end
-	hook.Add( "OnChatTab", "exsto_ComCompletion", pchat.OnChatTab )
 	
-	function pchat.Animate( line, curX, curY, mulX, mulY )
+	function PLUGIN.Animate( line, curX, curY, mulX, mulY )
 
-		if !pchat.UseAnims then
+		if !PLUGIN.UseAnims then
 			line.Last_X = curX
 			line.Last_Y = curY
 			return
@@ -767,26 +718,26 @@ elseif CLIENT then
 	local FPSTime = 0
 	local StartTime = CurTime() + 10
 	
-	function pchat.Draw()
+	function PLUGIN:OnHUDPaint()
 
-		surface.SetFont( pchat.Font ) -- Set the font
+		surface.SetFont( PLUGIN.Font ) -- Set the font
 		
 		-- Set variables used.
 		local _, lineHeight = surface.GetTextSize( "H" )
 		local curX = 70
-		local curY = pchat.H - 248
+		local curY = PLUGIN.H - 248
 		
 		local mulX = 40
 		local mulY = 40
 		
 		--Draw input panenl
-		pchat.DrawInputBox()
+		PLUGIN.DrawInputBox()
 
 		for I = 0, 7 do -- For the last 7 lines in the table
 		
-			local k = #pchat.Lines - I
+			local k = #PLUGIN.Lines - I
 			
-			local line = pchat.Lines[ k ]
+			local line = PLUGIN.Lines[ k ]
 			
 			if line then -- If the line exists
 			
@@ -796,13 +747,13 @@ elseif CLIENT then
 					
 					if line.Last_X - 5 <= line.Total_W * -2 then
 						
-						--table.remove( pchat.Lines, k )
+						--table.remove( PLUGIN.Lines, k )
 						
 					end
 					
 				end
 				
-				if pchat.Open then -- If the chat is open, make the lines come back and give a new time.
+				if PLUGIN.Open then -- If the chat is open, make the lines come back and give a new time.
 				
 					curX = 70
 					mulX = 6
@@ -815,9 +766,9 @@ elseif CLIENT then
 					
 				end
 				
-				pchat.Animate( line, curX, curY, mulX, mulY ) -- Animate smoothing
+				PLUGIN.Animate( line, curX, curY, mulX, mulY ) -- Animate smoothing
 					
-				pchat.DrawLine( line.Last_X, line.Last_Y, line ) -- Draw it
+				PLUGIN.DrawLine( line.Last_X, line.Last_Y, line ) -- Draw it
 				
 				curY = curY - lineHeight - 2 -- Incremental 
 				
@@ -826,13 +777,12 @@ elseif CLIENT then
 		end
 		
 	end
-	hook.Add( "HUDPaint", "exsto_DrawChat", pchat.Draw )
 
 	hook.Add( "Think", "exsto_ChatInit", function()
 
 		if LocalPlayer():IsValid() then
 		
-			pchat.Init()
+			PLUGIN.Init()
 			hook.Remove( "Think", "exsto_ChatInit" )
 			
 		end

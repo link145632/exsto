@@ -151,12 +151,8 @@ end
 
 function PLUGIN:OnPlayerSay( ply, text )
 
-	print( ply, text )
-
 	if self.IsGimmped( ply ) then
-		
-		print( "FFFFF" )
-	
+
 		return self.Sayings[ math.random( 1, #PLUGIN.Sayings ) ]
 		
 	end

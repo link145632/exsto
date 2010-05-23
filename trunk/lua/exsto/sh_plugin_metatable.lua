@@ -28,14 +28,15 @@ function exsto.CreatePlugin()
 	setmetatable( obj, plugin )
 	plugin.__index = plugin
 	
-	plugin.Info = {}
-	plugin.Commands = {}
-	plugin.Hooks = {}
-	plugin.HookID = {}
-	plugin.FEL = {}
-	plugin.FEL.CreateTable = {}
-	plugin.FEL.AddData = {}
-	plugin.Variables = {}
+	obj.Info = {}
+	obj.Commands = {}
+	obj.Hooks = {}
+	obj.HookID = {}
+	obj.FEL = {}
+	obj.FEL.CreateTable = {}
+	obj.FEL.AddData = {}
+	obj.Variables = {}
+	obj.Overrides = {}
 	
 	-- Set defaults for info.
 	obj.Info = {
@@ -67,7 +68,34 @@ end
 	Function: plugin:Register
 	Description: Registers the plugin with Exsto.
      ----------------------------------- ]]
+local queuedPlugins = {}
+
+hook.Add( "exsto_RecievedSettings", "exsto_CheckOnSettings", function()
+	if table.Count( queuedPlugins ) >= 1 then
+		
+		for k,v in pairs( queuedPlugins ) do v:Register() end
+		
+	end
+end )
+
 function plugin:Register()
+
+	-- Client checks, we need to make sure that the clientside plugin is enabled on the server.
+	local clientEnd = false
+	if CLIENT then
+		if exsto.ServerPlugSettings then
+			print( "Checking to see if our setitngs is thee ")
+			if exsto.ServerPlugSettings[self.Info.ID] == false then
+				-- The server doesn't want this command to run, end it.
+				clientEnd = true
+			end
+		else
+			-- The settings seem to be non-existant.  Lets queue the plugins into a table, then enable them later.
+			print( "Queueing plugin for wait in settings!" )
+			table.insert( queuedPlugins, self )
+			return
+		end
+	end
 	
 	-- Check and see if we exist in the saved plugin table.
 	if !exsto.PluginSaved( self ) then
@@ -75,7 +103,7 @@ function plugin:Register()
 	else
 		
 		-- We are saved, so lets check and see if we are disabled.
-		if exsto.PluginDisabled( self ) or self.Info.Disabled then
+		if exsto.PluginDisabled( self ) or self.Info.Disabled or clientEnd then
 			exsto.Print( exsto_CONSOLE, "PLUGIN --> Skipping loading plugin " .. self.Info.ID .. ".  Not Enabled." )
 			
 			-- Remove all of our hooks
@@ -83,7 +111,7 @@ function plugin:Register()
 				local id = self.HookID[k]
 				hook.Remove( k, id )
 			end
-			
+
 			self.Hooks = {}
 			self.HookID = {}
 			
@@ -117,22 +145,31 @@ function plugin:Register()
 	
 	-- Construct the commands we requested.
 	for k,v in pairs( self.Commands ) do
+		if CLIENT then return end
 		exsto.AddChatCommand( k, v )
 	end
 	
 	-- Construct FEL tables.
 	for k,v in pairs( self.FEL.CreateTable ) do
+		if CLIENT then return end
 		FEL.MakeTable( k, v )
 	end 
 	
 	-- Insert requested FEL.AddData
 	for k,v in pairs( self.FEL.AddData ) do
+		if CLIENT then return end
 		FEL.AddData( k, v )
 	end
 	
 	-- Create variables requested
 	for k,v in pairs( self.Variables ) do
+		if CLIENT then return end
 		exsto.AddVariable( v )
+	end
+	
+	-- Init the overrides
+	for k,v in pairs( self.Overrides ) do
+		v.Table[v.Old] = self[v.New]
 	end
 	
 	exsto.Print( exsto_CONSOLE, "PLUGIN --> Loading " .. self.Info.Name .. " by " .. self.Info.Owner .. "!" )
@@ -157,14 +194,15 @@ function plugin:Unload()
 	self.Hooks = {}
 	self.HookID = {}
 	
+	-- Remove the over-rides
+	for k,v in pairs( self.Overrides ) do
+		v.Table[v.Old] = v.Saved
+	end
+	
 	-- Remove chat commands
 	for k,v in pairs( self.Commands ) do
 		exsto.RemoveChatCommand( k )
 	end
-	
-	-- Finally, remove him from the exsto table.
-	exsto.Plugins[self.Info.ID] = nil
-	
 end
 
 --[[ -----------------------------------
@@ -195,6 +233,10 @@ function plugin:AddCommand( id, tbl )
 	self.Commands[id] = tbl
 end
 
+function plugin:AddOverride( old, new, tbl )
+	table.insert( self.Overrides, { Old = old, New = new, Table = tbl, Saved = tbl[old] } )
+end
+
 --[[ -----------------------------------
 	Function: plugin:AddHook
 	Description: Adds a hook to a plugin
@@ -221,7 +263,9 @@ function plugin:CreateGamemodeHooks()
 			if !self["On"..v] then
 				self["On"..v] = function( ... ) end
 			end
-			return self["On"..v]( self, ... )
+			if !self.Info.Disabled then 
+				return self["On"..v]( self, ... )
+			end
 		end
 		self.Hooks[v] = plugHook
 		self.HookID[v] = exsto.NumberHooks

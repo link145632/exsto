@@ -84,6 +84,10 @@ if SERVER then
 	local function SetVar( ply, _, args )
 	
 		if !ply:IsAdmin() then return end
+		if !ply.VarChange then ply.VarChange = CurTime() end
+		if CurTime() < ply.VarChange then return end
+		
+		ply.VarChange = CurTime() + 5
 		
 		local dirty = args[1]
 		local value = args[2]

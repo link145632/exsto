@@ -16,19 +16,14 @@ if CLIENT then return end
 
 function PLUGIN.SendPlayer( ply, victim, force )
 	if !victim:IsInWorld() and !force then return false end
+	if !ply:IsInWorld() and !force then return false end
 	
-	local forward = victim:EyeAngles().yaw
+	local pos = ply:GetPos() + Vector( 36, 0, 0 )
 	
-	-- Create our trace
-	local trace = {}
-	trace.start = victim:GetPos()
-	trace.filter = { ply, victim }
-	trace.endpos = victim:GetPos() + Angle( 0, forward, 0 ):Forward() * 47
+	if !util.IsInWorld( pos ) and !force then return false end
 	
-	local ent = util.TraceEntity( trace, ply )
-	
-	if !ent.HitPos then return victim:GetPos() + Angle( 0, forward, 0 ):Forward() * 47 end
-	return ent.HitPos
+	return pos
+
 end
 
 function PLUGIN.Send( owner, victim, to )
@@ -38,7 +33,7 @@ function PLUGIN.Send( owner, victim, to )
 	
 	local pos = PLUGIN.SendPlayer( victim, to, force )
 	
-	if !pos then exsto.Print( exsto_CHAT, owner, COLOR.NORM, "Not enough room to goto ", COLOR.NAME, ply , COLOR.NORM, "!" ) return end
+	if !pos then exsto.Print( exsto_CHAT, owner, COLOR.NORM, "Not enough room to goto ", COLOR.NAME, ply:Nick(), COLOR.NORM, "!" ) return end
 	
 	victim:SetPos( pos )
 	
@@ -62,9 +57,9 @@ function PLUGIN.Goto( owner, ply )
 	local force = false
 	if owner:GetMoveType() == MOVETYPE_NOCLIP then force = true end
 	
-	local pos = PLUGIN.SendPlayer( owner, ply, force )
+	local pos = PLUGIN.SendPlayer( ply, owner, force )
 	
-	if !pos then exsto.Print( exsto_CHAT, owner, COLOR.NORM, "Not enough room to goto ", COLOR.NAME, ply , COLOR.NORM, "!" ) return end
+	if !pos then exsto.Print( exsto_CHAT, owner, COLOR.NORM, "Not enough room to goto ", COLOR.NAME, ply:Nick(), COLOR.NORM, "!" ) return end
 	
 	owner:SetPos( pos )
 	
@@ -92,9 +87,9 @@ function PLUGIN.Bring( owner, ply )
 	
 	local pos = PLUGIN.SendPlayer( owner, ply, force )
 
-	if !pos then return { owner, COLOR.NORM, "Not enough space to bring ", COLOR.NAME, ply } end
+	if !pos then return { owner, COLOR.NORM, "Not enough space to bring ", COLOR.NAME, ply:Nick() } end
 	
-	ply:SetPos( pos  )
+	ply:SetPos( pos )
 	return {
 		Activator = owner,
 		Player = ply,
