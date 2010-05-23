@@ -880,7 +880,7 @@ end
 function FEL.CreateSettingsFile( id, tbl )
 	local readData
 	
-	if file.Exists( id .. ".txt" ) then
+	--[[if file.Exists( id .. ".txt" ) then
 		
 		readData = FEL.LoadSettingsFile( id )
 		local difference = FEL.FindTableDifference( readData, tbl )
@@ -889,7 +889,7 @@ function FEL.CreateSettingsFile( id, tbl )
 			table.Merge( tbl, difference )
 		end
 		
-	end
+	end]]
 	
 	local header = "[settings = \"" .. id .. "\"]"
 	local body = ""

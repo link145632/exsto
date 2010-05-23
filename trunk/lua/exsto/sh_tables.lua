@@ -132,6 +132,7 @@ exsto.DefaultRanks = {
 			"issuperadmin",
 			"luarun",
 			"cexec",
+			"plugindisable",
 		}
 	},
 	
@@ -199,6 +200,7 @@ exsto.DefaultRanks = {
 			"helppage",
 			"playerlist",
 			"checkversion",
+			"pluginlist",
 		}
 	}
 }

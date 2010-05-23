@@ -92,7 +92,9 @@ function exsto.InitPlugins()
 	
 	-- All are initialized.  Save the plugin table we have.
 	if table.Count( exsto.NeedSaved ) >= 1 then
-		FEL.CreateSettingsFile( "exsto_plugin_settings", exsto.NeedSaved )
+		table.Merge( exsto.PluginSettings, exsto.NeedSaved )
+		FEL.CreateSettingsFile( "exsto_plugin_settings", exsto.PluginSettings )
+		exsto.NeedSaved = {}
 	end
 
 end
@@ -130,8 +132,34 @@ function exsto.AddHook( name, func, module )
 end
 
 --[[ -----------------------------------
+	Function: exsto.EnablePlugin
+	Description: Enables a plugin, then writes to the settings file.
+     ----------------------------------- ]]
+function exsto.EnablePlugin( plug )
+	plug.Info.Disabled = false
+	
+	exsto.PluginSettings[plug.Info.ID] = true
+	FEL.CreateSettingsFile( "exsto_plugin_settings", exsto.PluginSettings )
+	
+	plug:Register()
+end
+
+--[[ -----------------------------------
+	Function: exsto.DisablePlugin
+	Description: Disables a plugin, then writes to the settings file.
+     ----------------------------------- ]]
+function exsto.DisablePlugin( plug )
+	plug.Info.Disabled = true
+	
+	exsto.PluginSettings[plug.Info.ID] = false
+	FEL.CreateSettingsFile( "exsto_plugin_settings", exsto.PluginSettings )
+	
+	plug:Register()
+end
+
+--[[ -----------------------------------
 	Function: exsto.PluginStatus
-	Description: Returns if a plugin is enabled or disabled.
+	Description: Returns true if a plugin is disabled
      ----------------------------------- ]]
 function exsto.PluginStatus( plug )
 	for k,v in pairs( exsto.PluginSettings ) do

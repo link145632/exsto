@@ -282,7 +282,7 @@ end
 	Description: Calls a server function
 	----------------------------------- ]]
 function Menu.CallServer( command, ... )
-	RunConsoleCommand( command, Menu.AuthKey, ... )
+	RunConsoleCommand( command, Menu.AuthKey, unpack( {...} ) )
 end
 	
 --[[ -----------------------------------
@@ -303,6 +303,8 @@ function Menu.MoveToPage( short )
 
 	local page = Menu.List[short]
 	local index = Menu.GetPageIndex( short )
+	
+	if short == Menu.CurrentPage.Short then return end
 	
 	local oldCurrent = Menu.CurrentPage.Panel
 	local oldIndex = Menu.CurrentIndex

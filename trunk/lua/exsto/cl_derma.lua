@@ -139,7 +139,7 @@ function exsto.CreateButton( x, y, w, h, text, parent )
 		if w > button:GetWide() then
 			button:SetSize( w + 10, button:GetTall() )
 			button:InvalidateLayout()
-			print( "Exsto Derma --> " .. button.Text .. " -->  I recommend you fix the button width and height to match this new size... " .. button:GetWide() .. ", " .. button:GetTall() )
+			//print( "Exsto Derma --> " .. button.Text .. " -->  I recommend you fix the button width and height to match this new size... " .. button:GetWide() .. ", " .. button:GetTall() )
 		end
 
 	return button

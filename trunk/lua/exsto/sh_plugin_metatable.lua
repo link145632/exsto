@@ -61,7 +61,6 @@ function plugin:SetInfo( tbl )
 	tbl.Disabled = tbl.Disabled or false
 
 	self.Info = tbl
-	self:CreateGamemodeHooks()
 end
 
 --[[ -----------------------------------
@@ -71,7 +70,7 @@ end
 function plugin:Register()
 	
 	-- Check and see if we exist in the saved plugin table.
-	if !exsto.PluginSaved( self ) or ( self.Info.Disabled != exsto.PluginStatus( self ) ) then
+	if !exsto.PluginSaved( self ) then
 		exsto.NeedSaved[self.Info.ID] = !self.Info.Disabled
 	else
 		
@@ -84,11 +83,27 @@ function plugin:Register()
 				local id = self.HookID[k]
 				hook.Remove( k, id )
 			end
+			
+			self.Hooks = {}
+			self.HookID = {}
+			
+			-- We need to tell Exsto hes atleast disabled.
+			exsto.Plugins[self.Info.ID] = {
+				Name = self.Info.Name,
+				Desc = self.Info.Desc,
+				ID = self.Info.ID,
+				Owner = self.Info.Owner,
+				Experimental = self.Info.Experimental or false,
+				Object = self,
+				Disabled = true,
+			}
 	
 			return
 		end
 		
 	end
+	
+	self:CreateGamemodeHooks()
 	
 	-- Tell Exsto we exist!
 	exsto.Plugins[self.Info.ID] = {
@@ -131,16 +146,24 @@ end
      ----------------------------------- ]]
 function plugin:Unload()
 
+	exsto.Print( exsto_CONSOLE, "PLUGIN --> Unloading " .. self.Info.Name .. "!" )
+
 	-- Remove all of our hooks
 	for k,v in pairs( self.Hooks ) do
 		local id = self.HookID[k]
 		hook.Remove( k, id )
 	end
 	
+	self.Hooks = {}
+	self.HookID = {}
+	
 	-- Remove chat commands
 	for k,v in pairs( self.Commands ) do
 		exsto.RemoveChatCommand( k )
 	end
+	
+	-- Finally, remove him from the exsto table.
+	exsto.Plugins[self.Info.ID] = nil
 	
 end
 
@@ -149,15 +172,8 @@ end
 	Description: Reloads a plugin
      ----------------------------------- ]]
 function plugin:Reload()
-
-	-- Re-add our hooks.
-	self:CreateGamemodeHooks()
-	
-	-- Re-create our chat commands.
-	for k,v in pairs( self.Commands ) do
-		exsto.AddChatCommand( k, v )
-	end
-	
+	self:Unload()
+	self:Register()	
 end
 
 --[[ -----------------------------------
