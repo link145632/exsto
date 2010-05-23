@@ -232,7 +232,7 @@ if SERVER then
 --[[ -----------------------------------
 	Function: FEL.CheckTable
 	Description: Checks a table to see if it has all the correct columns.  Will recreate if not.
-     ----------------------------------- ]]
+     ----------------------------------- 
 	function FEL.CheckTable( name, data )
 	
 		-- First, lets check if the table exists.
@@ -263,7 +263,7 @@ if SERVER then
 		
 		return tbl 
 		
-	end
+	end]]
 
 --[[ -----------------------------------
 	Function: FEL.MakeTable_Internal
@@ -279,7 +279,7 @@ if SERVER then
 		local curSlot = 1
 		
 		-- Check and make sure if there is an existing table, and it is up to date.
-		local savedInfo = FEL.CheckTable( name, data )
+		--local savedInfo = FEL.CheckTable( name, data )
 		
 		for k,v in pairs( data ) do
 			
@@ -297,14 +297,14 @@ if SERVER then
 		FEL.Query( query );
 		exsto.Print( exsto_CONSOLE_DEBUG, "SQL --> Creating table " .. name .. "!" )
 		
-		-- Save the data if the table had to be broken down.
+		--[[ Save the data if the table had to be broken down.
 		if savedInfo then 
 			for k,v in pairs( savedInfo ) do
 				FEL.AddData( name, {
 					Data = v,
 				} )
 			end
-		end		
+		end	]]	
 		
 	end
 

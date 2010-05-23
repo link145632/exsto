@@ -38,12 +38,12 @@ function exsto.CreatePlugin()
 	plugin.Variables = {}
 	
 	-- Set defaults for info.
-	plugin.Info = {
+	obj.Info = {
 		Name = "Unknown",
 		Desc = "None Provided",
 		Owner = "Unknown",
 		Experimental = false,
-		Enabled = true,
+		Disabled = false,
 	}
 	
 	return obj
@@ -54,6 +54,12 @@ end
 	Description: Sets the information of a plugin.
      ----------------------------------- ]]
 function plugin:SetInfo( tbl )
+
+	tbl.Name = tbl.Name or "Unknown"
+	tbl.Desc = tbl.Desc or "None Provided"
+	tbl.Experimental = tbl.Experimental or false
+	tbl.Disabled = tbl.Disabled or false
+
 	self.Info = tbl
 	self:CreateGamemodeHooks()
 end
@@ -65,18 +71,17 @@ end
 function plugin:Register()
 	
 	-- Check and see if we exist in the saved plugin table.
-	if !exsto.PluginSaved( self ) or ( self.Info.Enabled != exsto.PluginStatus( self ) ) then
-		exsto.NeedSaved[self.Info.ID] = self.Info.Enabled
+	if !exsto.PluginSaved( self ) or ( self.Info.Disabled != exsto.PluginStatus( self ) ) then
+		exsto.NeedSaved[self.Info.ID] = !self.Info.Disabled
 	else
 		
 		-- We are saved, so lets check and see if we are disabled.
-		if exsto.PluginDisabled( self ) or !self.Info.Enabled then
+		if exsto.PluginDisabled( self ) or self.Info.Disabled then
 			exsto.Print( exsto_CONSOLE, "PLUGIN --> Skipping loading plugin " .. self.Info.ID .. ".  Not Enabled." )
 			
 			-- Remove all of our hooks
 			for k,v in pairs( self.Hooks ) do
 				local id = self.HookID[k]
-				//print( "Removing ID " .. id )
 				hook.Remove( k, id )
 			end
 	
