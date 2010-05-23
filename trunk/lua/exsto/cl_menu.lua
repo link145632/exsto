@@ -40,6 +40,10 @@ surface.CreateFont( "arial", 14, 700, true, false, "exstoHelpTitle" )
 surface.CreateFont( "arial", 19, 700, true, false, "exstoPlyColumn" )
 surface.CreateFont( "arial", 15, 650, true, false, "exstoDataLines" )
 
+--[[ -----------------------------------
+	Function: exsto.Menu
+	Description: Opens up the Exsto menu.
+	----------------------------------- ]]
 function exsto.Menu( key )
 
 	Menu.AuthKey = key
@@ -51,28 +55,7 @@ function exsto.Menu( key )
 	
 	local x = ( ScrW() / 2 ) - ( width / 2 )
 	local y = ( ScrH() / 2 ) - ( height / 2 )
-	
-	-- Exsto redesign, 4/22/10
-	-- For this, we need new info when creating menu pages.
-	--	* Menu title
-	--	* Flags
-	--	* Size info
-	
-	--[[ Font Size + Color Info:
-		Title, Arial 23 PX. R: 89 G: 89 B: 89
-			Exsto / Formatted bold, title name not.
-			
-		Bottom Left Menu Title
-			Arial 32 PX Bold.  R: 89 G: 89 B: 89
-			
-		Player List:
-			Content: 238 x 3
-			Text: 89 x 3
-				Clicking on Text: 229 x 3
-		]]
-	
-	-- Create main body frame.
-	-- TODO: Edit layout of this frame, need to do a custom title thing.
+
 	Menu.Frame = exsto.CreateFrame( x, y, width, height, "", true, Color( 255, 255, 255, 200 ) )
 		Menu.Frame.Paint = function( frame )
 			surface.SetDrawColor( 242, 242, 242, 255 )
@@ -93,8 +76,6 @@ function exsto.Menu( key )
 		Menu.Frame.lblTitle.TitleBase = Menu.BaseTitle
 		Menu.Frame.lblTitle.Title = ""
 		Menu.Frame:SetDeleteOnClose( false )
-
-	-- TODO: How do we make this slide?  Display all panels at once, but set its positions back and forth?
 	
 	-- Create base panel to draw over.
 	Menu.Background = exsto.CreatePanel( 0, 25, Menu.Frame:GetWide(), Menu.Frame:GetTall() - 40, Color( 0, 0, 0, 0 ), Menu.Frame )
@@ -130,24 +111,7 @@ function exsto.Menu( key )
 	local oldW = 0
 	local oldH = 0
 	local oldThink = Menu.Frame.Think
-	Menu.Frame.Think = function( frame )
-		local w, h = Menu.Frame:GetSize()
-		
-		--[[if w != oldW and h != oldH then
-			oldW = w
-			oldH = h
-			
-			-- Move footer.
-			print( "MOVING!" )
-			Menu.Footer:SetPos( 0, Menu.Frame:GetTall() - 40 )
-			Menu.Footer.Divider:SetSize( Menu.Footer:GetWide(), 2 )
-			print( Menu.Footer.exstoLogo:GetPos() )
-			Menu.Footer.exstoGradient:SetPos( Menu.Footer:GetWide() - Menu.Footer.exstoGradient:GetWide(), Menu.Footer:GetTall() - Menu.Footer.exstoGradient:GetTall())
-			Menu.Footer.exstoLogo:SetPos( Menu.Footer:GetWide() - Menu.Footer.exstoLogo:GetWide(), (Menu.Footer:GetTall() - Menu.Footer.exstoLogo:GetTall()) - 5 )
-		end]]
-		oldThink( frame )
-	end
-	
+
 	Menu.pageDMenu.DoClick = function( button )
 		local menu = DermaMenu()
 		for k,v in pairs( Menu.List ) do
@@ -219,6 +183,10 @@ function exsto.Menu( key )
 end 
 exsto.UMHook( "exsto_Menu", exsto.Menu )
 
+--[[ -----------------------------------
+	Function: Menu.CreateDialog
+	Description: Creates a small notification dialog.
+	----------------------------------- ]]
 function Menu.CreateDialog()
 	-- Create the Anim VGUI
 	Menu.Dialog.AnimBG = exsto.CreatePanel( 0, 0, Menu.Frame:GetWide(), Menu.Frame:GetTall(), Color( 255, 255, 255, 204 ), Menu.Frame )
@@ -234,13 +202,15 @@ function Menu.CreateDialog()
 	Menu.Dialog.OK = exsto.CreateButton( ( Menu.Frame:GetWide() / 2 ) - 100, Menu.Dialog.Anim:GetTall() + 70 + Menu.Dialog.Msg:GetTall(), 200, 40, "OK", Menu.Dialog.AnimBG )
 	Menu.Dialog.OK.DoClick = function()
 		Menu.Dialog.AnimBG:SetVisible( false )
-		//Menu.Dialog.Anim:SetVisible( false )
 	end
 		
 	Menu.Dialog.AnimBG:SetVisible( false )
-	//Menu.Dialog.Anim:SetVisible( true )
 end
 
+--[[ -----------------------------------
+	Function: Menu.PushLoad
+	Description: Shows a loading screen
+	----------------------------------- ]]
 function Menu.PushLoad()
 	Menu.PushGeneric( "Loading...", nil, nil, true )
 	
@@ -248,6 +218,10 @@ function Menu.PushLoad()
 	timer.Create( "exstoLoadTimeout", 10, 1, function() if Menu.Dialog.IsLoading then Menu.PushError( "Error: Loading timed out!" ) end end )
 end
 
+--[[ -----------------------------------
+	Function: Menu.EndLoad
+	Description: Ends the active loading screen.
+	----------------------------------- ]]
 function Menu.EndLoad()
 	if !Menu.Frame then return end
 
@@ -258,13 +232,20 @@ function Menu.EndLoad()
 	Menu.Dialog.IsLoading = false
 end
 
+--[[ -----------------------------------
+	Function: Menu.PushError
+	Description: Shows an error screen
+	----------------------------------- ]]
 function Menu.PushError( msg )
 	Menu.PushGeneric( msg, "exstoErrorAnim", Color( 170, 92, 92, 255 ) )
 end
 
+--[[ -----------------------------------
+	Function: Menu.PushGeneric
+	Description: Shows a generic question screen
+	----------------------------------- ]]
 function Menu.PushGeneric( msg, imgTexture, textCol, loading )
 
-	print( "Pushing a notification!", msg, imgTexture or "none", tostring( textCol ) or "none", tostring( loading ) or "not loading" )
 	if Menu.Dialog.AnimBG and Menu.Dialog.Anim and Menu.Dialog.Msg then
 		if Menu.Dialog.IsLoading and !loading then Menu.EndLoad() end
 		if !Menu.Dialog.IsLoading and loading then Menu.Dialog.IsLoading = loading end
@@ -296,22 +277,33 @@ function Menu.PushGeneric( msg, imgTexture, textCol, loading )
 
 end
 
+--[[ -----------------------------------
+	Function: Menu.CallServer
+	Description: Calls a server function
+	----------------------------------- ]]
 function Menu.CallServer( command, ... )
 	RunConsoleCommand( command, Menu.AuthKey, ... )
 end
 	
+--[[ -----------------------------------
+	Function: Menu.GetPageIndex
+	Description: Gets an index of a page.
+	----------------------------------- ]]
 function Menu.GetPageIndex( short )
 	for k,v in pairs( Menu.ListIndex ) do
 		if v == short then return k end
 	end
 end
 
+--[[ -----------------------------------
+	Function: Menu.MoveToPage
+	Description: Moves to a page
+	----------------------------------- ]]
 function Menu.MoveToPage( short )
 
 	local page = Menu.List[short]
 	local index = Menu.GetPageIndex( short )
 	
-	//Menu.CurrentPage.Panel:SetVisible( false )
 	local oldCurrent = Menu.CurrentPage.Panel
 	local oldIndex = Menu.CurrentIndex
 	
@@ -322,11 +314,7 @@ function Menu.MoveToPage( short )
 	Menu.CurrentIndex = index
 	
 	Menu.SetTitle( Menu.CurrentPage.Title )
-	//Menu.CurrentPage.Panel:SetVisible( true )
-	
-	-- Nice little effect.
-	
-	-- If we are moving right
+
 	local oldW, oldH = oldCurrent:GetSize() 
 		
 	if oldIndex < Menu.CurrentIndex  then
@@ -347,6 +335,10 @@ function Menu.MoveToPage( short )
 	
 end
 
+--[[ -----------------------------------
+	Function: Menu.CreateExtras
+	Description: Creates the pages
+	----------------------------------- ]]
 function Menu.CreateExtras( bg, flags )
 
 	-- Kill all old pages.
@@ -415,6 +407,10 @@ function Menu.CreateExtras( bg, flags )
 	
 end
 
+--[[ -----------------------------------
+	Function: Menu.CreatePage
+	Description: Creates a menu page for the Exsto menu
+	----------------------------------- ]]
 function Menu.CreatePage( info, func )
 
 	if type( info ) != "table" then Error( "MENU --> \"" .. tostring( info ) .. "\" is not compatible with Exsto!  Please contact the creator of the plugin!" ) end
@@ -458,6 +454,10 @@ function Menu.CreatePage( info, func )
 	
 end
 
+--[[ -----------------------------------
+	Function: Menu.SetTitle
+	Description: Sets the title of the menu frame and bottom list.
+	----------------------------------- ]]
 function Menu.SetTitle( text )
 	Menu.Frame.lblTitle.Title = text
 	Menu.pageName:SetText( text )
@@ -470,14 +470,10 @@ function Menu.SetTitle( text )
 	Menu.pageNext:SetPos( 29 + w + 9, 8 )
 end
 
-function Menu.SetSize( panel )
-	local width = panel.Wide
-	local height = panel.Tall
-	
-	Menu.Frame:SizeTo( width, height + 23 + Menu.footerH, 1, 0, 2 )
-	Menu.Background:SizeTo( width, height, 1, 0, 2 )
-end
-
+--[[ -----------------------------------
+	Function: Menu.CreateTabs
+	Description: Creates PropertySheet tabs
+	----------------------------------- ]]
 function Menu.CreateTabs( panel, tab )
 
 	local num = #tab
@@ -507,6 +503,10 @@ function Menu.CreateTabs( panel, tab )
 	
 end
 
+--[[ -----------------------------------
+	Function: Menu.AddToPanelList
+	Description: Adds a page to the menu list.
+	----------------------------------- ]]
 function Menu.AddToPanelList( info )
 	
 	Menu.List[info.Short] = {
@@ -521,440 +521,4 @@ function Menu.AddToPanelList( info )
 	
 	-- Create an indexed list of the pages.
 	table.insert( Menu.ListIndex, info.Short )
-
 end
-
-Menu.CreatePage( {
-	Title = "Player List",
-	Short = "playerlist",
-	Default = true,
-	Flag = "playerlist",
-	},
-	function( panel )
-		local Reasons = {
-			"Mingebag",
-			"Requested",
-			"Asshat",
-			"\"We don't like you\"",
-			"\"Sorry bro.\"",
-			"\"No Reason\"",
-		}
-		
-		local Times = {
-			"Forever",
-			"1 Hour",
-			"5 Hours",
-			"1 Day",
-			"1 Week",
-			"1 Month",
-		}
-		
-		local plylist = exsto.CreateListView( 10, 10, panel:GetWide() - 20, panel:GetTall() - 60, panel )
-			plylist.Color = Color( 224, 224, 224, 255 )
-			
-			plylist.HoverColor = Color( 229, 229, 229, 255 )
-			plylist.SelectColor = Color( 149, 227, 134, 255 )
-			
-			plylist:SetHeaderHeight( 40 )
-			plylist.Round = 8
-			plylist.ColumnFont = "exstoPlyColumn"
-			plylist.ColumnTextCol = Color( 140, 140, 140, 255 )
-
-			plylist.LineFont = "exstoDataLines"
-			plylist.LineTextCol = Color( 164, 164, 164, 255 )
-			
-			plylist:AddColumn( "Player" )
-			plylist:AddColumn( "SteamID" ):SetFixedWidth( 145 )
-			plylist:AddColumn( "Rank" )
-			plylist:AddColumn( "Ping" ):SetFixedWidth( 45 )
-			
-			plylist.UpdatePlayers = function()
-				plylist.Players = {}
-				plylist:Clear()
-				
-				for k,v in pairs( player.GetAll() ) do
-					table.insert( plylist.Players, v )
-				end
-				
-				for k,v in pairs( plylist.Players ) do
-					local line = plylist:AddLine( v:Name(), v:SteamID(), v:GetRank(), v:Ping() )
-					local oldScheme = line.ApplySchemeSettings
-					-- Rank Color
-					local oldSettings = line.Columns[3].ApplySchemeSettings
-					line.Columns[3].ApplySchemeSettings = function( self )
-						oldSettings( self )
-						self:SetTextColor( exsto.GetRankColor( v:GetRank() ) )
-					end
-					
-					-- Pingggggg
-					local oldSettings = line.Columns[4].ApplySchemeSettings
-					line.Columns[4].ApplySchemeSettings = function( self )
-						oldSettings( self )
-						if v:Ping() > 150 then
-							self:SetTextColor( COLOR.NAME )
-						end
-					end
-				end
-			end
-			
-			local lastThink = 1;
-			plylist.Think = function()
-				if CurTime() > lastThink then
-					lastThink = CurTime() + 10
-					plylist.UpdatePlayers()
-				end
-			end
-			plylist.UpdatePlayers()
-			
-		local function GetSelected()
-			if plylist:GetSelected()[1] then
-				if plylist:GetSelected()[1]:GetValue(1) then
-					return plylist:GetSelected()[1]:GetValue(1)
-				else return nil end
-			else return nil end
-		end
-			
-		if LocalPlayer():IsAdmin() then
-			local kickButton = exsto.CreateButton( (panel:GetWide() / 2) - 74 * 2, panel:GetTall() - 40, 74, 27, "Kick", panel )
-				kickButton.DoClick = function( button )
-					local ply = GetSelected()
-					if ply then
-						local menu = DermaMenu()
-						for k,v in pairs( Reasons ) do
-							menu:AddOption( v, function() RunConsoleCommand( "exsto", "kick",  ply, v ) plylist.UpdatePlayers() end )
-						end
-						menu:Open()
-					end
-				end
-				kickButton.Color = Color( 255, 155, 155, 255 )
-				kickButton.HoverCol = Color( 255, 126, 126, 255 )
-				kickButton.DepressedCol = Color( 255, 106, 106, 255 )
-				
-			local banButton = exsto.CreateButton( (panel:GetWide() / 2) - ( 74 / 2 ), panel:GetTall() - 40, 74, 27, "Ban", panel )
-				banButton.DoClick = function( button )
-					local ply = GetSelected()
-					if ply then
-						local menu = DermaMenu()
-						for k,v in pairs( Times ) do
-							if v == "Forever" then v = 0 end
-							if v == "1 Hour" then v = 60 end
-							if v == "5 Hours" then v = 60 * 5 end
-							if v == "1 Day" then v = 60 * 24 end
-							if v == "1 Week" then v = (60 * 24) * 7 end
-							if v == "1 Month" then v = ((60 * 24) * 7) * 4 end
-							menu:AddOption( v, function() RunConsoleCommand( "exsto", "ban", ply, v ) plylist.UpdatePlayers() end )
-						end
-						menu:Open()
-					end
-				end
-				banButton.Color = Color( 255, 155, 155, 255 )
-				banButton.HoverCol = Color( 255, 126, 126, 255 )
-				banButton.DepressedCol = Color( 255, 106, 106, 255 )
-				
-			local rankButton = exsto.CreateButton( (panel:GetWide() / 2) + 74, panel:GetTall() - 40, 74, 27, "Rank", panel )
-				rankButton.DoClick = function( button )
-					local ply = GetSelected()
-					if ply then
-						if ply == LocalPlayer():Nick() then
-							Menu.PushError( "Error: You cannot change your own rank!" )
-							return
-						end
-						local menu = DermaMenu()
-						for k,v in pairs( exsto.Levels ) do
-							menu:AddOption( v.Name, function() RunConsoleCommand( "exsto", "rank", ply, v.Short ) plylist.UpdatePlayers() end )
-						end
-						menu:Open()
-					end
-				end
-				rankButton.Color = Color( 171, 255, 155, 255 )
-				rankButton.HoverCol = Color( 143, 255, 126, 255 )
-				rankButton.DepressedCol = Color( 123, 255, 106, 255 )
-		end
-	end
-)
-
-Menu.CreatePage( {
-	Title = "Exsto Help",
-	Short = "exstohelp",
-	Flag = "helppage",
-	},
-	function( panel )
-	
-		surface.SetFont( "default" )
-		
-		local function RecieveHelp( contents, size )
-			local verStart, verEnd, verTag, version = string.find( contents, "(%[helpver=(%d+%.%d+)%])" )
-			
-			if !version then
-				
-				return
-			end
-			
-			-- Create table on the info we have.
-			local help = {}
-			
-			local sub = string.sub( contents, verEnd + 1 ):Trim()
-			local capture = string.gmatch( sub, "%[title=([%w%s%p]-)%]([%w%s%p]-)%[/title%]" )
-			
-			for k,v in capture do
-				help[k] = v
-			end
-
-			local list = exsto.CreatePanelList( 5, 0, panel:GetWide() - 10, panel:GetTall() - 50, 10, false, true, panel )
-				list.Color = Color( 229, 229, 229, 0 )
-				
-			for k,v in pairs( help ) do
-				local w, h = surface.GetTextSize( k )
-
-				local label = exsto.CreateLabel( 15, 0, v, "default" )
-					label:SetWrap( true )
-					label:SetTextColor( Color( 60, 60, 60, 255 ) )
-					
-				local category = exsto.CreateCollapseCategory( 0, 0, w + 10, label:GetTall() + 30, k )
-					category.Color = Color( 229, 229, 229, 255 )
-					category.Header.TextColor = Color( 60, 60, 60, 255 )
-					category.Header.Font = "exstoHelpTitle" 
-					
-				category:SetContents( label )
-				list:AddItem( category )
-			end
-			
-		end
-		http.Get( "http://94.23.154.153/Exsto/helpdb.txt", "", RecieveHelp )
-	end
-)
-
--- Small Log Viewer
-local lview = {}
-
-	lview.Lines = {}
-	
-	lview.X = 30
-	lview.Y = 5
-	lview.Font = "ChatText"
-	
-	lview.StayTime = 10
-	
-function lview.LogPrint( ... )
-
-	local data = ""
-	local numColors = 0
-	
-	for k,v in pairs( {...} ) do
-
-		if type( v ) == "table" then
-			
-			if numColors >= 1 then
-				data = data .. "[/c]"
-			end
-		
-			data = data .. "[c=" .. v.r .. "," .. v.g .. "," .. v.b .. "," .. v.a .. "]"
-			
-			numColors = numColors + 1
-			
-		elseif type( v ) == "Player" then
-		
-			local rank = v:GetRank()
-			local col = exsto.GetRankColor( rank )
-			
-			data = data .."[c=" .. col.r .. "," .. col.g .. "," .. col.b .. "," .. col.a .. "]"
-			data = data .. v:Nick()
-			data = data .. "[/c]"
-			
-		elseif type( v ) == "string" then
-		
-			data = data .. v
-			
-		end
-		
-	end
-	
-	lview.ParseLine( data )
-	
-end
-exsto.UMHook( "exsto_LogPrint", lview.LogPrint )
-
-function lview.ParseLine( line )
-
-	surface.SetFont( lview.Font )
-
-	local data = {}
-		data.Type = {}
-		data.Value = {}
-		data.Text = {}
-		data.Width = {}
-		data.Length = {}
-		
-	local toParse = line
-	local id = 1
-	local total_w = 0
-	
-	while toParse != "" do
-	
-		local clStart, clEnd, clTag, clR, clG, clB, clA = string.find( toParse, "(%[c=(%d+),(%d+),(%d+),(%d+)%])" )
-
-		if clStart then
-			
-			if clStart == 1 then
-			
-				local colEndStart, colEndEnd, colEnd = string.find( toParse, "(%[/c%])" )
-				if colEndStart then colEndStart = colEndStart - 1 else colEndStart = string.len( toParse ) end
-				colEndEnd = colEndEnd or string.len( toParse )
-				
-				local text = string.sub( toParse, clEnd + 1, colEndStart )
-				local w, h = surface.GetTextSize( text )
-				
-				table.insert( data.Type, id, 2 )
-				table.insert( data.Value, id, Color( clR, clG, clB, clA ) )
-				table.insert( data.Text, id, text )
-				table.insert( data.Width, id, w )
-				
-				total_w = total_w + w
-				
-				if colEndEnd then toParse = string.sub( toParse, colEndEnd + 1 ) else toParse = "" end
-				
-			elseif clStart > 1 then
-			
-				local text = string.sub( toParse, 1, clStart - 1 )
-				local w, h = surface.GetTextSize( text )
-				
-				total_w = total_w + w
-				
-				table.insert( data.Width, id, w )
-				table.insert( data.Type, id, 1 )
-				table.insert( data.Text, id, text )
-				
-				toParse = string.sub( toParse, clStart, string.len( toParse ) )
-				
-			end
-			
-			id = id + 1
-			
-		else
-		
-			local w, h = surface.GetTextSize( toParse )
-			
-			table.insert( data.Type, id, 1 )
-			table.insert( data.Text, id, toParse )
-			table.insert( data.Width, id, w )
-			
-			total_w = total_w + w
-			
-			toParse = ""
-			id = id + 1
-			
-		end
-		
-	end
-	
-	data.Length = id
-	data.Time = CurTime() + lview.StayTime
-	data.Alpha = 255
-	data.Last_Y = 0
-	data.Last_X = 0
-	data.Total_W = total_w
-	table.insert( lview.Lines, data )			
-	
-end
-
-function lview.DrawBox( x, y, width )
-
-	surface.SetDrawColor( 50, 50, 50, 100 )
-	surface.DrawRect( x - 5, y - 2, width + 10, 22 )
-	
-	surface.SetDrawColor( 255, 255, 255, 100 )
-	surface.DrawOutlinedRect( x - 5, y - 2, width + 10, 22 )
-	--surface.DrawOutlinedRect( pchat.X, pchat.Y, pchat.G_W, 20 )
-	
-end
-
-function lview.DrawLine( x, y, line )
-	
-	surface.SetFont( lview.Font ) 
-	
-	local outline = Color( 0, 0, 0, line.Alpha / 2 )
-
-	local pw = 0
-
-	local curX = x
-	local curY = y																																						
-	local num = line.Length
-	local total_w = line.Total_W	
-	
-	lview.DrawBox( curX, curY, total_w )
-	
-	for I = 1, line.Length do
-	
-		local t = line.Type[I]
-		local w = line.Width[I]
-		local val = line.Value[I]
-		local text = line.Text[I]		
-		
-		if t == 1 then
-		
-			draw.SimpleTextOutlined( text, lview.Font, curX, curY, Color( 255, 255, 255, line.Alpha ), 0, 0, 1, outline )
-			
-		elseif t == 2 then
-		
-			draw.SimpleTextOutlined( text, lview.Font, curX, curY, Color( val.r, val.g, val.b, line.Alpha ), 0, 0, 1, outline )
-			
-		end
-		
-		if w then curX = curX + w or curX end
-		
-	end
-
-end
-	
-function lview.Draw()
-
-	surface.SetFont( lview.Font )
-	
-	local _, lineHeight = surface.GetTextSize( "H" )
-	local curX = lview.X
-	local curY = lview.Y
-	
-	for I = 0, 5 do
-	
-		local line = lview.Lines[ #lview.Lines - I ]
-		
-		if not line then return end
-		
-		if line.Last_Y != curY then
-		
-			local dist = curY - line.Last_Y
-			local speed = dist / 40
-			
-			line.Last_Y = math.Approach( line.Last_Y, curY, speed )
-			
-		end
-		
-		if line.Time < CurTime() then																								
-		
-			curX = 0 - line.Total_W - 30
-			
-			if line.Last_X <= curX + 10 then
-			
-				lview.Lines[ #lview.Lines - I ] = nil
-				
-			end
-			
-		end
-		
-		if line.Last_X != curX then
-			
-			local dist = curX - line.Last_X
-			local speed = dist / 40
-			
-			line.Last_X = math.Approach( line.Last_X, curX, speed )
-			
-		end
-		
-		lview.DrawLine( line.Last_X, line.Last_Y, line )
-		
-		curY = curY + lineHeight + 2
-		
-	end
-	
-end
-hook.Add( "HUDPaint", "exsto_DrawSimpleLog", lview.Draw )

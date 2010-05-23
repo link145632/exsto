@@ -177,17 +177,12 @@ elseif CLIENT then
 		local UpdateButton = exsto.CreateButton( 120, 525, 107, 27, "Update Vars", panel )
 		
 		RefreshButton.DoClick = function() Menu.PushLoad() RunConsoleCommand( "_RequestVars" ) end
-		UpdateButton.DoClick = function() 
-			
+		UpdateButton.DoClick = function() 	
 			for k,v in pairs( list:GetLines() ) do
 				
 				RunConsoleCommand( "_SetVar", v:GetValue(2), v:GetValue(3) )
 				
 			end
-			
-			
-			//Menu.PushLoad()
-		
 		end
 		
 		local oldClick = list.OnClickLine
@@ -204,9 +199,9 @@ elseif CLIENT then
 			curVar = varTable
 			curLine = line
 			
-			PrettyEntry:SetText( varTable.Pretty )
-			DirtyEntry:SetText( varTable.Dirty )
-			TypeEntry:SetText( PLUGIN.ParseType( varTable.Value ) )
+			PrettyEntry:SetText( tostring( varTable.Pretty ) )
+			DirtyEntry:SetText( tostring( varTable.Dirty ) )
+			TypeEntry:SetText( tostring( PLUGIN.ParseType( varTable.Value ) ) )
 			NCValueEntry:Clear()
 			
 			if #varTable.Possible >= 1 then
@@ -215,7 +210,7 @@ elseif CLIENT then
 
 				for k,v in pairs( varTable.Possible ) do
 
-					NCValueEntry:AddChoice( v )
+					NCValueEntry:AddChoice( tostring( v ) )
 
 				end
 				

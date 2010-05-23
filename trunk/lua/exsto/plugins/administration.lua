@@ -294,6 +294,155 @@ elseif CLIENT then
 			unbanButton.HoverCol = Color( 143, 255, 126, 255 )
 			unbanButton.DepressedCol = Color( 123, 255, 106, 255 )
 	end
+	
+	Menu.CreatePage( {
+	Title = "Player List",
+	Short = "playerlist",
+	Default = true,
+	Flag = "playerlist",
+	},
+	function( panel )
+		local Reasons = {
+			"Mingebag",
+			"Requested",
+			"Asshat",
+			"\"We don't like you\"",
+			"\"Sorry bro.\"",
+			"\"No Reason\"",
+		}
+		
+		local Times = {
+			"Forever",
+			"1 Hour",
+			"5 Hours",
+			"1 Day",
+			"1 Week",
+			"1 Month",
+		}
+		
+		local plylist = exsto.CreateListView( 10, 10, panel:GetWide() - 20, panel:GetTall() - 60, panel )
+			plylist.Color = Color( 224, 224, 224, 255 )
+			
+			plylist.HoverColor = Color( 229, 229, 229, 255 )
+			plylist.SelectColor = Color( 149, 227, 134, 255 )
+			
+			plylist:SetHeaderHeight( 40 )
+			plylist.Round = 8
+			plylist.ColumnFont = "exstoPlyColumn"
+			plylist.ColumnTextCol = Color( 140, 140, 140, 255 )
+
+			plylist.LineFont = "exstoDataLines"
+			plylist.LineTextCol = Color( 164, 164, 164, 255 )
+			
+			plylist:AddColumn( "Player" )
+			plylist:AddColumn( "SteamID" ):SetFixedWidth( 145 )
+			plylist:AddColumn( "Rank" )
+			plylist:AddColumn( "Ping" ):SetFixedWidth( 45 )
+			
+			plylist.UpdatePlayers = function()
+				plylist.Players = {}
+				plylist:Clear()
+				
+				for k,v in pairs( player.GetAll() ) do
+					table.insert( plylist.Players, v )
+				end
+				
+				for k,v in pairs( plylist.Players ) do
+					local line = plylist:AddLine( v:Name(), v:SteamID(), v:GetRank(), v:Ping() )
+					local oldScheme = line.ApplySchemeSettings
+					-- Rank Color
+					local oldSettings = line.Columns[3].ApplySchemeSettings
+					line.Columns[3].ApplySchemeSettings = function( self )
+						oldSettings( self )
+						self:SetTextColor( exsto.GetRankColor( v:GetRank() ) )
+					end
+					
+					-- Pingggggg
+					local oldSettings = line.Columns[4].ApplySchemeSettings
+					line.Columns[4].ApplySchemeSettings = function( self )
+						oldSettings( self )
+						if v:Ping() > 150 then
+							self:SetTextColor( COLOR.NAME )
+						end
+					end
+				end
+			end
+			
+			local lastThink = 1;
+			plylist.Think = function()
+				if CurTime() > lastThink then
+					lastThink = CurTime() + 10
+					plylist.UpdatePlayers()
+				end
+			end
+			plylist.UpdatePlayers()
+			
+		local function GetSelected()
+			if plylist:GetSelected()[1] then
+				if plylist:GetSelected()[1]:GetValue(1) then
+					return plylist:GetSelected()[1]:GetValue(1)
+				else return nil end
+			else return nil end
+		end
+			
+		if LocalPlayer():IsAdmin() then
+			local kickButton = exsto.CreateButton( (panel:GetWide() / 2) - 74 * 2, panel:GetTall() - 40, 74, 27, "Kick", panel )
+				kickButton.DoClick = function( button )
+					local ply = GetSelected()
+					if ply then
+						local menu = DermaMenu()
+						for k,v in pairs( Reasons ) do
+							menu:AddOption( v, function() RunConsoleCommand( "exsto", "kick",  ply, v ) plylist.UpdatePlayers() end )
+						end
+						menu:Open()
+					end
+				end
+				kickButton.Color = Color( 255, 155, 155, 255 )
+				kickButton.HoverCol = Color( 255, 126, 126, 255 )
+				kickButton.DepressedCol = Color( 255, 106, 106, 255 )
+				
+			local banButton = exsto.CreateButton( (panel:GetWide() / 2) - ( 74 / 2 ), panel:GetTall() - 40, 74, 27, "Ban", panel )
+				banButton.DoClick = function( button )
+					local ply = GetSelected()
+					if ply then
+						local menu = DermaMenu()
+						for k,v in pairs( Times ) do
+							if v == "Forever" then v = 0 end
+							if v == "1 Hour" then v = 60 end
+							if v == "5 Hours" then v = 60 * 5 end
+							if v == "1 Day" then v = 60 * 24 end
+							if v == "1 Week" then v = (60 * 24) * 7 end
+							if v == "1 Month" then v = ((60 * 24) * 7) * 4 end
+							menu:AddOption( v, function() RunConsoleCommand( "exsto", "ban", ply, v ) plylist.UpdatePlayers() end )
+						end
+						menu:Open()
+					end
+				end
+				banButton.Color = Color( 255, 155, 155, 255 )
+				banButton.HoverCol = Color( 255, 126, 126, 255 )
+				banButton.DepressedCol = Color( 255, 106, 106, 255 )
+				
+			local rankButton = exsto.CreateButton( (panel:GetWide() / 2) + 74, panel:GetTall() - 40, 74, 27, "Rank", panel )
+				rankButton.DoClick = function( button )
+					local ply = GetSelected()
+					if ply then
+						if ply == LocalPlayer():Nick() then
+							Menu.PushError( "Error: You cannot change your own rank!" )
+							return
+						end
+						local menu = DermaMenu()
+						for k,v in pairs( exsto.Levels ) do
+							menu:AddOption( v.Name, function() RunConsoleCommand( "exsto", "rank", ply, v.Short ) plylist.UpdatePlayers() end )
+						end
+						menu:Open()
+					end
+				end
+				rankButton.Color = Color( 171, 255, 155, 255 )
+				rankButton.HoverCol = Color( 143, 255, 126, 255 )
+				rankButton.DepressedCol = Color( 123, 255, 106, 255 )
+		end
+	end
+)
 
 end
 

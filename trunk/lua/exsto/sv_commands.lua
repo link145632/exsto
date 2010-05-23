@@ -31,13 +31,21 @@ AddArg( "NUMBER", "number", function( num ) return tonumber( num ) end )
 AddArg( "STRING", "string", function( string ) return tostring( string ) end )
 AddArg( "NIL", "nil", function( object ) return "" end )
 
--- Functions
+exsto.AddVariable({
+	Pretty = "Enable Chat Spelling Suggestion",
+	Dirty = "spellingcorrect",
+	Default = true,
+	Description = "Enable to have Exsto tell you if you mis-spell a command.",
+	Possible = { true, false },
+})
 
--- TODO: I don't want commands to be shown if someone doesn't have the flag to actually use it.  It's stupid.
+--[[ -----------------------------------
+	Function: exsto.AddChatCommand
+	Description: Adds chat commands into the Exsto list.
+     ----------------------------------- ]]
 function exsto.AddChatCommand( ID, info )
 
 	if !ID or !info then exsto.Error( "No valid ID or Information for a chat command requesting initialization!" ) return end
-	--if exsto.Commands[ID] then exsto.Error( "There is already another name registered from " .. ID .. "!  If it helps, the other entry is using " .. exsto.Commands[ID].Chat[1] .. " as one of its chat commands, this one is using " .. info.Chat[1] .. "!" ) return end
 	
 	local returnOrder = {}
 	if type( info.ReturnOrder ) == "string" then
@@ -71,6 +79,10 @@ function exsto.AddChatCommand( ID, info )
 	
 end
 
+--[[ -----------------------------------
+	Function: exsto.AddChat
+	Description: Cleans and categorises chat commands.
+     ----------------------------------- ]]
 function exsto.AddChat( ID, Look )
 	if !ID or !Look then exsto.Error( "No valid ID or Information for a chat command requesting initialization!" ) return end
 	
@@ -78,180 +90,74 @@ function exsto.AddChat( ID, Look )
 	Look = Look:lower():Trim()
 	
 	table.insert( tab.Chat, Look )	
-	
-	--print( "Adding chat to " .. ID .. " " .. Look )
 end
 
--- TODO: Add descriptions to commands.
+--[[ -----------------------------------
+	Function: exsto.AddConsole
+	Description: Cleans and categorises console commands.
+     ----------------------------------- ]]
 function exsto.AddConsole( ID, Look )
 	if !ID or !Look then exsto.Error( "No valid ID or Information for a console command requesting initialization!" ) return end
 	
 	local tab = exsto.Commands[ID]
 	
 	table.insert( tab.Console, Look )
-	//concommand.Add( Look, exsto.CommandCall )
 end
 
+--[[ -----------------------------------
+	Function: exsto.RemoveChatCommand
+	Description: Removes a command ID from the Exsto list.
+     ----------------------------------- ]]
 function exsto.RemoveChatCommand( ID )
 	exsto.Commands[ID] = nil
 end
 
--- Flag creation + other stuff
+--[[ -----------------------------------
+	Function: exsto.CreateFlag
+	Description: Adds a flag to the Exsto flag table.
+     ----------------------------------- ]]
 function exsto.CreateFlag( ID, Desc )
-
 	exsto.Flags[ID] = Desc
-	
 end
 
+--[[ -----------------------------------
+	Function: exsto.LoadFlags
+	Description: Inserst all flags from commands into the exsto.Flag table.
+     ----------------------------------- ]]
 function exsto.LoadFlags()
-
 	for k,v in pairs( exsto.Commands ) do
-	
 		exsto.Flags[v.ID] = v.FlagDesc
-		
 	end
-	
 end
 
+--[[ -----------------------------------
+	Function: exsto.GetArgumentKey
+	Description: Grabs the index of an argument type.
+     ----------------------------------- ]]
 function exsto.GetArgumentKey( style )
-
 	for k,v in pairs( exsto.Arguments ) do
-	
 		if v.Style == style then return k end
-		
 	end
-	
 end
 
-function exsto.NiceArgs( args, info )
-
-	local args = string.Explode( "|", args )
-	
-	local data = {}
-	
-	for k,v in pairs( args ) do
-	
-		v = string.lower( v )
-		first = string.sub( v, 0, 1 )
-		first = string.upper( first )
-		v = string.sub( v, 2 )
-		v = first .. v
-		
-		table.insert( data, Color( 255, 0, 0 ) )
-		table.insert( data, v );
-		
-	end
-	
-	//PrintTable( info );
-	
-	return data
-	
-end
-
+--[[ -----------------------------------
+	Function: exsto.CommandCompatible
+	Description: Checks to see if a command is compatible with Exsto.
+     ----------------------------------- ]]
 function exsto.CommandCompatible( data )
-
-	--print( type( data.Call ), type( data.Args ), type( data.Optional ) )
-
 	if type( data.Call ) != "function"  then return end
 	if type( data.Args ) != "table" then return end
 	if type( data.Optional ) != "table" then return end
 	if type( data.ReturnOrder ) != "table" then return end
 	
 	return true
-	
 end
-	
+
+--[[ -----------------------------------
+	Function: exsto.ParseStrings
+	Description: Parses text, then returns a table with items split by spaces, except stringed items.
+     ----------------------------------- ]]
 function exsto.ParseStrings( text )
-
-	--[[-- Pattern look for string.
-	local stringStart, stringEnd, content = string.find( text, "[\"\'](.-)[\"\']" )
-	
-	-- If theres no strings, lets see if we atleast have the start of one.
-	if !stringStart then
-		local stringStart, stringEnd, content = string.find( text, "[\"\']([.^\"^\']-)" )
-		
-		local data = {}
-		local firstSection = text
-		if stringStart then -- We have one, return the sub rest.
-			firstSection = string.sub( text, 1, stringStart - 1 ):Trim()
-			local str = string.sub( text, stringStart - 1 ):Trim():gsub( "\'", "" ):gsub( "\"", "" ) 
-			table.insert( data, str )
-		end
-		
-		local rest = string.Explode( " ", firstSection )
-		table.Add( rest, data )
-		
-		return rest
-	end
-	
-	-- Sub out the first part with no strings.
-	local firstSection = string.sub( text, 1, stringStart - 1 ):Trim()
-	
-	local args = string.Explode( " ", firstSection )
-	if firstSection:len() < 1 then
-		args = {}
-	end
-	
-	-- Put string into the argument table as one argument
-	table.insert( args, content )
-	
-	-- Look at the end of the string to check for another section of string
-	local lastSection = string.sub( text, stringEnd + 1 ):Trim()
-	
-	while lastSection != "" do
-	
-		local stringStart, stringEnd, content = string.find( lastSection, "[\"](.-)[\"]" )
-		
-		if stringStart then
-			-- Theres another string after our first...
-			local firstSection = string.sub( lastSection, 1, stringStart - 1):Trim()
-			local newArgs = string.Explode( " ", firstSection )
-			
-			table.insert( newArgs, content )
-			table.Add( args, newArgs )
-			
-			lastSection = string.sub( lastSection, stringEnd + 1 ):Trim()
-			
-		else
-			
-			-- If theres no strings, lets see if we atleast have the start of one.
-			local stringStart, stringEnd, content = string.find( lastSection, "[\"\']([.^\"^\']-)" )
-
-			if stringStart then -- We have one, return the sub rest.
-			
-				local firstSection = string.sub( lastSection, 1, stringStart - 1 ):Trim()
-				local str = string.sub( lastSection, stringStart - 1 ):Trim()
-
-				local rest = string.Explode( " ", firstSection )
-				table.insert( rest, str )
-				table.Add( args, rest )
-				
-				lastSection = ""
-				
-				break
-				
-			else
-
-				-- Theres no more string.  Just put it in.
-				local newArgs = string.Explode( " ", lastSection )
-				table.Add( args, newArgs )
-				
-				lastSelection = ""
-				
-				break
-				
-			end
-			
-		end
-		
-	end
-	
-	-- Do a final cleaning.
-	for k,v in pairs( args ) do
-		args[k] = v:Trim():gsub( "\'", "" ):gsub( "\"", "" )
-	end
-	
-	return args]]
 	
 	-- Code from raBBish, which is from Lexi, that completely lit up my string finding pattern on fire.
 	-- http://www.facepunch.com/showthread.php?t=827179
@@ -272,9 +178,12 @@ function exsto.ParseStrings( text )
 	end
 	
 	return data
-	
 end
 
+--[[ -----------------------------------
+	Function: exsto.ParseArguments
+	Description: Parses text and returns formatted and normal typed variables.
+     ----------------------------------- ]]
 function exsto.ParseArguments( ply, text, data, alreadyString )
 
 	local Return = {}
@@ -286,7 +195,7 @@ function exsto.ParseArguments( ply, text, data, alreadyString )
 	
 	-- Compatibility checks, woop.
 	if !exsto.CommandCompatible( data ) and ply then
-		exsto.Print( exsto_CHAT, ply, COLOR.NORM, "The command you tried to run is not compatible with Exsto!" )
+		ply:Print( exsto_CHAT, COLOR.NORM, "The command you tried to run is not compatible with Exsto!" )
 		exsto.Print( exsto_CONSOLE_DEBUG, "COMMANDS --> Command \"" .. data.ID .. "\" could not be parsed due to incompatibilities with Exsto.  Please contact plugin coder." )
 		return
 	end
@@ -313,7 +222,7 @@ function exsto.ParseArguments( ply, text, data, alreadyString )
 		-- Now hang on, if we have gone over the number of text slots, then we need to start placing optionals.
 		if !textSlot then
 		
-			//print( argName, optional[argName] )
+			print( argName, optional[argName] )
 		
 			if optional[argName] then -- If an optional exists for this argument slot then continue
 				table.insert( Return, optional[argName] )
@@ -325,7 +234,7 @@ function exsto.ParseArguments( ply, text, data, alreadyString )
 					exsto.Print( exsto_CONSOLE_DEBUG, "COMMANDS --> Adding in caller value for \"" .. argName .. "\'!" )
 				else
 					-- If it doesn't exist, the chat maker did not properly code the command.  Send debug data.
-					exsto.Print( exsto_CHAT, ply, COLOR.NORM, "The command you tried to run is missing an optional value!" )
+					ply:Print( exsto_CHAT, COLOR.NORM, "The command you tried to run is missing an optional value!" )
 					exsto.Print( exsto_CONSOLE_DEBUG, "COMMANDS --> Command \"" .. data.ID .. "\" could not be parsed due to incompatibilities with Exsto.  The optional values did not match up with the required." )
 					return
 				end
@@ -343,7 +252,7 @@ function exsto.ParseArguments( ply, text, data, alreadyString )
 				// Temp String Fix-- HACK
 				if form == "nil" and exsto.Arguments[argkey].Type == "number" then form = "string!" end
 				
-				exsto.Print( exsto_CHAT, ply, COLOR.NORM, "Argument ", COLOR.NAME, argName .. " (" .. exsto.Arguments[argkey].Type .. ")", COLOR.NORM, " is needed!  You put ", COLOR.NAME, form )
+				ply:Print( exsto_CHAT, COLOR.NORM, "Argument ", COLOR.NAME, argName .. " (" .. exsto.Arguments[argkey].Type .. ")", COLOR.NORM, " is needed!  You put ", COLOR.NAME, form )
 				
 				return nil
 				
@@ -358,39 +267,43 @@ function exsto.ParseArguments( ply, text, data, alreadyString )
 	return Return
 end
 
-function exsto.ChatMonitor( ply, text )
-	if !ply or !text then exsto.Error( "No player or text exists in this hook, call the doctor!" ) return end
-	
-	--text = text:lower()
-	
-	local args = string.Explode( " ", text )
-	local Command = args[1]:lower()
-	
+--[[ -----------------------------------
+	Function: ExstoParseCommand
+	Description: Main thread that parses commands and runs them.
+     ----------------------------------- ]]
+local function ExstoParseCommand( ply, command, args, style )
+
 	-- Make the strings nicer.
 	for k,v in pairs( args ) do
-		--args[k] = v:lower():Trim()
 		args[k] = v:Trim()
 	end
 	
 	local Found = false
 	for k,v in pairs( exsto.Commands ) do
-		if table.HasValue( v.Chat, Command ) then
+		local tbl = v.Chat
+		if style == "console" then tbl = v.Console end
+		
+		if table.HasValue( tbl, command ) then
 			Found = v
 		end
 	end
 	
+	local args = string.Implode( " ", args )
+	
 	if Found then
 		
-		table.remove( args, 1 )
-		local args = string.Implode( " ", args )
+		local alreadyString = false
+		if style == "console" then
+			alreadyString = true
+		end
 		
 		if Found.Args != "" then 
-			args = exsto.ParseArguments( ply, args, Found )
+			args = exsto.ParseArguments( ply, args, Found, alreadyString )
 		else
 			args = {ply}
 		end
 		
-		if not args then return end
+		if not args then return "" end
 		
 		local allowed = ply:IsAllowed( Found.ID )
 		local onPlayer = false
@@ -401,20 +314,20 @@ function exsto.ChatMonitor( ply, text )
 			end
 		end
 		
-		if !allowed then exsto.Print( exsto_CHAT, ply, COLOR.NORM, "You are not allowed to run ", COLOR.NAME, Command, COLOR.NORM, "!" ) return end
+		if !allowed then exsto.Print( exsto_CHAT, ply, COLOR.NORM, "You are not allowed to run ", COLOR.NAME, command, COLOR.NORM, "!" ) return "" end
 		
 		local status, data = pcall( Found.Call, unpack( args ) )
 		
 		if !status then
 			exsto.Print( exsto_CHAT, ply, COLOR.NORM, "Something went wrong while executing that command.  Check your console for more details." )
-			exsto.Print( exsto_CLIENT, ply, "The function call associated with " .. Command .. " is broken.  Debug information will be printed to your console.\n ** Error: " .. data .. "\n Please use this information and report it as a bug at http://code.google.com/p/exsto/issues/list" )
-			exsto.ErrorNoHalt( "COMMAND --> " .. Command .. " --> " .. data )
+			exsto.Print( exsto_CLIENT, ply, "The function call associated with " .. command .. " is broken.  Debug information will be printed to your console.\n ** Error: " .. data .. "\n Please use this information and report it as a bug at http://code.google.com/p/exsto/issues/list" )
+			exsto.ErrorNoHalt( "COMMAND --> " .. command .. " --> " .. data )
 			return ""
 		end
 
 		local style = { exsto_CHAT_ALL }
 		if type( data ) == "table" and type( data[1] ) == "Player" then style = { exsto_CHAT, data[1] } end
-		
+	
 		if type( data ) == "table" and (data.Activator and data.Wording) then
 		
 			local activator = data.Activator
@@ -446,28 +359,49 @@ function exsto.ChatMonitor( ply, text )
 		
 		return ""
 		
-	elseif !Found and string.find( string.sub( text, 0, 1 ), "!" ) then
-	
+	elseif !Found then
+		if !command then return "" end
+		if !string.sub( command, 0, 1 ) == "!" then return "" end
+		if !exsto.GetVar( "spellingcorrect" ).Value then return "" end
+		if style != "chat" then return "" end
+		
 		local data = { Max = 100, Com = "" } // Will a command ever be more than 100 chars?
-		text = string.Explode( " ", text )[1]
 		// Apparently we didn't find anything...
 		for k,v in pairs( exsto.Commands ) do
 			
 			for k,v in pairs( v.Chat ) do
-				local dist = exsto.StringDist( Command, v )
+				local dist = exsto.StringDist( command, v )
 			
 				if dist < data.Max then data.Max = dist; data.Com = v end
 			end
 			
 		end
 
-		exsto.Print( exsto_CHAT, ply, COLOR.NAME, text, COLOR.NORM, " is not a valid command.  Maybe you want ", COLOR.NAME, data.Com, COLOR.NORM, "?" )
+		exsto.Print( exsto_CHAT, ply, COLOR.NAME, command, COLOR.NORM, " is not a valid command.  Maybe you want ", COLOR.NAME, data.Com, COLOR.NORM, "?" )
 	
 	end
 	
 end
+
+--[[ -----------------------------------
+	Function: exsto.ChatMonitor
+	Description: Monitors the chat, and checks to see if commands are run.
+     ----------------------------------- ]]
+function exsto.ChatMonitor( ply, text )
+	local args = string.Explode( " ", text )
+	local command = ""
+	if args[1] then command = args[1]:lower() end
+	
+	table.remove( args, 1 )
+
+	return ExstoParseCommand( ply, command, args, "chat" )
+end
 hook.Add( "PlayerSay", "exsto_ChatMonitor", exsto.ChatMonitor )
 
+--[[ -----------------------------------
+	Function: exsto.ParseCommands
+	Description: Run on console command typing, creates a auto-complete list for console.
+     ----------------------------------- ]]
 function exsto.ParseCommands( com, args )
 	
 	-- Split the arguments up.
@@ -550,8 +484,12 @@ function exsto.ParseCommands( com, args )
 	return possible
 end
 
+--[[ -----------------------------------
+	Function: exsto.CommandCall
+	Description: Run on the 'exsto' command.  It re-directs to a new command.
+     ----------------------------------- ]]
 function exsto.CommandCall( ply, _, args )
-	if #args == 0 then exsto.Print( exsto_CLIENT, ply, "No command recieved!  Type 'exsto Commands' for the command list!" ) return end
+	if #args == 0 then ply:Print( exsto_CLIENT, "No command recieved!  Type 'exsto Commands' for the command list!" ) return end
 	
 	-- Copy the table so we can edit it clean.
 	local args = table.Copy( args )
@@ -563,98 +501,18 @@ function exsto.CommandCall( ply, _, args )
 	local finished = exsto.RunCommand( ply, command, args )
 	
 	if !finished then
-		exsto.Print( exsto_CLIENT, ply, "Error running command 'exsto " .. command .. "'" )
+		ply:Print( exsto_CLIENT, "Error running command 'exsto " .. command .. "'" )
 		return
 	end
 end
 concommand.Add( "exsto", exsto.CommandCall, exsto.ParseCommands )
 
+--[[ -----------------------------------
+	Function: exsto.AddChatCommand
+	Description: Adds chat commands into the Exsto list.
+     ----------------------------------- ]]
 function exsto.RunCommand( ply, command, args )
-	
-	local IsConsole = false
-	if ply:EntIndex() == 0 then IsConsole = true ply = nil print( "Oh god hes console!" ) end -- If hes a console, make sure the rest of us know.
-
-	-- Make the strings nicer.
-	for k,v in pairs( args ) do
-		args[k] = v:lower():Trim()
-	end
-	
-	local Found = false
-	for k,v in pairs( exsto.Commands ) do
-		if table.HasValue( v.Console, command:lower() ) then
-			Found = v
-		end
-	end
-	
-	if Found then
-		
-		//local args = string.Implode( " ", args )
-		
-		if Found.Args != "" then 
-			args = exsto.ParseArguments( ply, args, Found, true )
-		else
-			args = {ply}
-		end
-		
-		if not args then return end
-		
-		if !IsConsole then
-			local allowed = ply:IsAllowed( Found.ID )
-			local onPlayer = false
-			for k,v in pairs( Found.ReturnOrder ) do
-				if Found.Args[v] == "PLAYER" then
-					allowed = ply:IsAllowed( Found.ID, args[k] )
-					break
-				end
-			end
-		end
-		
-		if !IsConsole and !allowed then exsto.Print( exsto_CHAT, ply, COLOR.NORM, "You are not allowed to run ", COLOR.NAME, Command, COLOR.NORM, "!" ) return end
-		
-		local status, data = pcall( Found.Call, unpack( args ) )
-		
-		if !status and !IsConsole then
-			exsto.Print( exsto_CLIENT, ply, "The function call associated with " .. command .. " is broken.  Debug information will be printed to your console.\n ** Error: " .. data .. "\n Please use this information and report it as a bug at http://code.google.com/p/exsto/issues/list" )
-			exsto.ErrorNoHalt( "COMMAND --> " .. command .. " --> " .. data )
-			return
-		end
-		
-		local style = { exsto_CHAT_ALL }
-		if !IsConsole and type( data ) == "table" and type( data[1] ) == "Player" then style = { exsto_CHAT, data[1] } end
-		
-		if type( data ) == "table" and (data.Activator and data.Wording) then
-		
-			local activator = data.Activator
-			local ply = nil
-			if data.Player then
-				ply = data.Player
-				if type( ply ) == "Player" then
-					ply = ply:Name()
-				else
-					ply = tostring( ply )
-				end
-			end
-			
-			-- Lets pull some patterns into this, shall we?
-			data.Wording = string.gsub( data.Wording, "%[self%]%", data.Activator:Nick() )
-			
-			if data.Secondary and data.Player then
-				//local ply = data.Player
-				data.Secondary = string.gsub( data.Secondary, "%[self%]", data.Activator:Nick() )
-				exsto.Print( unpack( style ), COLOR.NAME, activator:Name(), COLOR.NORM, data.Wording, COLOR.NAME, ply, COLOR.NORM, data.Secondary, "!" )
-			elseif !data.Secondary and data.Player then
-				//local ply = data.Player
-				exsto.Print( unpack( style ), COLOR.NAME, activator:Name(), COLOR.NORM, data.Wording, COLOR.NAME, ply, COLOR.NORM, "!" )
-			elseif !data.Secondary and !data.Player then
-				exsto.Print( unpack( style ), COLOR.NAME, activator:Name(), COLOR.NORM, data.Wording, COLOR.NORM, "!" )
-			end
-			
-		elseif type( data ) == "table" then exsto.Print( unpack( style ), unpack( data ) ) end
-		
-		return ""
-		
-	end
-	
+	return ExstoParseCommand( ply, command, args, "console" )
 end
 
 // Stolen from lua-users.org

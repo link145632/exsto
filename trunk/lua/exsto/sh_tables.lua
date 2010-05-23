@@ -17,7 +17,9 @@
 ]]
 
 
--- To make life a little easier...
+--[[ -----------------------------------
+	Color Stuff
+     ----------------------------------- ]]
 
 COLOR = {}
 	COLOR.NORM = Color( 255, 252, 229, 255 )
@@ -36,23 +38,34 @@ for k,v in pairs( COLOR ) do
 end
 
 	
--- Helper Functions
+--[[ -----------------------------------
+	Function: exsto.SmartNumber
+	Description: Returns the number in a table that has no index.
+     ----------------------------------- ]]
 function exsto.SmartNumber( tbl )
-	local number = 0
-	for k,v in pairs( tbl ) do
-		number = number + 1
-	end
-	return number
+	return table.Count( tbl )
 end
 
+--[[ -----------------------------------
+	Function: exsto.GetTableID
+	Description: Returns the index of a value in a table.
+     ----------------------------------- ]]
 function exsto.GetTableID( tbl, value )
 	for k,v in pairs( tbl ) do if v == value then return k end end
 end
 
+--[[ -----------------------------------
+	Function: exsto.TextToColor
+	Description: Recieves a color from text.
+     ----------------------------------- ]]
 function exsto.TextToColor( text )
 	return CTEXT[text] or nil
 end
 
+--[[ -----------------------------------
+	Function: exsto.ColorToText
+	Description: Recieves a text from a color.
+     ----------------------------------- ]]
 function exsto.ColorToText( col )
 	for k,v in pairs( CTEXT ) do
 		if v == col then return k end
@@ -61,7 +74,11 @@ function exsto.ColorToText( col )
 	return col
 end
 
-function exsto.ParseVarType( value )
+--[[ -----------------------------------
+	Function: exsto.ParseValue
+	Description: Parses a value and returns its data type.
+     ----------------------------------- ]]
+function exsto.ParseValue( value )
 	
 	if type( value ) == "boolean" then return "boolean" end
 	if type( value ) == "number" then return "number" end
@@ -74,7 +91,12 @@ function exsto.ParseVarType( value )
 	return "string"
 	
 end
+exsto.ParseVarType = exsto.ParseValue
 
+--[[ -----------------------------------
+	Function: exsto.FormatValue
+	Description: Formats a value depending on its type.
+     ----------------------------------- ]]
 local dataTypes = {
 	string = function( data ) return tostring( data ), "string" end,
 	boolean = function( data ) return tobool( data ), "boolean" end,
@@ -85,8 +107,9 @@ function exsto.FormatValue( value, type )
 	return dataTypes[type]( value )
 end
 
--- RANKSSSS
-
+--[[ -----------------------------------
+	Exsto Default Ranks.
+     ----------------------------------- ]]
 exsto.DefaultRanks = {
 	superadmin = {
 		Name = "Super Admin",

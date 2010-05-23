@@ -18,6 +18,10 @@
 
 local plugin = {}
 
+--[[ -----------------------------------
+	Function: exsto.CreatePlugin
+	Description: Creates a metatable plugin.
+     ----------------------------------- ]]
 function exsto.CreatePlugin()
 	local obj = {}
 	
@@ -45,11 +49,19 @@ function exsto.CreatePlugin()
 	return obj
 end
 
+--[[ -----------------------------------
+	Function: plugin:SetInfo
+	Description: Sets the information of a plugin.
+     ----------------------------------- ]]
 function plugin:SetInfo( tbl )
 	self.Info = tbl
 	self:CreateGamemodeHooks()
 end
 
+--[[ -----------------------------------
+	Function: plugin:Register
+	Description: Registers the plugin with Exsto.
+     ----------------------------------- ]]
 function plugin:Register()
 	
 	-- Check and see if we exist in the saved plugin table.
@@ -108,6 +120,10 @@ function plugin:Register()
 	self:Init()
 end
 
+--[[ -----------------------------------
+	Function: plugin:Unload
+	Description: Unloads the plugin
+     ----------------------------------- ]]
 function plugin:Unload()
 
 	-- Remove all of our hooks
@@ -123,6 +139,10 @@ function plugin:Unload()
 	
 end
 
+--[[ -----------------------------------
+	Function: plugin:Reload
+	Description: Reloads a plugin
+     ----------------------------------- ]]
 function plugin:Reload()
 
 	-- Re-add our hooks.
@@ -134,6 +154,10 @@ function plugin:Reload()
 	end
 	
 end
+
+--[[ -----------------------------------
+		Plugin Helper Functions
+     ----------------------------------- ]]
 function plugin:AddVariable( tbl )
 	table.insert( self.Variables, tbl )
 end
@@ -150,6 +174,10 @@ function plugin:AddCommand( id, tbl )
 	self.Commands[id] = tbl
 end
 
+--[[ -----------------------------------
+	Function: plugin:AddHook
+	Description: Adds a hook to a plugin
+     ----------------------------------- ]]
 function plugin:AddHook( name, func )
 	-- Construct the unique name.
 	local id = self.Info.ID .. "-" .. name
@@ -162,7 +190,10 @@ function plugin:AddHook( name, func )
 	exsto.Print( exsto_CONSOLE_DEBUG, "PLUGIN --> " .. self.Info.ID .. " --> Adding " .. name .. " hook!" )
 end
 
--- Fuck yes, Gamemode plugin hooks!
+--[[ -----------------------------------
+	Function: plugin:CreateGamemodeHooks
+	Description: Creates a collection of pre-determined hooks for the plugin based on gamemode hooks.
+     ----------------------------------- ]]
 function plugin:CreateGamemodeHooks()
 	for k,v in pairs( exsto.GMHooks ) do
 		local function plugHook( ... )
