@@ -1,4 +1,0 @@
-I cannot distribute the modules here with Exsto, but I can lead you to where you can find them
-
-GM_MySQLOO - http://www.facepunch.com/showthread.php?t=933647
-GM_SVN - http://www.facepunch.com/showthread.php?t=774190
