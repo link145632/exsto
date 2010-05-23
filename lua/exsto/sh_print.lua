@@ -34,24 +34,6 @@ local function AddPrint( func, ply ) -- Func args depend on called.
 	return #exsto.PrintStyles
 end
 
-exsto_LOG = AddPrint( 
-	function( ply, ... )
-		if CLIENT then return end
-		if type( ply ) != "Player" then return end
-		
-		exsto.UMStart( "exsto_LogPrint", ply, unpack( {...} ) )
-	end, true
-)
-	
-exsto_LOG_ALL = AddPrint( 
-	function( ... )
-		if CLIENT then return end
-		for k,v in pairs( player.GetAll() ) do
-			exsto.Print( exsto_LOG, v, unpack( {...} ) )
-		end
-	end
-)
-
 exsto_CHAT = AddPrint( 
 	function( ply, ... )
 		if CLIENT then return end
