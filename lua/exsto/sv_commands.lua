@@ -359,9 +359,8 @@ local function ExstoParseCommand( ply, command, args, style )
 		
 		return ""
 		
-	elseif !Found then
+	elseif !Found and string.sub( command, 0, 1 ) == "!" then
 		if !command then return end
-		if !string.sub( command, 0, 1 ) == "!" then return end
 		if !exsto.GetVar( "spellingcorrect" ).Value then return end
 		if style != "chat" then return end
 		
