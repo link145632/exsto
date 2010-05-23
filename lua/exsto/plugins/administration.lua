@@ -23,8 +23,6 @@ if SERVER then
 		--if reason == "nil" then reason = "Kicked by " .. owner:Nick() end
 		local nick = ply:Nick()
 		
-		exsto.Print( exsto_LOG_ALL, Color( 255, 0, 0 ), ply:Nick(), Color( 100, 100, 100 ), " was kicked! [ " .. reason .. " ] " )
-		
 		if gate then
 			gatekeeper.Drop( ply:UserID(), "KICK: " .. reason )
 		else
@@ -51,10 +49,6 @@ if SERVER then
 	})
 
 	function PLUGIN:OnPlayerPasswordAuth( user, pass, steam, ipd )
-
-		exsto.Print( exsto_LOG_ALL, Color( 255, 0, 0 ), user, Color( 100, 100, 100 ), " has connected from ", Color( 0, 0, 255 ), ipd )
-
-		--exsto.Print( exsto_CONSOLE, user .. " is trying to connect with " .. pass )
 		
 		local data = FEL.Query( "SELECT BannedAt, Length FROM exsto_data_bans WHERE SteamID = " .. FEL.Escape( steam ) .. ";" )
 		print( "Loading ban data ..." )
@@ -92,7 +86,6 @@ if SERVER then
 	function PLUGIN.Ban( owner, ply, len, reason )
 
 		local nick = ply:Nick()
-		exsto.Print( exsto_LOG_ALL, Color( 255, 0, 0 ), ply:Nick(), Color( 100, 100, 100 ), " was banned! [ " .. reason .. " ] " )
 
 		FEL.SaveBanInfo( ply, len, reason, owner, os.time(), gate )
 		
@@ -184,6 +177,80 @@ if SERVER then
 	end
 	concommand.Add( "_ResendBans", PLUGIN.RequestBans )
 	
+	function PLUGIN.CreateRagdoll( ply )
+		
+		ply.Ragdolled = true
+	
+		local ragdoll = ents.Create( "prop_ragdoll" )
+		
+			ragdoll:SetPos( ply:GetPos() )
+			local velocity = ply:GetVelocity()
+			ragdoll:SetAngles( ply:GetAngles() )
+			ragdoll:SetModel( ply:GetModel() )
+			ragdoll:Spawn()
+			ragdoll:Activate()
+			ply:SetParent( ragdoll ) -- So their player ent will match up (position-wise) with where their ragdoll is.
+			-- Set velocity for each peice of the ragdoll
+			for i=1, 14 do
+				--ragdoll:GetPhysicsObjectNum( i ):SetVelocity( velocity )
+			end
+		
+			ply:Spectate( OBS_MODE_CHASE )
+			ply:SpectateEntity( ragdoll )
+		
+		timer.Simple( 5, _R.Player.UnSpectate, ply )
+		timer.Simple( 5, function() ply.Ragdolled = false end )
+		
+		return ragdoll
+		
+	end
+	
+	function PLUGIN.BanTrain( ply, callback )
+	
+		exsto.Print( exsto_CHAT_ALL, COLOR.NORM, "The Heavy Ban Train is coming to pick up ", COLOR.NAME, ply:Nick(), COLOR.NORM, "!  Say your goodbyes!" )
+		
+		-- Create the train
+		local train = ents.Create( "prop_physics" )
+			train:SetModel( "models/props_vehicles/train_engine.mdl" )
+			train:SetAngles( Angle( 180, 0, 180 ) )
+			train:Activate()
+			train:Spawn()
+			
+			train:SetSolid( SOLID_NONE )
+
+		-- Place the train!
+		local x = 3000
+		train:SetPos( ply:GetPos() + Vector( x, 0, 5 ) )
+		
+		local currentInterval = 1
+		local nextJump = 0
+		local function entThink()
+		
+			for k,v in pairs( player.GetAll() ) do
+				local dist = v:GetPos():Distance( train:GetPos() )
+				
+				if dist < 300 and !v.Ragdolled then
+					local ragdoll = PLUGIN.CreateRagdoll( v )
+					for i=1, 14 do
+						ragdoll:GetPhysicsObjectNum( i ):SetVelocity( train:GetForward() * 1900 + ( VectorRand() * 90 ) + Vector( 0, 0, 900 ) )
+					end
+				end
+			end
+		
+			local dist = ply:GetPos():Distance( train:GetPos() )
+			
+			if dist < 300 then -- If we are pretty much on top of him.
+				timer.Simple( 2, function() hook.Remove( "Think", "BanTrain_" .. ply:Nick() ) end )
+			end
+
+			local phys = train:GetPhysicsObject()
+			phys:SetVelocity( Vector( -x, 0, 0 ) )
+			
+		end
+		hook.Add( "Think", "BanTrain_" .. ply:Nick(), entThink )
+		
+	end
+		
 elseif CLIENT then
 
 	local bans = {}
@@ -286,7 +353,7 @@ elseif CLIENT then
 			unbanButton.DoClick = function( button )
 				local steam = GetSelected( 2 )
 				if steam then
-					LocalPlayer():ConCommand( "exsto_Unban \'" .. steam .. "\'" ) 
+					RunConsoleCommand( "exsto", "unban", tostring( steam ) )
 					PLUGIN.ReloadList()
 				end
 			end

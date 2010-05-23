@@ -16,6 +16,7 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
+require( "datastream" )
 
 -- Chat Commands
 
@@ -38,6 +39,45 @@ exsto.AddVariable({
 	Description = "Enable to have Exsto tell you if you mis-spell a command.",
 	Possible = { true, false },
 })
+
+--[[ -----------------------------------
+	Function: exsto.SendCommandList
+	Description: Sends the Exsto command list to players on join.
+     ----------------------------------- ]]
+function exsto.SendCommandList( ply, format )
+
+	local Send = {}
+	for k,v in pairs( exsto.Commands ) do
+		
+		Send[v.ID] = {
+			ID = v.ID,
+			Desc = v.Desc,
+			Args = v.Args,
+			Chat = v.Chat,
+			Console = v.Console,
+			FlagDesc = v.FlagDesc,
+			ReturnOrder = v.ReturnOrder,
+			Optional = v.Optional,
+		}
+		
+	end
+	if !ply and format == "format" then return Send end
+	
+	exsto.Print( exsto_CONSOLE_DEBUG, "COMMANDS --> Streaming command list to " .. ply:Nick() )
+
+	timer.Simple( 0.1, datastream.StreamToClients, ply, "exsto_RecieveCommands", Send )
+end
+hook.Add( "exsto_InitSpawn", "exsto_StreamCommandList", exsto.SendCommandList )
+
+--[[ -----------------------------------
+	Function: exsto.ResendCommands
+	Description: Resends the command list to everyone in the server.
+     ----------------------------------- ]]
+function exsto.ResendCommands()
+	local send = exsto.SendCommandList( nil, "format" )
+	
+	datastream.StreamToClients( player.GetAll(), "exsto_RecieveCommands", send )
+end
 
 --[[ -----------------------------------
 	Function: exsto.AddChatCommand

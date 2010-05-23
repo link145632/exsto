@@ -4,69 +4,191 @@
 local PLUGIN = exsto.CreatePlugin()
 
 PLUGIN:SetInfo({
-	Name = "Reload Plugin",
-	ID = "reloadplug",
-	Desc = "A plugin that allows reloading of other plugins!",
+	Name = "Plugin Controls",
+	ID = "plugcontrols",
+	Desc = "A plugin that provides reloading support for plugins, and a plugin menu!",
 	Owner = "Prefanatic",
 } )
+
+require( "datastream" )
  
-if not SERVER then return end
+if SERVER then
 
-function PLUGIN.ReloadPlug( ply, plugname )
+	function PLUGIN.ReloadPlug( ply, plugname )
+		local plug = exsto.Plugins[plugname]
+		if !plug then return { ply, COLOR.NORM, "Could not find plugin ", COLOR.NAME, plugname, COLOR.NORM, ".  It doesn't exist!" } end
+		
+		plug.Object:Reload()
+		
+		return { COLOR.NORM, "Reloading plugin ", COLOR.NAME, plug.Name, COLOR.NORM, "!" }
+	end
+	PLUGIN:AddCommand( "reloadplug", {
+		Call = PLUGIN.ReloadPlug,
+		Desc = "Reloads a plugin",
+		FlagDesc = "Allows users to reload plugins.",
+		Console = { "reloadplug" },
+		Chat = { "!reloadplug" },
+		ReturnOrder = "Plug",
+		Args = { Plug = "STRING" },
+	})
+	
+	exsto.CreateFlag( "plugindisable", "Allows users to disable or enable plugins in the Plugin List page." )
 
-	local done = false
+	function PLUGIN.SendServerPlugins( ply )
+	
+		local plugins = {}
+		for k,v in pairs( exsto.Plugins ) do
+			plugins[k] = {
+				Name = v.Name,
+				ID = k,
+				Desc = v.Desc,
+				Owner = v.Owner,
+				Experimental = v.Experimental,
+			}
+		end
+		
+		local send = { exsto.PluginSettings, plugins }
+		
+		datastream.StreamToClients( ply, "exsto_SendPlugins", send )
+	end
+	concommand.Add( "_SendPluginList", PLUGIN.SendServerPlugins )
+	
+	function PLUGIN.TogglePlugin( ply, _, args )
 
-	-- Check and see if the plugin is already loaded.
-	if exsto.PluginExists( plugname ) then
-		local location = exsto.PlugLocation .. exsto.Plugins[ plugname ].Location
-		exsto.KillPlug( plugname )
+		if math.Round( tostring( args[1] ) ) != ply.MenuAuthKey then return end
+
+		local style = tobool( args[2] )
+		local short = args[3]
 		
-		include( location )
-		AddCSLuaFile( location )
+		local plugin = exsto.Plugins[short]
+		if !plugin then return end
 		
-		done = true
+		if !ply.PlugChange then ply.PlugChange = CurTime() end
+		if CurTime() < ply.PlugChange then return end
 		
-	elseif exsto.PluginExistsLoc( plugname ) then
-		local location = exsto.PlugLocation .. exsto.PluginLocations[ plugname ]
-		exsto.KillPlug( plugname )
+		ply.PlugChange = CurTime() + 3
 		
-		include( location )
-		AddCSLuaFile( location )
+		local settings = exsto.PluginSettings
+
+		if style then 
+			-- We are trying to enable him.
+			exsto.EnablePlugin( plugin.Object )
+			exsto.Print( exsto_CHAT_ALL, COLOR.NORM, "Enabling plugin ", COLOR.NAME, plugin.Name, COLOR.NORM, "!"  )
+		else
+			-- He needs to die.
+			exsto.DisablePlugin( plugin.Object )
+			exsto.Print( exsto_CHAT_ALL, COLOR.NORM, "Disabling plugin ", COLOR.NAME, plugin.Name, COLOR.NORM, "!"  )
+		end	
 		
-		done = true
+		exsto.ResendCommands()
+
+	end
+	concommand.Add( "_TogglePlugin", PLUGIN.TogglePlugin )
+	
+elseif CLIENT then
+
+	local settings = {}
+	local plugins = {}
+	
+	local function IncommingHook( handler, id, encoded, decoded )
+		settings = decoded[1]
+		plugins = decoded[2]
+		Menu.EndLoad()
+	end
+	datastream.Hook( "exsto_SendPlugins", IncommingHook )
+	
+	function PLUGIN.ReloadData( panel )
+	
+		settings = {}
+		plugins = {}
+		RunConsoleCommand( "_SendPluginList" )
+		
+		local function Ping()
+			if table.Count( settings ) >= 1 then
+				PLUGIN.Build( panel )
+			else
+				timer.Simple( 0.1, Ping )
+			end
+		end
+		Ping()
 		
 	end
 	
-	if done then
-		exsto.Print( exsto_CHAT_ALL, COLOR.PAC, "The plugin ", COLOR.RED, plugname, COLOR.PAC, " has been reloaded!" )
-	else
-		exsto.Print( exsto_CHAT_ALL, COLOR.PAC, "The plugin ", COLOR.RED, plugname, COLOR.PAC, " was not found!" )
+	function PLUGIN.SetButton( button, enabled )
+		if enabled then
+			button.Text = "Disable"
+			button.Color = Color( 155, 228, 255, 255 )
+			button.HoverCol = Color( 136, 199, 255, 255 )
+			button.DepressedCol = Color( 156, 179, 255, 255 )
+		else
+			button.Text = "Enable"
+			button.Color = Color( 255, 155, 155, 255 )
+			button.HoverCol = Color( 255, 126, 126, 255 )
+			button.DepressedCol = Color( 255, 106, 106, 255 )
+		end
 	end
 	
-end
-PLUGIN:AddCommand( "reloadplug", {
-	Call = PLUGIN.ReloadPlug,
-	Desc = "Reloads a plugin",
-	FlagDesc = "Allows users to reload plugins.",
-	Console = { "reloadplug" },
-	Chat = { "!reloadplug" },
-	Args = "STRING",
-})
-
-function PLUGIN.RefreshLocations( ply )
-
-	exsto.LoadPlugins()
+	function PLUGIN.Build( panel )
 	
-	exsto.Print( exsto_CHAT, ply, COLOR.PAC, "All plugin locations have been refreshed!" )
+		-- List view of the plugins.
+		PLUGIN.PluginList = exsto.CreatePanelList( 10, 10, panel:GetWide() - 20, panel:GetTall() - 70, 5, false, true, panel )
+		
+		for k,v in pairs( plugins ) do
+		
+			-- Background panel for the layout
+			local panel = exsto.CreatePanel( 0, 0, PLUGIN.PluginList:GetWide(), 35, Color( 224, 224, 224, 255 ) )
+				panel.Paint = function( self )
+					draw.RoundedBox( 4, 0, 0, self:GetWide(), self:GetTall(), Color( 224, 224, 224, 255 ) )
+				end
+			
+			-- The label for the plugin name.
+			local label = exsto.CreateLabel( 5, 5, v.Name, "exstoPlyColumn", panel )
+				label:SetTextColor( Color( 0, 0, 0, 255 ) )
+			
+			-- Create the button for enabling
+			local button = exsto.CreateButton( panel:GetWide() - 90, ( 35 - 27 ) / 2, 60, 27, "Disable", panel )
+				PLUGIN.SetButton( button, settings[k] )
+				
+				button.DoClick = function( self )
+					if !LocalPlayer().PlugChange then LocalPlayer().PlugChange = CurTime() end
+					if CurTime() < LocalPlayer().PlugChange then Menu.PushError( "Slow down, you are toggling plugins too fast!" ) return end
+					
+					LocalPlayer().PlugChange = CurTime() + 3
+					
+					if settings[k] then
+						-- We are trying to disable the plugin.
+						
+						settings[k] = false
+						//RunConsoleCommand( "_TogglePlugin", Menu.AuthKey, tostring( false ), k )
+						Menu.CallServer( "_TogglePlugin", "false", k )
+						PLUGIN.SetButton( self, false )
+					else
+						-- Trying to enable it.
+						
+						settings[k] = true
+						//RunConsoleCommand( "_TogglePlugin", Menu.AuthKey, tostring( true ), k )
+						Menu.CallServer( "_TogglePlugin", "true", k )
+						PLUGIN.SetButton( self, true )
+					end
+				end
+			
+			-- Add the plugin into the list
+			PLUGIN.PluginList:AddItem( panel )
+		
+		end
+		
+	end
+
+	Menu.CreatePage( {
+		Title = "Plugin List",
+		Short = "pluginlist",
+		Flag = "pluginlist",
+		},
+		function( panel )
+			PLUGIN.ReloadData( panel )
+		end
+	)
 	
 end
-PLUGIN:AddCommand( "refreshlocations", {
-	Call = PLUGIN.RefreshLocations,
-	Desc = "Refreshes plugin location",
-	FlagDesc = "Allows users to update plugin locations.",
-	Console = { "refreshpluglocations" },
-	Chat = { "!refreshplugloc" },
-	Args = "",
-})
 
 PLUGIN:Register()

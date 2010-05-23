@@ -16,6 +16,7 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
+require( "datastream" )
 
 --[[ -----------------------------------
 	Color Stuff
@@ -37,6 +38,15 @@ for k,v in pairs( COLOR ) do
 	CTEXT[tostring( k ):lower()] = v
 end
 
+--[[ -----------------------------------
+	Function: IncommingHook
+	Description: Recieves the command data from server.
+     ----------------------------------- ]]
+local function IncommingHook( handler, id, encoded, decoded )
+	exsto.Commands = decoded
+	hook.Call( "exsto_RecievedCommands", nil )
+end
+datastream.Hook( "exsto_RecieveCommands", IncommingHook )
 	
 --[[ -----------------------------------
 	Function: exsto.SmartNumber

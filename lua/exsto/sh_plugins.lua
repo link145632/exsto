@@ -16,6 +16,7 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
+require( "datastream" )
 
 -- Plugin Man
 include( "exsto/sh_plugin_metatable.lua" )
@@ -31,6 +32,33 @@ exsto.Hooks = {}
 exsto.PlugLocation = "exsto/plugins/"
 
 local runningLocation = ""
+
+if SERVER then
+
+--[[ -----------------------------------
+	Function:  exsto.SendPluginSettings
+	Description: Sends the plugin settings to a player.
+     ----------------------------------- ]]
+	function exsto.SendPluginSettings( ply )
+		exsto.Print( exsto_CONSOLE_DEBUG, "PLUGINS --> Streaming plugin settings to " .. ply:Nick() )
+
+		timer.Simple( 0.1, datastream.StreamToClients, ply, "exsto_RecievePlugSettings", exsto.PluginSettings )
+	end
+	hook.Add( "exsto_InitSpawn", "exsto_StreamPluginSettingsList", exsto.SendPluginSettings )
+	
+elseif CLIENT then
+	
+--[[ -----------------------------------
+	Function: IncommingHook
+	Description: Recieves the server's plugin settings file.
+     ----------------------------------- ]]
+	local function IncommingHook( handler, id, encoded, decoded )
+		exsto.ServerPlugSettings = decoded
+		hook.Call( "exsto_RecievedSettings", nil )
+	end
+	datastream.Hook( "exsto_RecievePlugSettings", IncommingHook )
+
+end
 
 --[[ -----------------------------------
 	Function: exsto.RegisterPlugin
@@ -154,6 +182,7 @@ function exsto.DisablePlugin( plug )
 	exsto.PluginSettings[plug.Info.ID] = false
 	FEL.CreateSettingsFile( "exsto_plugin_settings", exsto.PluginSettings )
 	
+	plug:Unload()
 	plug:Register()
 end
 
