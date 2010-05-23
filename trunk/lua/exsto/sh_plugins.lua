@@ -135,7 +135,7 @@ end
      ----------------------------------- ]]
 function exsto.PluginStatus( plug )
 	for k,v in pairs( exsto.PluginSettings ) do
-		if k == plug.Info.ID then return v end
+		if k == plug.Info.ID then return !v end
 	end
 	return false
 end
@@ -157,7 +157,7 @@ end
      ----------------------------------- ]]
 function exsto.PluginDisabled( plug )
 	for k,v in pairs( exsto.PluginSettings ) do
-		if k == plug.Info.ID and !v then return true end
+		if k == plug.Info.ID and v == false then return true end
 	end
 	return false
 end

@@ -20,7 +20,7 @@ PLUGIN:SetInfo({
 	ID = "skeleton",
 	Desc = "A plugin that is a documentary!",
 	Owner = "Prefanatic",
-	Enabled = false,
+	Disabled = true,
 } )
 
 if SERVER then
