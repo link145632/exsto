@@ -294,9 +294,9 @@ local function ExstoParseCommand( ply, command, args, style )
 		
 		local alreadyString = false
 		if style == "console" then
-			alreadyString = true
+			alreadyString = false
 		end
-		
+
 		if Found.Args != "" then 
 			args = exsto.ParseArguments( ply, args, Found, alreadyString )
 		else
