@@ -1,0 +1,10 @@
+"AddonInfo"
+{
+	"name"				"Exsto"
+	"version"			"1.0"
+	"up_date"			""
+	"author_name"			"Prefanatic"
+	"author_email"			""
+	"info"				""
+	"override"			"0"
+}
