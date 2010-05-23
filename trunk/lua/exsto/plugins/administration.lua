@@ -45,7 +45,7 @@ if SERVER then
 		Chat = { "!kick" },
 		ReturnOrder = "Victim-Reason",
 		Args = {Victim = "PLAYER", Reason = "STRING"},
-		Optional = {Reason = "Kicked by [self]"}
+		Optional = {Victim = nil, Reason = "Kicked by [self]"}
 	})
 
 	function PLUGIN:OnPlayerPasswordAuth( user, pass, steam, ipd )
@@ -115,7 +115,7 @@ if SERVER then
 		Chat = { "!ban" },
 		ReturnOrder = "Victim-Length-Reason",
 		Args = {Victim = "PLAYER", Length = "NUMBER", Reason = "STRING"},
-		Optional = {Length = 0, Reason = "Banned by [self]"}
+		Optional = {Victim = nil, Length = 0, Reason = "Banned by [self]"}
 	})
 
 	function PLUGIN.UnBan( owner, steamid )
@@ -184,17 +184,13 @@ if SERVER then
 		local ragdoll = ents.Create( "prop_ragdoll" )
 		
 			ragdoll:SetPos( ply:GetPos() )
-			local velocity = ply:GetVelocity()
 			ragdoll:SetAngles( ply:GetAngles() )
 			ragdoll:SetModel( ply:GetModel() )
 			ragdoll:Spawn()
 			ragdoll:Activate()
-			ply:SetParent( ragdoll ) -- So their player ent will match up (position-wise) with where their ragdoll is.
-			-- Set velocity for each peice of the ragdoll
-			for i=1, 14 do
-				--ragdoll:GetPhysicsObjectNum( i ):SetVelocity( velocity )
-			end
-		
+			
+			ply:SetParent( ragdoll ) 
+
 			ply:Spectate( OBS_MODE_CHASE )
 			ply:SpectateEntity( ragdoll )
 		

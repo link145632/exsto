@@ -38,10 +38,6 @@ function PLUGIN.CheckForUpdate( ply )
 end
 concommand.Add( "_checkupdate", PLUGIN.CheckForUpdate )
 
-function PLUGIN:Onexsto_InitJoin( ply )
-	timer.Simple( 3, PLUGIN.CheckForUpdate, ply )
-end
-
 function PLUGIN.CheckVersion( owner )
 
 	PLUGIN.Current = file.Read( "exsto_version.txt" )

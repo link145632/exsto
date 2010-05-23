@@ -261,9 +261,7 @@ function exsto.ParseArguments( ply, text, data, alreadyString )
 
 		-- Now hang on, if we have gone over the number of text slots, then we need to start placing optionals.
 		if !textSlot then
-		
-			print( argName, optional[argName] )
-		
+
 			if optional[argName] then -- If an optional exists for this argument slot then continue
 				table.insert( Return, optional[argName] )
 				exsto.Print( exsto_CONSOLE_DEBUG, "COMMANDS --> Optional value \"" .. argName .. "\" is being inserted with a value of " .. tostring( optional[argName] ) ) 
@@ -331,78 +329,70 @@ local function ExstoParseCommand( ply, command, args, style )
 	local args = string.Implode( " ", args )
 	
 	if Found then
-		
-		local alreadyString = false
-		if style == "console" then
-			alreadyString = false
-		end
 
 		if Found.Args != "" then 
-			args = exsto.ParseArguments( ply, args, Found, alreadyString )
+			args = exsto.ParseArguments( ply, args, Found, false )
 		else
 			args = {ply}
 		end
 		
-		if not args then return "" end
+		if args then
 		
-		local allowed = ply:IsAllowed( Found.ID )
-		local onPlayer = false
-		for k,v in pairs( Found.ReturnOrder ) do
-			if Found.Args[v] == "PLAYER" then
-				allowed = ply:IsAllowed( Found.ID, args[k] )
-				break
-			end
-		end
-		
-		if !allowed then exsto.Print( exsto_CHAT, ply, COLOR.NORM, "You are not allowed to run ", COLOR.NAME, command, COLOR.NORM, "!" ) return "" end
-		
-		local status, data = pcall( Found.Call, unpack( args ) )
-		
-		if !status then
-			exsto.Print( exsto_CHAT, ply, COLOR.NORM, "Something went wrong while executing that command.  Check your console for more details." )
-			exsto.Print( exsto_CLIENT, ply, "The function call associated with " .. command .. " is broken.  Debug information will be printed to your console.\n ** Error: " .. data .. "\n Please use this information and report it as a bug at http://code.google.com/p/exsto/issues/list" )
-			exsto.ErrorNoHalt( "COMMAND --> " .. command .. " --> " .. data )
-			return ""
-		end
-
-		local style = { exsto_CHAT_ALL }
-		if type( data ) == "table" and type( data[1] ) == "Player" then style = { exsto_CHAT, data[1] } end
-	
-		if type( data ) == "table" and (data.Activator and data.Wording) then
-		
-			local activator = data.Activator
-			local ply = nil
-			if data.Player then
-				ply = data.Player
-				if type( ply ) == "Player" then
-					ply = ply:Name()
-				else
-					ply = tostring( ply )
+			local allowed = ply:IsAllowed( Found.ID )
+			local onPlayer = false
+			for k,v in pairs( Found.ReturnOrder ) do
+				if Found.Args[v] == "PLAYER" then
+					allowed = ply:IsAllowed( Found.ID, args[k] )
+					break
 				end
 			end
 			
-			-- Lets pull some patterns into this, shall we?
-			data.Wording = string.gsub( data.Wording, "%[self%]%", data.Activator:Nick() )
+			if !allowed then exsto.Print( exsto_CHAT, ply, COLOR.NORM, "You are not allowed to run ", COLOR.NAME, command, COLOR.NORM, "!" ) return "" end
 			
-			if data.Secondary and data.Player then
-				data.Secondary = string.gsub( data.Secondary, "%[self%]", data.Activator:Nick() )
-				//local ply = data.Player
-				exsto.Print( unpack( style ), COLOR.NAME, activator:Name(), COLOR.NORM, data.Wording, COLOR.NAME, ply, COLOR.NORM, data.Secondary, "!" )
-			elseif !data.Secondary and data.Player then
-				//local ply = data.Player
-				exsto.Print( unpack( style ), COLOR.NAME, activator:Name(), COLOR.NORM, data.Wording, COLOR.NAME, ply, COLOR.NORM, "!" )
-			elseif !data.Secondary and !data.Player then
-				exsto.Print( unpack( style ), COLOR.NAME, activator:Name(), COLOR.NORM, data.Wording, COLOR.NORM, "!" )
+			local status, data = pcall( Found.Call, unpack( args ) )
+			
+			if !status then
+				exsto.Print( exsto_CHAT, ply, COLOR.NORM, "Something went wrong while executing that command.  Check your console for more details." )
+				exsto.Print( exsto_CLIENT, ply, "The function call associated with " .. command .. " is broken.  Debug information will be printed to your console.\n ** Error: " .. data .. "\n Please use this information and report it as a bug at http://code.google.com/p/exsto/issues/list" )
+				exsto.ErrorNoHalt( "COMMAND --> " .. command .. " --> " .. data )
+				return ""
 			end
+
+			local style = { exsto_CHAT_ALL }
+			if type( data ) == "table" and type( data[1] ) == "Player" then style = { exsto_CHAT, data[1] } end
+		
+			if type( data ) == "table" and (data.Activator:IsValid() and data.Wording) then
 			
-		elseif type( data ) == "table" then exsto.Print( unpack( style ), unpack( data ) ) end
+				local activator = data.Activator
+				local ply = nil
+				if data.Player then
+					ply = data.Player
+					if type( ply ) == "Player" then
+						ply = ply:Name()
+					else
+						ply = tostring( ply )
+					end
+				end
+				
+				-- Lets pull some patterns into this, shall we?
+				data.Wording = string.gsub( data.Wording, "%[self%]%", data.Activator:Nick() )
+				
+				if data.Secondary and data.Player then
+					data.Secondary = string.gsub( data.Secondary, "%[self%]", data.Activator:Nick() )
+					//local ply = data.Player
+					exsto.Print( unpack( style ), COLOR.NAME, activator:Name(), COLOR.NORM, data.Wording, COLOR.NAME, ply, COLOR.NORM, data.Secondary, "!" )
+				elseif !data.Secondary and data.Player then
+					//local ply = data.Player
+					exsto.Print( unpack( style ), COLOR.NAME, activator:Name(), COLOR.NORM, data.Wording, COLOR.NAME, ply, COLOR.NORM, "!" )
+				elseif !data.Secondary and !data.Player then
+					exsto.Print( unpack( style ), COLOR.NAME, activator:Name(), COLOR.NORM, data.Wording, COLOR.NORM, "!" )
+				end
+				
+			elseif type( data ) == "table" then exsto.Print( unpack( style ), unpack( data ) ) end
+			
+		end
 		
-		return ""
-		
-	elseif !Found and string.sub( command, 0, 1 ) == "!" then
-		if !command then return end
-		if !exsto.GetVar( "spellingcorrect" ).Value then return end
-		if style != "chat" then return end
+	elseif !Found and string.sub( command, 0, 1 ) == "!" and command and exsto.GetVar( "spellingcorrect" ).Value and style != "chat" then
 		
 		local data = { Max = 100, Com = "" } // Will a command ever be more than 100 chars?
 		// Apparently we didn't find anything...
