@@ -360,10 +360,10 @@ local function ExstoParseCommand( ply, command, args, style )
 		return ""
 		
 	elseif !Found then
-		if !command then return "" end
-		if !string.sub( command, 0, 1 ) == "!" then return "" end
-		if !exsto.GetVar( "spellingcorrect" ).Value then return "" end
-		if style != "chat" then return "" end
+		if !command then return end
+		if !string.sub( command, 0, 1 ) == "!" then return end
+		if !exsto.GetVar( "spellingcorrect" ).Value then return end
+		if style != "chat" then return end
 		
 		local data = { Max = 100, Com = "" } // Will a command ever be more than 100 chars?
 		// Apparently we didn't find anything...
