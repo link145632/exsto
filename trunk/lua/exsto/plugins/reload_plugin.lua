@@ -55,6 +55,7 @@ if SERVER then
 	
 	function PLUGIN.TogglePlugin( ply, _, args )
 
+		if !ply:IsAllowed( "pluginlist" ) then return end
 		if math.Round( tostring( args[1] ) ) != ply.MenuAuthKey then return end
 
 		local style = tobool( args[2] )
@@ -66,7 +67,7 @@ if SERVER then
 		if !ply.PlugChange then ply.PlugChange = CurTime() end
 		if CurTime() < ply.PlugChange then return end
 		
-		ply.PlugChange = CurTime() + 3
+		ply.PlugChange = CurTime() + 1
 		
 		local settings = exsto.PluginSettings
 
@@ -145,32 +146,34 @@ elseif CLIENT then
 			local label = exsto.CreateLabel( 5, 5, v.Name, "exstoPlyColumn", panel )
 				label:SetTextColor( Color( 0, 0, 0, 255 ) )
 			
-			-- Create the button for enabling
-			local button = exsto.CreateButton( panel:GetWide() - 90, ( 35 - 27 ) / 2, 60, 27, "Disable", panel )
-				PLUGIN.SetButton( button, settings[k] )
-				
-				button.DoClick = function( self )
-					if !LocalPlayer().PlugChange then LocalPlayer().PlugChange = CurTime() end
-					if CurTime() < LocalPlayer().PlugChange then Menu.PushError( "Slow down, you are toggling plugins too fast!" ) return end
+			if LocalPlayer():IsSuperAdmin() then
+				-- Create the button for enabling
+				local button = exsto.CreateButton( panel:GetWide() - 90, ( 35 - 27 ) / 2, 60, 27, "Disable", panel )
+					PLUGIN.SetButton( button, settings[k] )
 					
-					LocalPlayer().PlugChange = CurTime() + 3
-					
-					if settings[k] then
-						-- We are trying to disable the plugin.
+					button.DoClick = function( self )
+						if !LocalPlayer().PlugChange then LocalPlayer().PlugChange = CurTime() end
+						if CurTime() < LocalPlayer().PlugChange then Menu.PushError( "Slow down, you are toggling plugins too fast!" ) return end
 						
-						settings[k] = false
-						//RunConsoleCommand( "_TogglePlugin", Menu.AuthKey, tostring( false ), k )
-						Menu.CallServer( "_TogglePlugin", "false", k )
-						PLUGIN.SetButton( self, false )
-					else
-						-- Trying to enable it.
+						LocalPlayer().PlugChange = CurTime() + 1
 						
-						settings[k] = true
-						//RunConsoleCommand( "_TogglePlugin", Menu.AuthKey, tostring( true ), k )
-						Menu.CallServer( "_TogglePlugin", "true", k )
-						PLUGIN.SetButton( self, true )
+						if settings[k] then
+							-- We are trying to disable the plugin.
+							
+							settings[k] = false
+							
+							Menu.CallServer( "_TogglePlugin", "false", k )
+							PLUGIN.SetButton( self, false )
+						else
+							-- Trying to enable it.
+							
+							settings[k] = true
+
+							Menu.CallServer( "_TogglePlugin", "true", k )
+							PLUGIN.SetButton( self, true )
+						end
 					end
-				end
+			end
 			
 			-- Add the plugin into the list
 			PLUGIN.PluginList:AddItem( panel )

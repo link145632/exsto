@@ -267,14 +267,12 @@ function exsto.ParseArguments( ply, text, data, alreadyString )
 				exsto.Print( exsto_CONSOLE_DEBUG, "COMMANDS --> Optional value \"" .. argName .. "\" is being inserted with a value of " .. tostring( optional[argName] ) ) 
 			else
 				-- Lets see what hes trying to access.  If he is trying to access a PLAYER with no value, substitue himself.
-				if curArg == "PLAYER" then
+				if curArg == "PLAYER" and I == 1 then
 					table.insert( Return, ply )
 					exsto.Print( exsto_CONSOLE_DEBUG, "COMMANDS --> Adding in caller value for \"" .. argName .. "\'!" )
-				else
-					-- If it doesn't exist, the chat maker did not properly code the command.  Send debug data.
-					ply:Print( exsto_CHAT, COLOR.NORM, "The command you tried to run is missing an optional value!" )
-					exsto.Print( exsto_CONSOLE_DEBUG, "COMMANDS --> Command \"" .. data.ID .. "\" could not be parsed due to incompatibilities with Exsto.  The optional values did not match up with the required." )
-					return
+				elseif curArg == "PLAYER" then
+					ply:Print( exsto_CHAT, COLOR.NORM, "Argument ", COLOR.NAME, argName .. " (" .. exsto.Arguments[argkey].Type .. ")", COLOR.NORM, " is needed!  You put ", COLOR.NAME, "nobody! (Couldn't find player!)" )
+					return nil
 				end
 			end
 			
@@ -361,7 +359,7 @@ local function ExstoParseCommand( ply, command, args, style )
 			local style = { exsto_CHAT_ALL }
 			if type( data ) == "table" and type( data[1] ) == "Player" then style = { exsto_CHAT, data[1] } end
 		
-			if type( data ) == "table" and (data.Activator:IsValid() and data.Wording) then
+			if type( data ) == "table" and (data.Activator and data.Activator:IsPlayer() and data.Wording) then
 			
 				local activator = data.Activator
 				local ply = nil
@@ -389,6 +387,8 @@ local function ExstoParseCommand( ply, command, args, style )
 				end
 				
 			elseif type( data ) == "table" then exsto.Print( unpack( style ), unpack( data ) ) end
+			
+			return ""
 			
 		end
 		

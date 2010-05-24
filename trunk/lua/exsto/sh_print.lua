@@ -139,10 +139,11 @@ exsto_CLIENT_NOLOGO = AddPrint(
 	Description: Prints a specific style.
      ----------------------------------- ]]
 function exsto.Print( style, ... )
+	if exsto.Ignore_Prints then return true end
 	if style == nil then exsto.ErrorNoHalt( "Issue creating print command!" ) return end -- Weird bug?
 	for k,v in pairs( exsto.PrintStyles ) do
 		if style == v.enum then	
-			v.func( ... )		
+			return v.func( ... )		
 		end	
 	end
 end
@@ -151,10 +152,18 @@ function _R.Player.Print( ply, style, ... )
 
 	for k,v in pairs( exsto.PrintStyles ) do
 		if style == v.enum and v.meta then
-			v.func( ply, ... )
+			return v.func( ply, ... )
 		end
 	end
 	
+end
+
+--[[ -----------------------------------
+	Function: exsto.IgnorePrints
+	Description: Makes all prints ignored as a toggle.
+     ----------------------------------- ]]
+function exsto.IgnorePrints( ignore )
+	exsto.Ignore_Prints = ignore
 end
 
 -- Helper Functions

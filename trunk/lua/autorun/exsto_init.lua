@@ -46,7 +46,7 @@ function exstoInit()
 			exsto.Print( exsto_CHAT_ALL, COLOR.NORM, "Exsto is reloading the core!" )
 		end
 		
-		if exsto.Plugins then
+		if exsto.Plugins and exsto.RemoveChatCommand then
 			exsto.UnloadAllPlugins()
 		end
 		

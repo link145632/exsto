@@ -143,6 +143,7 @@ exsto.DefaultRanks = {
 			"luarun",
 			"cexec",
 			"plugindisable",
+			"runtest",
 		}
 	},
 	

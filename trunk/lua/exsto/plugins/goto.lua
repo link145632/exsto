@@ -33,7 +33,7 @@ function PLUGIN.Send( owner, victim, to )
 	
 	local pos = PLUGIN.SendPlayer( victim, to, force )
 	
-	if !pos then exsto.Print( exsto_CHAT, owner, COLOR.NORM, "Not enough room to goto ", COLOR.NAME, ply:Nick(), COLOR.NORM, "!" ) return end
+	if !pos then exsto.Print( exsto_CHAT, owner, COLOR.NORM, "Not enough room to goto ", COLOR.NAME, to:Nick(), COLOR.NORM, "!" ) return end
 	
 	victim:SetPos( pos )
 	
