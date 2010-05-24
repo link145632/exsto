@@ -385,7 +385,7 @@ if SERVER then
 		local item
 		if info.Look then
 			item = FEL.DataExists( tab, look, data )
-			if item and !options.Update then return end
+			if item and options.Update == false then return end
 		end
 		
 		if item then

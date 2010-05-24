@@ -268,7 +268,7 @@ function plugin:CreateGamemodeHooks()
 			end
 		end
 		self.Hooks[v] = plugHook
-		self.HookID[v] = exsto.NumberHooks
+		self.HookID[v] = tostring( exsto.NumberHooks )
 		hook.Add( v, self.HookID[v], self.Hooks[v] )
 		exsto.NumberHooks = exsto.NumberHooks + 1
 	end

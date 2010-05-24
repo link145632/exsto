@@ -85,7 +85,7 @@ if SERVER then
 	
 		if !ply:IsAdmin() then return end
 		if !ply.VarChange then ply.VarChange = CurTime() end
-		if CurTime() < ply.VarChange then return end
+		//if CurTime() < ply.VarChange then return end
 		
 		ply.VarChange = CurTime() + 5
 		

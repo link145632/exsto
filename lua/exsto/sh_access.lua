@@ -699,7 +699,11 @@ if SERVER then
 		if !plys then return false end
 		
 		for k,v in pairs( plys ) do
-			if v.Rank == "superadmin" then return true end
+			local rank = exsto.Levels[v.Rank]
+			
+			if rank then
+				if table.HasValue( rank.Flags, "issuperadmin" ) then return true end
+			end
 		end
 		
 		return false
