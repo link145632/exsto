@@ -194,11 +194,11 @@ if CLIENT then
 	local function err( str )
 		Error( str )
 	end
-	exsto.UMHook( "exsto_ClientERROR", msg )
+	exsto.UMHook( "exsto_ClientERROR", err )
 	
 	local function err( str )
 		ErrorNoHalt( str )
 	end
-	exsto.UMHook( "exsto_ClientERRORNoHalt", msg )
+	exsto.UMHook( "exsto_ClientERRORNoHalt", err )
 	
 end

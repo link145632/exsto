@@ -101,7 +101,7 @@ elseif CLIENT then
 			Status = "DISABLED"
 		end
 		
-		chat.AddText( COLOR.PAC, "Chat animations have been ", COLOR.RED, Status )
+		chat.AddText( COLOR.NORM, "Chat animations have been ", COLOR.NAME, Status )
 		
 	end
 	exsto.UMHook( "PLUGIN_toggleanims", PLUGIN.ToggleChatAnims )
@@ -446,25 +446,26 @@ elseif CLIENT then
 		
 	end
 
+	local pw, curX, curY, num, blink, t, w, val, text
 	function PLUGIN.DrawLine( x, y, line )
 		
 		surface.SetFont( PLUGIN.Font ) 
 		
 		local outline = Color( PLUGIN.OutlineCol.r, PLUGIN.OutlineCol.g, PLUGIN.OutlineCol.b, line.Alpha / 2 )
 
-		local pw = 0
+		pw = 0
 
-		local curX = x
-		local curY = y																																						
-		local num = line.Length
-		local blink = line.Blink
+		curX = x
+		curY = y																																						
+		num = line.Length
+		blink = line.Blink
 
 		for I = 1, line.Length do
 		
-			local t = line.Type[I]
-			local w = line.Width[I]
-			local val = line.Value[I]
-			local text = line.Text[I]
+			t = line.Type[I]
+			w = line.Width[I]
+			val = line.Value[I]
+			text = line.Text[I]
 			
 			if t == 1 then
 			
@@ -516,6 +517,7 @@ elseif CLIENT then
 		
 	end
 
+	local dist, speed
 	function PLUGIN.AnimateInputBox( olda, newa, mul )
 
 		if !PLUGIN.UseAnims then
@@ -524,8 +526,8 @@ elseif CLIENT then
 
 		if olda != newa then
 		
-			local dist = newa - olda
-			local speed = dist / mul
+			dist = newa - olda
+			speed = dist / mul
 			
 			olda = math.Approach( olda, newa, speed )
 			
@@ -547,15 +549,16 @@ elseif CLIENT then
 
 	end
 
+	local w, h, alpha, mul, add_w, height, width, place, ToDraw, name, returnOrder, args, optional, argument, dataType, newOptional, format, commandColor
 	function PLUGIN.DrawInputBox()
 
 		surface.SetFont( PLUGIN.Font )
 
-		local w, h = surface.GetTextSize( PLUGIN.CurrentText )
+		w, h = surface.GetTextSize( PLUGIN.CurrentText )
 		
-		local alpha = 255
-		local mul = 10
-		local add_w = 510
+		alpha = 255
+		mul = 10
+		add_w = 510
 		
 		if not PLUGIN.Open then
 		
@@ -596,10 +599,10 @@ elseif CLIENT then
 		
 		-- Find Commands
 		if #Find_List >= 1 then
-			local height = 20
-			local width = 50
-			local place = PLUGIN.Y + 25
-			local ToDraw = {}
+			height = 20
+			width = 50
+			place = PLUGIN.Y + 25
+			ToDraw = {}
 
 			for I = 1, 4 do -- Processing lines ONLY!
 			
@@ -607,12 +610,12 @@ elseif CLIENT then
 				
 				if command then
 				
-					local w = command.Width
-					local h = command.Height - 4
-					local name = command.Name
-					local returnOrder = command.ReturnOrder
-					local args = command.Args
-					local optional = command.Optional
+					w = command.Width
+					h = command.Height - 4
+					name = command.Name
+					returnOrder = command.ReturnOrder
+					args = command.Args
+					optional = command.Optional
 					
 					if w >= width then width = w + 20 end
 					
@@ -621,22 +624,22 @@ elseif CLIENT then
 					for I = 1, #returnOrder do
 						
 						-- We need to build the argument text for this command
-						local argument = returnOrder[I]
-						local dataType = args[argument]
-						local optional = optional[argument]
+						argument = returnOrder[I]
+						dataType = args[argument]
+						newOptional = optional[argument]
 						
 						if argument then
 							argument = argument:Trim():lower()
 							
-							local format = argument
-							if optional then format = "[" .. argument .. "]" end
+							format = argument
+							if newOptional then format = "[" .. argument .. "]" end
 							
 							comInfo = comInfo .. format .. " "
 						end
 						
 					end
 					
-					local w, h = surface.GetTextSize( comInfo )
+					w, h = surface.GetTextSize( comInfo )
 					
 					if w >= width then width = w + 50 end
 					
@@ -657,8 +660,8 @@ elseif CLIENT then
 			
 			for k,v in pairs( ToDraw ) do
 			
-				local commandColor = Color( COLOR.NAME.r, COLOR.NAME.g, COLOR.NAME.b, PLUGIN.Box_Alpha )
-				local w, h = surface.GetTextSize( v.Name )
+				commandColor = Color( COLOR.NAME.r, COLOR.NAME.g, COLOR.NAME.b, PLUGIN.Box_Alpha )
+				w, h = surface.GetTextSize( v.Name )
 				
 				draw.SimpleTextOutlined( v.Name, PLUGIN.Font, PLUGIN.X + 5, v.Place, commandColor, 0, 0, 1, outlinecol )
 				draw.SimpleTextOutlined( v.Args, PLUGIN.Font, PLUGIN.X + 10 + w, v.Place, COLOR.NORM, 0, 0, 1, outlinecol )
@@ -668,12 +671,13 @@ elseif CLIENT then
 		end
 	end
 	
+	local split, command
 	function PLUGIN:OnOnChatTab( text )
 	
 		if Find_List then
 		
-			local split = string.Explode( " ", text )
-			local command = Find_List[1]
+			split = string.Explode( " ", text )
+			command = Find_List[1]
 			
 			if command and #split == 1 then
 				return command.Name
@@ -696,8 +700,8 @@ elseif CLIENT then
 
 		if line.Last_X != curX then
 				
-			local dist = curX - line.Last_X
-			local speed = dist / mulX
+			dist = curX - line.Last_X
+			speed = dist / mulX
 			
 			line.Last_X = math.Approach( line.Last_X, curX, speed )
 			
@@ -705,39 +709,36 @@ elseif CLIENT then
 		
 		if line.Last_Y != curY then
 				
-			local dist = curY - line.Last_Y
-			local speed = dist / mulY
+			dist = curY - line.Last_Y
+			speed = dist / mulY
 			
 			line.Last_Y = math.Approach( line.Last_Y, curY, speed )
 			
 		end
 		
 	end
-
-	local Init_FPSMonitor = false
-	local FPSTime = 0
-	local StartTime = CurTime() + 10
 	
+	local lineHeight, curX, curY, mulX, mulY, k, line, _
 	function PLUGIN:OnHUDPaint()
 
 		surface.SetFont( PLUGIN.Font ) -- Set the font
 		
 		-- Set variables used.
-		local _, lineHeight = surface.GetTextSize( "H" )
-		local curX = 70
-		local curY = PLUGIN.H - 248
+		_, lineHeight = surface.GetTextSize( "H" )
+		curX = 70
+		curY = PLUGIN.H - 248
 		
-		local mulX = 40
-		local mulY = 40
+		mulX = 40
+		mulY = 40
 		
 		--Draw input panenl
 		PLUGIN.DrawInputBox()
 
 		for I = 0, 7 do -- For the last 7 lines in the table
 		
-			local k = #PLUGIN.Lines - I
+			k = #PLUGIN.Lines - I
 			
-			local line = PLUGIN.Lines[ k ]
+			line = PLUGIN.Lines[ k ]
 			
 			if line then -- If the line exists
 			

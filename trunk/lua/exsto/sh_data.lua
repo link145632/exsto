@@ -136,7 +136,7 @@ if SERVER then
 				Running = run,
 				Error = tostring( err ),
 			} )
-			return
+			return false
 		end
 
 		if table.Count( data ) < 1 then return nil end
