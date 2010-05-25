@@ -31,8 +31,6 @@ exsto.LoadedPlugins = {}
 exsto.Hooks = {}
 exsto.PlugLocation = "exsto/plugins/"
 
-local runningLocation = ""
-
 if SERVER then
 
 --[[ -----------------------------------
@@ -113,7 +111,6 @@ function exsto.InitPlugins()
 
 	for k,v in pairs( exsto.PluginLocations ) do
 		if !v then exsto.Error( "Issue initializing plugin, no location set!" ) return end
-		runningLocation = v
 		include( exsto.PlugLocation .. v )
 		AddCSLuaFile( exsto.PlugLocation .. v )
 	end
