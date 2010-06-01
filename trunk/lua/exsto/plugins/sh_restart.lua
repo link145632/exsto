@@ -50,7 +50,7 @@ if SERVER then
 	function SendMaps( ply )
 		local curGamemode = string.Explode( "/", GAMEMODE.Folder )
 		local Send = {PLUGIN.MapList, PLUGIN.Gamemodes, curGamemode[#curGamemode]}
-		datastream.StreamToClients( ply, "exsto_SendMaps", Send )
+		exsto.UMStart( "ExSendMaps", ply, Send )
 	end
 	concommand.Add( "_GetMapsList", SendMaps )
 	
@@ -195,18 +195,18 @@ elseif CLIENT then
 
 	local MapsList = {}
 	local GamemodeList = {}
-	local currentGamemdoe = ""
+	local currentGamemode = ""
 	local selectedMap = ""
 	local mapList
 
-	local function IncommingHook( handler, id, encoded, decoded )
-	
-		MapsList = decoded[1]
-		GamemodeList = decoded[2]
-		currentGamemode = decoded[3]
+	function PLUGIN.RecieveMaps( list )
+
+		MapsList = list[1]
+		GamemodeList = list[2]
+		currentGamemode = list[3]
 		
 	end
-	datastream.Hook( "exsto_SendMaps", IncommingHook )
+	exsto.UMHook( "ExSendMaps", PLUGIN.RecieveMaps ) 
 
 	function PLUGIN.Reload( panel )
 	

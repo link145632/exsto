@@ -9,11 +9,8 @@ PLUGIN:SetInfo({
 	Desc = "Bitch Slap Dat Foo",
 	Owner = "Prefanatic and Schuyler",
 } )
- 
-if not SERVER then return end
 
 function PLUGIN.Slap( owner, ply, damage, duration, delay )
-	print( damage, duration, delay )
 
 	local function Slap()
 		if !ply:Alive() then timer.Create( "exsto_WhipDelay"..ply:Nick(), 0.1, 1, function() end ) return end

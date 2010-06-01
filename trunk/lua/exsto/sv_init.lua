@@ -33,6 +33,15 @@ function console:IsAdmin() if !self:IsValid() then return true end end
 --[[ -----------------------------------
 	Category:  Player Extras
      ----------------------------------- ]]
+	
+function exsto.MenuCall( id, func )
+	concommand.Add( id, function( ply, command, args )
+		if tonumber( ply.MenuAuthKey ) != tonumber( args[1] ) then return end
+		table.remove( args, 1 )
+		
+		func( ply, command, args )
+	end )
+end
 
 function exsto.FindPlayer( ply )
 
@@ -41,9 +50,7 @@ function exsto.FindPlayer( ply )
 	for k,v in pairs( player.GetAll() ) do
 	
 		local nick = string.lower( v:Nick() )
-		
-		print( nick, ply )
-	
+
 		if string.find( nick, ply, 1, true ) or nick == ply then
 		
 			return v 

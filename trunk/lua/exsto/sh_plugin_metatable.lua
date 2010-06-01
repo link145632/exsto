@@ -84,14 +84,12 @@ function plugin:Register()
 	local clientEnd = false
 	if CLIENT then
 		if exsto.ServerPlugSettings then
-			print( "Checking to see if our setitngs is thee ")
 			if exsto.ServerPlugSettings[self.Info.ID] == false then
 				-- The server doesn't want this command to run, end it.
 				clientEnd = true
 			end
 		else
 			-- The settings seem to be non-existant.  Lets queue the plugins into a table, then enable them later.
-			print( "Queueing plugin for wait in settings!" )
 			table.insert( queuedPlugins, self )
 			return
 		end

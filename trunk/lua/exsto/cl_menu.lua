@@ -49,6 +49,20 @@ function exsto.Menu( key )
 	Menu.AuthKey = key
 	local flags = exsto.Levels[LocalPlayer():GetRank()].Flags
 	
+	-- If this baby already exists, just set him as visible
+	if Menu.Frame then
+		-- If we are not the same rank as we were before, update the content we can see.
+		if Menu.LastRank != LocalPlayer():GetRank() then
+			Menu.LastRank = LocalPlayer():GetRank()
+			Menu.CreateExtras()
+		end
+		
+		Menu.Frame:SetVisible( true )
+		return 
+	end
+	
+	Menu.LastRank = LocalPlayer():GetRank()
+	
 	-- Set up variables
 	local width = 500
 	local height = 640
@@ -378,7 +392,7 @@ function Menu.CreateExtras( bg, flags )
 	
 	-- Set current page + next ones.
 	for k,v in pairs( Menu.ListIndex ) do
-		if Menu.List[v].Default then
+		if Menu.List[v] and Menu.List[v].Default then
 			exsto.Print( exsto_CONSOLE_DEBUG, "MENU --> Found a default page, setting it to current!" )
 			Menu.CurrentPage = Menu.List[v]
 			

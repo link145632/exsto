@@ -10,8 +10,6 @@ PLUGIN:SetInfo({
 	Owner = "Prefanatic",
 } )
 
-if not SERVER then return end -- If we arn't the server, end.
-
 function PLUGIN.Ignite( owner, ply, duration, radius )
 	ply:Ignite( duration, radius )
 	

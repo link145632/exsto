@@ -8,8 +8,6 @@ PLUGIN:SetInfo({
 	Owner = "Prefanatic",
 } )
 
-if not SERVER then return end
-
 function PLUGIN.Freeze( self, ply )
 
 	local cur_movetype = ply:GetMoveType()

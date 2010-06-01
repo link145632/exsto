@@ -49,7 +49,7 @@ if SERVER then
 		
 		local send = { exsto.PluginSettings, plugins }
 		
-		datastream.StreamToClients( ply, "exsto_SendPlugins", send )
+		exsto.UMStart( "ExSendPlugs", ply, send )
 	end
 	concommand.Add( "_SendPluginList", PLUGIN.SendServerPlugins )
 	
@@ -91,12 +91,12 @@ elseif CLIENT then
 	local settings = {}
 	local plugins = {}
 	
-	local function IncommingHook( handler, id, encoded, decoded )
-		settings = decoded[1]
-		plugins = decoded[2]
+	function PLUGIN.RecievePlugins( data )
+		settings = data[1]
+		plugins = data[2]
 		Menu.EndLoad()
 	end
-	datastream.Hook( "exsto_SendPlugins", IncommingHook )
+	exsto.UMHook( "ExSendPlugs", PLUGIN.RecievePlugins )
 	
 	function PLUGIN.ReloadData( panel )
 	

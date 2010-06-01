@@ -10,8 +10,6 @@ PLUGIN:SetInfo({
 	Owner = "Prefanatic",
 } )
 
-if not SERVER then return end
-
 local svn = require( "svn" )
 
 PLUGIN.Latest = 0

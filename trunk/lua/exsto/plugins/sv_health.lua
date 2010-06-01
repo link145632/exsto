@@ -12,8 +12,6 @@ PLUGIN:SetInfo({
 	Owner = "Prefanatic",
 } )
 
-if CLIENT then return end
-
 function PLUGIN.SetArmor( self, victim, armor )
 
 	victim:SetArmor( math.Clamp( armor, 1, 99998 ) )

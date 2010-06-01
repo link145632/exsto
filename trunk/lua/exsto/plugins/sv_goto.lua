@@ -12,8 +12,6 @@ PLUGIN:SetInfo({
 	Owner = "Prefanatic",
 } )
 
-if CLIENT then return end
-
 function PLUGIN.SendPlayer( ply, victim, force )
 	if !victim:IsInWorld() and !force then return false end
 	if !ply:IsInWorld() and !force then return false end

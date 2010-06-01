@@ -10,8 +10,6 @@ PLUGIN:SetInfo({
 	Owner = "Prefanatic",
 } )
 
-if not SERVER then return end
-
 exsto.CreateFlag( "playerpickup", "Allows users to pick up other players with the phys gun." )
 
 function PLUGIN:OnPhysgunPickup( ply, ent )

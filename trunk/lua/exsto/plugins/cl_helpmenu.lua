@@ -11,8 +11,6 @@ PLUGIN:SetInfo({
 	Experimental = false,
 } )
 
-if SERVER then return end
-
 Menu.CreatePage( {
 	Title = "Exsto Help",
 	Short = "exstohelp",

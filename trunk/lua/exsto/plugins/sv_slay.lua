@@ -9,9 +9,6 @@ PLUGIN:SetInfo({
 	Desc = "A plugin that allows slaying players!",
 	Owner = "Prefanatic",
 } )
- 
-
-if not SERVER then return end
 
 function PLUGIN.Slay( owner, ply )
 	

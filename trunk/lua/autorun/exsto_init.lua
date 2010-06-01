@@ -93,7 +93,10 @@ function exstoInit()
 	
 	exsto.LoadPlugins()
 	exsto.InitPlugins()
-	if SERVER then exsto.LoadFlags() end
+	if SERVER then
+		exsto.LoadFlags()
+		exsto.CreateFlagIndex()
+	end
 	
 	
 end

@@ -9,8 +9,6 @@ PLUGIN:SetInfo({
 	Desc = "A plugin that allows noclipping!",
 	Owner = "Prefanatic",
 } )
- 
-if not SERVER then return end
 
 PLUGIN:AddVariable({
 	Pretty = "Admin Only Noclip",

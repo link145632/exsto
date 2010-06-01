@@ -18,35 +18,31 @@ require( "glon" )
 
 if SERVER then 
 
+	PLUGIN.Editing = {}
+	
+	PLUGIN.DefaultTable = {
+		Short = "",
+		Derive = "NONE",
+		Desc = "",
+		Flags_NoDerive = {},
+		Name = "",
+		CanRemove = true,
+		Color = Color( 0, 0, 0, 0 ),
+		Immunity = 1,
+	}
+
 	local NextRequest = 0
-
-	function PLUGIN.RequestRanks( ply )
-		if !ply then exsto.Error( "A non player is calling exsto_RequestRanks!" ) return end
-		if NextRequest > CurTime() then return end -- Todo client print eventually
-		
-		NextRequest = CurTime() + 0.5
-		
-		exsto.Print( exsto_CONSOLE, ply:Nick() .. " requested data send of ranks table." )
-		
-		local Send = {exsto.Levels, exsto.Flags, exsto.RankErrors}
-		
-		datastream.StreamToClients( ply, "exsto_RecieveLevels", Send )
-
-	end
-	concommand.Add( "exsto_RequestRanks", PLUGIN.RequestRanks )
 	
 	function PLUGIN.DeleteRank( ply, _, args )
-
-		if ply.MenuAuthKey != tonumber( args[1] ) then return end
+	
 		if !ply:IsAdmin() then return end
 		
 		-- If the ID in question is the broken one, tell Exsto.
-		if exsto.RankErrors[args[2]] then
-			exsto.RankErrors[args[2]] = nil
+		if exsto.RankErrors[args[1]] then
+			exsto.RankErrors[args[1]] = nil
 		end
 		
-		--file.Delete( FEL.AccessDir .. args[1] .. ".txt" )
-		FEL.RemoveData( "exsto_data_access", "short", args[2] )
+		FEL.RemoveData( "exsto_data_access", "short", args[1] )
 		
 		ACCESS_PrepReload()
 		ACCESS_LoadFiles()
@@ -55,23 +51,74 @@ if SERVER then
 
 		exsto.UMStart( "exsto_ReloadRankEditor", ply )
 	end
-	concommand.Add( "_DeleteRank", PLUGIN.DeleteRank )
+	exsto.MenuCall( "_DeleteRank", PLUGIN.DeleteRank )
 	
-	datastream.Hook( "RecieveRanks", function( ply, handler, id, encoded, decoded )
+	function PLUGIN.UpdateKey( ply, _, args )
+		local rank = args[1]
+		local key = args[2]
+		local data = args[3]
 	
-		encoded = glon.decode( encoded )
-		
-		if exsto.RankErrors[encoded.Short] then
-			exsto.RankErrors[encoded.Short] = nil
+		if !PLUGIN.Editing[rank] then
+			PLUGIN.Editing[ rank ] = PLUGIN.DefaultTable
+			
+			-- Check and see if we can copy the table over from the normal levels.
+			if exsto.Levels[ rank ] then PLUGIN.Editing[ rank ] = exsto.Levels[ rank ] end
 		end
 		
-		PLUGIN.WriteAccess( encoded.Name, encoded.Desc, encoded.Short, encoded.Derive, encoded.Immunity, encoded.Color, encoded.Flags )
+		rank = PLUGIN.Editing[rank]
+		
+		if key == "name" then
+			rank.Name = data
+		elseif key == "short" then
+			rank.Short = data
+		elseif key == "desc" then
+			rank.Desc = data
+		elseif key == "derive" then
+			rank.Derive = data
+		elseif key == "immunity" then
+			rank.Immunity = data
+		elseif key == "col_red" then
+			rank.Color.r = data
+		elseif key == "col_green" then
+			rank.Color.g = data
+		elseif key == "col_blue" then
+			rank.Color.b = data
+		elseif key == "col_alpha" then
+			rank.Color.a = data
+		elseif key == "flag_add" then
+			table.insert( rank.Flags_NoDerive, data )
+		elseif key == "flag_remove" then
+			local id = exsto.GetTableID( rank.Flags_NoDerive, data )
+			table.remove( rank.Flags_NoDerive, id )
+		elseif key == "flag_remall" then
+			rank.Flags_NoDerive = {}
+		end
+	end
+	exsto.MenuCall( "_UpdateRankInfo", PLUGIN.UpdateKey )
+	
+	concommand.Add( "_PrintEdits", function() PrintTable( PLUGIN.Editing ) end )
+	
+	function PLUGIN.CommitChanges( ply, _, args )
+		local short = args[1]
+		local realShort = args[2]
+		local rank = PLUGIN.Editing[realShort]
+
+		if !rank then return end
+		PrintTable( rank )
+		
+		exsto.UMStart( "exsto_ReloadRankEditor", ply )
+		
+		PLUGIN.WriteAccess( rank.Name, rank.Desc, rank.Short, rank.Derive, rank.Immunity, rank.Color, rank.Flags_NoDerive )
 		
 		-- Reload the access lib
 		ACCESS_PrepReload()
 		ACCESS_LoadFiles()
 		ACCESS_ResendRanks()
-	end )
+		
+		-- Clean out our edit list
+		PLUGIN.Editing[ "Create New" ] = PLUGIN.DefaultTable
+	end
+	exsto.MenuCall( "_CommitChanges", PLUGIN.CommitChanges )
 	
 	function PLUGIN.WriteAccess( Name, Desc, Short, Derive, Immunity, Color, Flags )				
 		FEL.AddData( "exsto_data_access", {
@@ -99,32 +146,20 @@ elseif CLIENT then
 	surface.CreateFont( "arial", 15, 700, true, false, "labeledPanelFont" )
 	surface.CreateFont( "arial", 17, 700, true, false, "tabFont" )
 
-	local levels = {}
-	local all_flags = {}
-	local rank_issues = {}
-	local Recieved = false
+	exsto.Levels = {}
+	exsto.Flags = {}
+	exsto.RankErrors = {}
 	local Main
 	local Title
 	local names = {}
 	local rankPages
 	local rankSheets
 	
-	local function IncommingHook( ply, handler, id, encoded, decoded )
-	
-		levels = encoded[1]
-		all_flags = encoded[2]
-		rank_issues = encoded[3]
-		Recieved = true
-		
-	end
-	datastream.Hook( "exsto_RecieveLevels", IncommingHook )
-	
-	function PLUGIN.ReloadMenuFromHook()
-		
+	function PLUGIN.ReloadMenuFromHook()	
 		PLUGIN.ReloadMenu()
-		
 	end
 	exsto.UMHook( "exsto_ReloadRankEditor", PLUGIN.ReloadMenuFromHook )
+	hook.Add( "exsto_BuildRanks", PLUGIN.ReloadMenuFromHook )
 
 	Menu.CreatePage( {
 		Title = "Rank Editor",
@@ -135,7 +170,9 @@ elseif CLIENT then
 		
 		Main = panel
 		
-		RunConsoleCommand( "exsto_RequestRanks" )
+		if table.Count( exsto.Levels ) == 0 then
+			RunConsoleCommand( "_ResendRanks" )
+		end
 		
 		PLUGIN.Main()
 		
@@ -143,7 +180,7 @@ elseif CLIENT then
 	
 	function PLUGIN.Main()
 	
-		if !Recieved or !levels then
+		if table.Count( exsto.Levels ) == 0 then
 
 			//print( "Waiting..." )
 			timer.Simple( 1, PLUGIN.Main )
@@ -161,9 +198,8 @@ elseif CLIENT then
 	
 		Menu.PushLoad()
 	
-		levels = nil
-		Recieved = false
-		RunConsoleCommand( "exsto_RequestRanks" )
+		exsto.Levels = {}
+		RunConsoleCommand( "_ResendRanks" )
 		
 		PLUGIN.Main()
 		
@@ -176,10 +212,10 @@ elseif CLIENT then
 		end
 	
 		names = {}
-		for k,v in pairs( levels ) do table.insert( names, k ) end
-		for k,v in pairs( rank_issues ) do table.insert( names, "ERROR: " .. k ) end -- For the ranks that are bugged somehow
+		for k,v in pairs( exsto.Levels ) do table.insert( names, k ) end
+		for k,v in pairs( exsto.RankErrors ) do table.insert( names, "ERROR: " .. k ) end -- For the ranks that are bugged somehow
 		
-		if table.Count( rank_issues ) >= 1 then
+		if table.Count( exsto.RankErrors ) >= 1 then
 			Menu.PushError( "Exsto has found a few ranks that are bugged!" )
 		end
 		
@@ -246,7 +282,7 @@ elseif CLIENT then
 		local CreateNew = rankPages[#rankPages]
 		
 		local I = 1
-		for k,v in pairs( levels ) do
+		for k,v in pairs( exsto.Levels ) do
 			local Level = v
 			local page = rankPages[I]
 			
@@ -258,7 +294,7 @@ elseif CLIENT then
 		end
 		
 		-- Do the broken ranks.
-		for k,v in pairs( rank_issues ) do
+		for k,v in pairs( exsto.RankErrors ) do
 			local Level = v[1]
 			PLUGIN.FormPage( rankPages[I], Level.Name, Level.Desc, Level.Short, Level.Derive, Level.Color, true, v[2] )
 			
@@ -279,11 +315,14 @@ elseif CLIENT then
 		local FullFlags = {}
 		local NoDeriveFlags = {}
 		local Immunity = 100
+		
+		local RealShort = Short
+		if RealShort == "" then RealShort = "Create New" end
 
-		if levels[Short] then
-			Immunity = levels[Short].Immunity
-			FullFlags = levels[Short].Flags
-			NoDeriveFlags = levels[Short].Flags_NoDerive
+		if exsto.Levels[Short] then
+			Immunity = exsto.Levels[Short].Immunity
+			FullFlags = exsto.Levels[Short].Flags
+			NoDeriveFlags = exsto.Levels[Short].Flags_NoDerive
 		end
 
 		-- Name Entry
@@ -291,12 +330,16 @@ elseif CLIENT then
 		local NameEntry = exsto.CreateTextEntry( 10, 10, NamePanel:GetWide() - 20, 20, NamePanel )
 			NameEntry:SetText( Name )
 			NamePanel.Label:SetFont( "labeledPanelFont" )
+			
+			NameEntry.OnTextChanged = function( self ) Menu.CallServer( "_UpdateRankInfo", RealShort, "name", self:GetValue() ) end
 	
 		-- Desc Entry
 		local DescPanel = exsto.CreateLabeledPanel( (panel:GetWide() / 2), 10, (panel:GetWide() / 2) - 20, 40, "Description", Color( 232, 232, 232, 255 ), panel )
 		local DescEntry = exsto.CreateTextEntry( 10, 10, DescPanel:GetWide() - 20, 20, DescPanel )
 			DescEntry:SetText( Desc )
 			DescPanel.Label:SetFont( "labeledPanelFont" )
+			
+			DescEntry.OnTextChanged = function( self ) Menu.CallServer( "_UpdateRankInfo", RealShort, "desc", self:GetValue() ) end
 			
 		-- Short Entry
 		local ShortPanel = exsto.CreateLabeledPanel( 5, 60, (panel:GetWide() / 2) - 20, 40, "Unique ID", Color( 232, 232, 232, 255 ), panel )
@@ -305,6 +348,8 @@ elseif CLIENT then
 			ShortPanel.Label:SetFont( "labeledPanelFont" )
 			
 			if Short != ""	then ShortEntry:SetEditable( false ) end
+			
+			ShortEntry.OnTextChanged = function( self ) Menu.CallServer( "_UpdateRankInfo", RealShort, "short", self:GetValue() ) end
 			
 		-- Derive Entry
 		local DerivePanel = exsto.CreateLabeledPanel( panel:GetWide() / 2, 60, (panel:GetWide() / 2) - 20, 40, "Derive From", Color( 232, 232, 232, 255 ), panel )
@@ -332,6 +377,20 @@ elseif CLIENT then
 		local GreenSlider = exsto.CreateNumSlider( 10, 60, 100, "Green", 0, 255, 0, ColorPanel )
 		local BlueSlider = exsto.CreateNumSlider( 10, 110, 100, "Blue", 0, 255, 0, ColorPanel )
 		local AlphaSlider = exsto.CreateNumSlider( 10, 160, 100, "Alpha", 0, 255, 0, ColorPanel )
+		
+		local function onValChange( value, type )
+			Menu.CallServer( "_UpdateRankInfo", RealShort, type, value )
+		end
+		
+			RedSlider.OnValueChanged = function( self, val ) onValChange( val, "col_red" ) end
+			GreenSlider.OnValueChanged = function( self, val ) onValChange( val, "col_green" ) end
+			BlueSlider.OnValueChanged = function( self, val ) onValChange( val, "col_blue" ) end
+			AlphaSlider.OnValueChanged = function( self, val ) onValChange( val, "col_alpha" ) end
+			
+			RedSlider.OnEnter = function( self, val ) onValChange( val, "col_red" ) end
+			GreenSlider.OnEnter = function( self, val ) onValChange( val, "col_green" ) end
+			BlueSlider.OnEnter = function( self, val ) onValChange( val, "col_blue" ) end
+			AlphaSlider.OnEnter = function( self, val ) onValChange( val, "col_alpha" ) end
 		
 		-- Setting sliders to the correct number.
 			RedSlider:SetValue( Col.r )
@@ -371,9 +430,11 @@ elseif CLIENT then
 		DeriveEntry.OnSelect = function( index, value, data )
 			DeriveEntryText = data
 			
+			Menu.CallServer( "_UpdateRankInfo", RealShort, "derive", data )
+			
 			-- Emulate his derive moving.
-			if data != "NONE" and levels[Short] then
-				levels[Short].Derive = data
+			if data != "NONE" and exsto.Levels[Short] then
+				exsto.Levels[Short].Derive = data
 			
 				PLUGIN.UpdateFlagList( Flag_UsingList, Flag_PossibleList, NoDeriveFlags, FullFlags, Short )
 			end
@@ -406,12 +467,14 @@ elseif CLIENT then
 		RemoveAllFromUsing.DepressedCol = Color( 255, 106, 106, 255 )
 		
 		RemoveAllFromUsing.DoClick = function()
+			Menu.CallServer( "_UpdateRankInfo", RealShort, "flag_remall", data )
 			NoDeriveFlags = {}
 			PLUGIN.UpdateFlagList( Flag_UsingList, Flag_PossibleList, NoDeriveFlags, FullFlags, Short )
 		end
 		
 		MoveAllToUsing.DoClick = function()
 			for k,v in pairs( Flag_PossibleList:GetLines() ) do
+				Menu.CallServer( "_UpdateRankInfo", RealShort, "flag_add", v:GetValue(1) )
 				table.insert( NoDeriveFlags, v:GetValue(1) )
 			end
 			PLUGIN.UpdateFlagList( Flag_UsingList, Flag_PossibleList, NoDeriveFlags, FullFlags, Short )
@@ -422,6 +485,7 @@ elseif CLIENT then
 			local line = Flag_UsingList:GetSelectedLine()	
 			if !line then return end
 
+			Menu.CallServer( "_UpdateRankInfo", RealShort, "flag_remove", line )
 			table.remove( NoDeriveFlags, line )
 			
 			PLUGIN.UpdateFlagList( Flag_UsingList, Flag_PossibleList, NoDeriveFlags, FullFlags, Short )
@@ -432,6 +496,7 @@ elseif CLIENT then
 			local line = Flag_PossibleList:GetSelected()[1]	
 			if !line then return end
 			
+			Menu.CallServer( "_UpdateRankInfo", RealShort, "flag_add", line:GetValue(1) )
 			table.insert( NoDeriveFlags, line:GetValue(1) )
 			
 			PLUGIN.UpdateFlagList( Flag_UsingList, Flag_PossibleList, NoDeriveFlags, FullFlags, Short )
@@ -441,6 +506,14 @@ elseif CLIENT then
 			ImmunityPanel.Label:SetFont( "labeledPanelFont" )
 		local ImmunityEntry = exsto.CreateNumSlider( 50, 2, 50, "", 0, 1000, 0, ImmunityPanel )
 			ImmunityEntry:SetValue( Immunity )
+			
+			ImmunityEntry.OnValueChanged = function( self, val )
+				Menu.CallServer( "_UpdateRankInfo", RealShort, "immunity", val )
+			end
+			
+			ImmunityEntry.OnEnter = function( self, val )
+				Menu.CallServer( "_UpdateRankInfo", RealShort, "immunity", val )
+			end
 
 		local UpdatePanel = exsto.CreateLabeledPanel( (panel:GetWide() / 2) + 60, 110, (panel:GetWide() / 2) - 80, 170, "Update / Create", Color( 232, 232, 232, 255 ), panel )
 			UpdatePanel.Label:SetFont( "labeledPanelFont" )
@@ -471,7 +544,7 @@ elseif CLIENT then
 			if Short == "" then Menu.PushError( "Error: Please input a short!" ) return end
 			if !Immunity then Menu.PushError( "Error: Please select an immunity level!" ) return end
 			
-			PLUGIN.FormulateUpdate( Name, Desc, Short, Derive_Entry, Immunity, FullCol, Flags )
+			PLUGIN.FormulateUpdate( Short, RealShort )
 		end
 		
 		local DeleteButton = exsto.CreateButton( "center", 50, 74, 27, "Delete Rank", UpdatePanel )
@@ -521,7 +594,7 @@ elseif CLIENT then
 	
 	function PLUGIN.UpdateFlagList( usingList, possibleList, NoDeriveFlags, FullFlags, short )
 
-		local info = levels[short]
+		local info = exsto.Levels[short]
 		local derivedFlags = PLUGIN.GetDeriveFlags( short )
 		local newFullFlags = {}
 	
@@ -559,7 +632,7 @@ elseif CLIENT then
 		end
 		
 		-- We are done with the rank specific list, move onto the all possible list.
-		for k,v in pairs( all_flags ) do
+		for k,v in pairs( exsto.Flags ) do
 		
 			-- If he doesn't exist in our new full flags, add him to the possibles.
 			if !table.HasValue( newFullFlags, k ) then
@@ -578,7 +651,7 @@ elseif CLIENT then
 	end
 
 	function PLUGIN.GetDeriveFlags( short )
-		local data = levels[short]
+		local data = exsto.Levels[short]
 		local derivedflags = {}
 		
 		if !data then return derivedflags end
@@ -600,38 +673,13 @@ elseif CLIENT then
 	end
 	
 	function PLUGIN.GetFlagDescription( flag )
-		for k,v in pairs( all_flags ) do
+		for k,v in pairs( exsto.Flags ) do
 			if k == flag then return v end
 		end
 	end				
 	
-	function PLUGIN.FormulateUpdate( Name, Desc, Short, Derive, Immunity, Color, Flags )
-	
-		--[[smsg.Start( "RecieveRanks" )
-			smsg.String( Name )
-			smsg.String( Disc )
-			smsg.String( Short )
-			smsg.String( Derive )
-			smsg.String( glon.encode( Color ) )
-			smsg.String( glon.encode( Flags ) )
-			--smsg.Table( Color )
-			--smsg.Table( Flags )
-		smsg.End()]]
-		
-		local Send = {
-			Name = Name,
-			Desc = Desc,
-			Short = Short,
-			Derive = Derive,
-			Immunity = Immunity,
-			Color = Color,
-			Flags = Flags,
-		}
-		
-		datastream.StreamToServer( "RecieveRanks", Send, PLUGIN.ReloadMenu )
-		
-		--PLUGIN.ReloadMenu()
-		
+	function PLUGIN.FormulateUpdate( dataShort, RealShort )
+		Menu.CallServer( "_CommitChanges", dataShort, RealShort )		
 	end
 	
 end

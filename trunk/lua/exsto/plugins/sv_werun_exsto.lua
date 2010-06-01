@@ -10,8 +10,6 @@ PLUGIN:SetInfo({
 	Owner = "Prefanatic",
 } )
 
-if not SERVER then return end
-
 local function OnVarChange( val )
 	timer.Create( "exsto_TELL", tonumber( exsto.GetVar( "notify_delay" ).Value ) * 60, 0, exsto.TellExsto )
 	return true

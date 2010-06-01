@@ -9,8 +9,6 @@ PLUGIN:SetInfo({
 	Desc = "A plugin that allows running console commands in chat!",
 	Owner = "Prefanatic",
 } )
- 
-if not SERVER then return end
 
 function PLUGIN.LuaRun( owner, lua )
 	RunString( lua )
