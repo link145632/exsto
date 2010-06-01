@@ -10,8 +10,6 @@ PLUGIN:SetInfo({
 	Owner = "Prefanatic",
 } )
 
-if not SERVER then return end
-
 PLUGIN:AddVariable({
 	Pretty = "Grave Style",
 	Dirty = "grave_type",

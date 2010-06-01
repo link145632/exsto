@@ -10,8 +10,6 @@ PLUGIN:SetInfo({
 	Owner = "Prefanatic",
 } )
 
-if not SERVER then return end
-
 function PLUGIN.Spectate( owner, ply )
 
 	if ply.Spectating then return end

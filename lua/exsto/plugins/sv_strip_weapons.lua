@@ -9,9 +9,6 @@ PLUGIN:SetInfo({
 	Desc = "A plugin that contains weapon related functions!",
 	Owner = "Prefanatic",
 } )
- 
-
-if CLIENT then return end
 
 function PLUGIN.Return( self, victim )
 	

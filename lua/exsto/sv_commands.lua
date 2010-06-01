@@ -25,6 +25,7 @@ require( "datastream" )
 exsto.Commands = {}
 exsto.Arguments = {}
 exsto.Flags = {}
+exsto.FlagIndex = {}
 
 local function AddArg( style, type, func ) table.insert( exsto.Arguments, {Style = style, Type = type, Func = func} ) end
 AddArg( "PLAYER", "Player", function( nick ) if nick == "" then return -1 else return exsto.FindPlayer( nick ) end end )
@@ -64,8 +65,8 @@ function exsto.SendCommandList( ply, format )
 	if !ply and format == "format" then return Send end
 	
 	exsto.Print( exsto_CONSOLE_DEBUG, "COMMANDS --> Streaming command list to " .. ply:Nick() )
-
-	timer.Simple( 0.1, datastream.StreamToClients, ply, "exsto_RecieveCommands", Send )
+	
+	timer.Simple( 0.1, exsto.UMStart, "ExRecCommands", ply, Send )
 end
 hook.Add( "exsto_InitSpawn", "exsto_StreamCommandList", exsto.SendCommandList )
 
@@ -76,7 +77,7 @@ hook.Add( "exsto_InitSpawn", "exsto_StreamCommandList", exsto.SendCommandList )
 function exsto.ResendCommands()
 	local send = exsto.SendCommandList( nil, "format" )
 	
-	datastream.StreamToClients( player.GetAll(), "exsto_RecieveCommands", send )
+	exsto.UMStart( "ExRecCommands", player.GetAll(), send )
 end
 
 --[[ -----------------------------------
@@ -157,7 +158,8 @@ end
 	Description: Adds a flag to the Exsto flag table.
      ----------------------------------- ]]
 function exsto.CreateFlag( ID, Desc )
-	exsto.Flags[ID] = Desc
+	if exsto.Flags[ID] then return end
+	exsto.Flags[ID] = Desc or "None Provided"
 end
 
 --[[ -----------------------------------
@@ -166,7 +168,24 @@ end
      ----------------------------------- ]]
 function exsto.LoadFlags()
 	for k,v in pairs( exsto.Commands ) do
-		exsto.Flags[v.ID] = v.FlagDesc
+		exsto.CreateFlag( v.ID, v.FlagDesc )
+	end
+	
+	for k,v in pairs( exsto.DefaultRanks ) do
+		for I = 1, table.Count( v.Flags ) do
+			exsto.CreateFlag( v.Flags[I] )
+		end
+	end
+end
+
+--[[ -----------------------------------
+	Function: exsto.CreateFlagIndex
+	Description: Creates a table filled with flags indexed by numbers
+     ----------------------------------- ]]
+function exsto.CreateFlagIndex()
+	local index = {}
+	for k,v in pairs( exsto.Flags ) do
+		table.insert( exsto.FlagIndex, k )
 	end
 end
 
@@ -252,6 +271,17 @@ function exsto.ParseArguments( ply, text, data, alreadyString )
 	
 		local argkey = exsto.GetArgumentKey( curArg )
 		if not argkey then exsto.Error( "Invalid argument is being used!" ) return end
+		
+		-- If we are at the end of our return requirements, stuff all extra text into the last one.  It might be something like !admin I like money
+		if I == #returnOrder and #text_args > #returnOrder then
+			local tbl = ""
+			
+			for i = I, #text_args do
+				tbl = tbl .. text_args[i] .. " "
+			end
+			
+			text_args[I] = tbl
+		end
 		
 		-- Easy thing.
 		local argTable = exsto.Arguments[argkey]

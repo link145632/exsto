@@ -40,7 +40,7 @@ if SERVER then
 	function exsto.SendPluginSettings( ply )
 		exsto.Print( exsto_CONSOLE_DEBUG, "PLUGINS --> Streaming plugin settings to " .. ply:Nick() )
 
-		timer.Simple( 0.1, datastream.StreamToClients, ply, "exsto_RecievePlugSettings", exsto.PluginSettings )
+		exsto.UMStart( "ExRecPlugSettings", ply, exsto.PluginSettings )
 	end
 	hook.Add( "exsto_InitSpawn", "exsto_StreamPluginSettingsList", exsto.SendPluginSettings )
 	
@@ -50,11 +50,13 @@ elseif CLIENT then
 	Function: IncommingHook
 	Description: Recieves the server's plugin settings file.
      ----------------------------------- ]]
-	local function IncommingHook( handler, id, encoded, decoded )
-		exsto.ServerPlugSettings = decoded
-		hook.Call( "exsto_RecievedSettings", nil )
+	function exsto.RecievePluginSettings( settings )
+		exsto.ServerPlugSettings = settings
+		
+		-- Legacy
+		hook.Call( "exsto_RecievedSettings" )
 	end
-	datastream.Hook( "exsto_RecievePlugSettings", IncommingHook )
+	exsto.UMHook( "ExRecPlugSettings", exsto.RecievePluginSettings )
 
 end
 
@@ -109,10 +111,28 @@ function exsto.InitPlugins()
 
 	exsto.PluginSettings = FEL.LoadSettingsFile( "exsto_plugin_settings" )
 
+	local prefix
 	for k,v in pairs( exsto.PluginLocations ) do
-		if !v then exsto.Error( "Issue initializing plugin, no location set!" ) return end
-		include( exsto.PlugLocation .. v )
-		AddCSLuaFile( exsto.PlugLocation .. v )
+	
+		prefix = string.Left( v, string.find( v, "_" ) - 1 )
+		
+		-- If we are running as the client, only include plugins that are shared or clientside
+		if CLIENT and ( prefix == "sh" or prefix == "cl" ) then
+			include( exsto.PlugLocation .. v )
+		elseif SERVER then
+		
+			-- If the prefix is shared, include and add please.
+			if prefix == "sh" or prefix == "cl" then AddCSLuaFile( exsto.PlugLocation .. v ) end
+			if prefix == "sh" or prefix == "sv" then include( exsto.PlugLocation .. v ) end
+			
+		end
+		
+		if !prefix then
+			exsto.Print( exsto_CONSOLE, "PLUGINS --> Plugin '" .. v .. "' is missing a run prefix!  Please update it to the correct prefix (sh_, cl_, sv_)" )
+			include( exsto.PlugLocation .. v )
+			AddCSLuaFile( exsto.PlugLocation .. v )
+		end
+		
 	end
 	
 	-- All are initialized.  Save the plugin table we have.

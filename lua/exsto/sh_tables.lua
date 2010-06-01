@@ -19,6 +19,25 @@
 require( "datastream" )
 
 --[[ -----------------------------------
+		UMSG Table Info
+     ----------------------------------- ]]
+exsto.UMSG = {
+	STRING = 1,
+	FLOAT = 2,
+	SHORT = 3,
+	LONG = 4,
+	BOOLEAN = 5,
+	ENTITY = 6,
+	VECTOR = 7,
+	ANGLE = 8,
+	TABLE_BEGIN = 9,
+	TABLE_END = 10,
+	COLOR_BEGIN = 11,
+	COLOR_END = 12,
+	NIL = 0
+}
+
+--[[ -----------------------------------
 	Color Stuff
      ----------------------------------- ]]
 
@@ -37,16 +56,6 @@ CTEXT ={}
 for k,v in pairs( COLOR ) do
 	CTEXT[tostring( k ):lower()] = v
 end
-
---[[ -----------------------------------
-	Function: IncommingHook
-	Description: Recieves the command data from server.
-     ----------------------------------- ]]
-local function IncommingHook( handler, id, encoded, decoded )
-	exsto.Commands = decoded
-	hook.Call( "exsto_RecievedCommands", nil )
-end
-datastream.Hook( "exsto_RecieveCommands", IncommingHook )
 	
 --[[ -----------------------------------
 	Function: exsto.SmartNumber
@@ -115,6 +124,76 @@ local dataTypes = {
 	
 function exsto.FormatValue( value, type )
 	return dataTypes[type]( value )
+end
+
+--[[ -----------------------------------
+	Function: exsto.TableToNumbers
+	Description: Creates a table in numbers, reflecting on a data table
+     ----------------------------------- ]]
+function exsto.TableToNumbers( tbl )
+	local newtbl = table.Copy( table.sort( tbl ) )
+	
+	local count = 1
+	for k,v in pairs( newtbl ) do
+		newtbl[count] = { Data = v, Index = k }
+		table.remove( newtbl, exsto.GetTableID( newtbl, k ) )
+	end
+	
+	return newtbl, tbl
+end
+
+--[[ -----------------------------------
+	Function: exsto.MultiplePlayers
+	Description: Returns the number of players, and in a table.
+     ----------------------------------- ]]
+function exsto.MultiplePlayers( plys )
+	if type( plys ) == "Player" then return 1, { plys } end
+	
+	local data = {}
+	local count = table.Count( plys ) 
+	
+	for I = 1, count do
+		data[I] = plys[I]
+	end
+	
+	return count, data
+end
+
+--[[ -----------------------------------
+	Function: exsto.ConvertToFlagIndex
+	Description: Converts a table filled with stringed flags to a numeric flag type.
+     ----------------------------------- ]]
+function exsto.ConvertToFlagIndex( tbl )
+	local data = {}
+	for k,v in pairs( tbl ) do
+		
+		for I = 1, #exsto.FlagIndex do
+			if exsto.FlagIndex[I] == v then
+				table.insert( data, I )
+			end
+		end
+		
+	end
+
+	return data
+end
+
+--[[ -----------------------------------
+	Function: exsto.ConvertToNormalFlags
+	Description: Converts a flag in numeric style to normal
+     ----------------------------------- ]]
+function exsto.ConvertToNormalFlags( tbl )
+	local data = {}
+	local flag, desc
+	
+	for I = 1, #tbl do
+		flag = exsto.FlagIndex[I]
+		//desc = exsto.Flags[flag]
+		
+		data[ I ] = flag
+	end
+
+	return data
 end
 
 --[[ -----------------------------------

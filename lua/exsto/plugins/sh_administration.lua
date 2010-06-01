@@ -155,7 +155,7 @@ if SERVER then
 			end
 		end
 
-		datastream.StreamToClients( player.GetAll(), "exsto_RecieveBans", send )
+		exsto.UMStart( "ExRecBans", player.GetAll(), send )
 		
 	end
 
@@ -172,7 +172,7 @@ if SERVER then
 			end
 		end
 
-		datastream.StreamToClients( ply, "exsto_RecieveBans", send )
+		exsto.UMStart( "ExRecBans", ply, send )
 	
 	end
 	concommand.Add( "_ResendBans", PLUGIN.RequestBans )
@@ -253,15 +253,15 @@ elseif CLIENT then
 	local Recieved = false
 	local banlist
 
-	local function IncommingHook( handler, id, encoded, decoded )
+	function PLUGIN.RecieveBans( b )
 	
-		bans = decoded or {}
+		bans = b or {}
 		Recieved = true
 		
 		if banlist then banlist.UpdatePlayers() end
 		
 	end
-	datastream.Hook( "exsto_RecieveBans", IncommingHook )
+	exsto.UMHook( "ExRecBans", PLUGIN.RecieveBans )
 
 	Menu.CreatePage( {
 		Title = "Ban List",
@@ -345,7 +345,7 @@ elseif CLIENT then
 			else return nil end
 		end
 		
-		local unbanButton = exsto.CreateButton( (panel:GetWide() / 2) - ( 74 / 2 ), panel:GetTall() - 40, 74, 27, "Remove", panel )
+		local unbanButton = exsto.CreateButton( ( (panel:GetWide() / 2) - ( 74 / 2 ) ) + 50, panel:GetTall() - 40, 74, 27, "Remove", panel )
 			unbanButton.DoClick = function( button )
 				local steam = GetSelected( 2 )
 				if steam then
@@ -356,6 +356,12 @@ elseif CLIENT then
 			unbanButton.Color = Color( 171, 255, 155, 255 )
 			unbanButton.HoverCol = Color( 143, 255, 126, 255 )
 			unbanButton.DepressedCol = Color( 123, 255, 106, 255 )
+			
+		local refreshButton = exsto.CreateButton( ( (panel:GetWide() / 2) - ( 74 / 2 ) ) - 50, panel:GetTall() - 40, 74, 27, "Refresh", panel )
+			refreshButton.DoClick = function( button )
+				PLUGIN.ReloadList()
+			end
+
 	end
 	
 	Menu.CreatePage( {

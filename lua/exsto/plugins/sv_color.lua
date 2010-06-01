@@ -10,8 +10,6 @@ PLUGIN:SetInfo({
 	Owner = "Prefanatic",
 } )
 
-if not SERVER then return end 
-
 function PLUGIN.Color( self, ply, r, g, b, a )
 
 	ply:SetColor( r, g, b, a )

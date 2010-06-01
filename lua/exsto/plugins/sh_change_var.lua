@@ -76,7 +76,7 @@ if SERVER then
 			table.insert( Send, Data )
 		end
 	
-		datastream.StreamToClients( ply, "exsto_SendVars", Send )
+		exsto.UMStart( "ExRecVars", ply, Send )
 		
 	end
 	concommand.Add( "_RequestVars", SendVars )
@@ -115,14 +115,14 @@ elseif CLIENT then
 		
 	end
 	
-	local function IncommingHook( ply, handler, id, encoded, decoded )
+	function PLUGIN.RecieveVars( vars )
 	
-		ClientVars = encoded
+		ClientVars = vars
 		RefreshClientView()
 		Menu.EndLoad()
 		
 	end
-	datastream.Hook( "exsto_SendVars", IncommingHook )
+	exsto.UMHook( "ExRecVars", PLUGIN.RecieveVars )
 
 	Menu.CreatePage( {
 		Title = "Variable Editor",

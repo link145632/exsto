@@ -102,10 +102,6 @@ if SERVER then
 	end
 	timer.Create( "Time_IntervalSave", 60 * 15, 0, PLUGIN.Interval )
 	
-elseif CLIENT then
-
-
-
 end
 
 -- Meta funcions

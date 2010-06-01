@@ -394,8 +394,7 @@ if SERVER then
 	Description: Resends the ranks to all players
 	----------------------------------- ]]
 	function ACCESS_ResendRanks()
-		datastream.StreamToClients( player.GetAll(), "SendLevels", exsto.Levels )
-		hook.Call( "exsto_ResendRanks", nil )
+		exsto.SendRanks( player.GetAll() )
 	end
 	
 --[[ -----------------------------------
@@ -710,14 +709,16 @@ if SERVER then
 	end
 	
 --[[ -----------------------------------
-	Function: exsto.SendRankTable
+	Function: exsto.SendRankData
 	Description: Sends the rank table.
 	----------------------------------- ]]
-	function exsto.SendRankTable( ply, sid, uid )
-		datastream.StreamToClients( ply, "SendLevels", exsto.Levels )
+	function exsto.SendRankData( ply, sid, uid )
+		exsto.SendRankErrors( ply )
+		exsto.SendFlags( ply )
+		exsto.SendRanks( ply )
 	end
-	hook.Add( "exsto_InitSpawn", "exsto_SendRanks", exsto.SendRankTable )
-	concommand.Add( "_ResendRanks", exsto.SendRankTable )
+	hook.Add( "exsto_InitSpawn", "exsto_SendRankData", exsto.SendRankData )
+	concommand.Add( "_ResendRanks", exsto.SendRankData )
 	
 	--[[ -----------------------------------
 	Function: exsto.FixInitSpawn
@@ -755,11 +756,6 @@ if SERVER then
 	end )
 
 elseif CLIENT then
-
-	datastream.Hook( "SendLevels", function( ply, handler, id, encoded, decoded )
-		exsto.Levels = encoded
-		hook.Call( "exsto_RecievedRanks", nil )
-	end )
 	
 	-- exsto_InitSpawn client call.  Instead of assuming when the client is active, we can use this to call the hook.  Allows for awesomeness.
 	hook.Add( "Think", "exsto_InitSpawnClient", function()
