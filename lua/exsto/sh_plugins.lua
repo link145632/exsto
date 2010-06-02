@@ -111,26 +111,30 @@ function exsto.InitPlugins()
 
 	exsto.PluginSettings = FEL.LoadSettingsFile( "exsto_plugin_settings" )
 
-	local prefix
+	local prefix, prefixFind
 	for k,v in pairs( exsto.PluginLocations ) do
 	
-		prefix = string.Left( v, string.find( v, "_" ) - 1 )
+		prefixFind = string.find( v, "_" )
 		
-		-- If we are running as the client, only include plugins that are shared or clientside
-		if CLIENT and ( prefix == "sh" or prefix == "cl" ) then
-			include( exsto.PlugLocation .. v )
-		elseif SERVER then
-		
-			-- If the prefix is shared, include and add please.
-			if prefix == "sh" or prefix == "cl" then AddCSLuaFile( exsto.PlugLocation .. v ) end
-			if prefix == "sh" or prefix == "sv" then include( exsto.PlugLocation .. v ) end
-			
-		end
-		
-		if !prefix then
+		if !prefixFind then
 			exsto.Print( exsto_CONSOLE, "PLUGINS --> Plugin '" .. v .. "' is missing a run prefix!  Please update it to the correct prefix (sh_, cl_, sv_)" )
 			include( exsto.PlugLocation .. v )
 			AddCSLuaFile( exsto.PlugLocation .. v )
+		else
+		
+			prefix = string.Left( v, prefixFind - 1 )
+			
+			-- If we are running as the client, only include plugins that are shared or clientside
+			if CLIENT and ( prefix == "sh" or prefix == "cl" ) then
+				include( exsto.PlugLocation .. v )
+			elseif SERVER then
+			
+				-- If the prefix is shared, include and add please.
+				if prefix == "sh" or prefix == "cl" then AddCSLuaFile( exsto.PlugLocation .. v ) end
+				if prefix == "sh" or prefix == "sv" then include( exsto.PlugLocation .. v ) end
+				
+			end
+			
 		end
 		
 	end
