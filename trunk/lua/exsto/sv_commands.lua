@@ -396,7 +396,7 @@ local function ExstoParseCommand( ply, command, args, style )
 			local style = { exsto_CHAT_ALL }
 			if type( data ) == "table" and type( data[1] ) == "Player" then style = { exsto_CHAT, data[1] } end
 		
-			if type( data ) == "table" and (data.Activator and data.Activator:IsPlayer() and data.Wording) then
+			if type( data ) == "table" and (data.Activator and data.Wording) then
 			
 				local activator = data.Activator
 				local ply = nil
