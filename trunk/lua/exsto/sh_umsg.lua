@@ -197,9 +197,9 @@ if SERVER then
 		
 		for I = 1, num do
 			ply = players[I]
-			if name != "ExTblSend" or name != "ExTblEnd" or name != "ExTblStart" then
+			--[[if name != "ExTblSend" or name != "ExTblEnd" or name != "ExTblBegin" then
 				exsto.Print( exsto_CONSOLE, "Usermessage Parse " .. name .. " to " .. ply:Nick() .. "!" )
-			end
+			end]]
 			
 			umsg.Start( name, ply )
 				umsg.Char( #arg )

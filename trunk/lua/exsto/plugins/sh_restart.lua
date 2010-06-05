@@ -17,10 +17,53 @@ if SERVER then
 	PLUGIN.MapList = {}
 	PLUGIN.MapCateg = {}
 	PLUGIN.Gamemodes = {}
+	
+	// Stolen from lua-users.org
+	local function StringDist( s, t )
+		local d, sn, tn = {}, #s, #t
+		local byte, min = string.byte, math.min
+			for i = 0, sn do d[i * tn] = i end
+			for j = 0, tn do d[j] = j end
+			for i = 1, sn do
+				local si = byte(s, i)
+				for j = 1, tn do
+					d[i*tn+j] = min(d[(i-1)*tn+j]+1, d[i*tn+j-1]+1, d[(i-1)*tn+j-1]+(si == byte(t,j) and 0 or 1))
+				end
+			end
+		return d[#d]
+	end
 
-	function PLUGIN.ChangeLevel( owner, map )
+	function PLUGIN.ChangeLevel( owner, map, delay )
+		
+		if string.Right( map, 4 ) != ".bsp" then map = map .. ".bsp" end
+	
+		local mapData = PLUGIN.MapList[map]
+		local data = { Max = 100, Map = "" }
+		local dist
+		
+		if !mapData then
+			for k,v in pairs( PLUGIN.MapList ) do
+				k = k:gsub( "%.bsp", "" )
+				dist = StringDist( map, k )
+				if dist < data.Max then data.Max = dist data.Map = k end
+			end
+			
+			return { owner, COLOR.NORM, "Unknown map ", COLOR.NAME, map:gsub( "%.bsp", "" ), COLOR.NORM, ".  Maybe you want ", COLOR.NAME, data.Map, COLOR.NORM, "?" }
+		end
+		
+		if delay != 0 then
+			timer.Simple( delay, game.ConsoleCommand, "changelevel " .. map:gsub( "%.bsp", "" ) .."\n" )
+			
+			return {
+				COLOR.NORM, "Changing level to ",
+				COLOR.NAME, map:gsub( "%.bsp", "" ),
+				COLOR.NORM, " in ",
+				COLOR.NAME, tostring( delay ),
+				COLOR.NORM, " seconds!"
+			}
+		end
 
-		game.ConsoleCommand( "changelevel " .. map or "gm_flatgrass" .. "\n" )
+		game.ConsoleCommand( "changelevel " .. map:gsub( "%.bsp", "" ) .."\n" )
 		
 	end
 	PLUGIN:AddCommand( "changelvl", {
@@ -29,8 +72,9 @@ if SERVER then
 		FlagDesc = "Allows users to change the level.",
 		Console = { "changelevel" },
 		Chat = { "!changelevel" },
-		ReturnOrder = "Map",
-		Args = {Map = "STRING"},
+		ReturnOrder = "Map-Delay",
+		Args = {Map = "STRING", Delay = "NUMBER"},
+		Optional = { Map = "gm_flatgrass", Delay = 0 },
 	})
 
 	function PLUGIN.ReloadMap( owner )

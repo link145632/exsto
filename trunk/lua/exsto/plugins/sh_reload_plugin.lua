@@ -129,26 +129,43 @@ elseif CLIENT then
 		end
 	end
 	
+	function PLUGIN.SortPlugs( a, b )
+		return a.Name:Left( 1 ) < b.Name:Left( 1 )
+	end
+	
 	function PLUGIN.Build( panel )
+	
+		surface.SetFont( "exstoTitleMenu" )
 	
 		-- List view of the plugins.
 		PLUGIN.PluginList = exsto.CreatePanelList( 10, 10, panel:GetWide() - 20, panel:GetTall() - 70, 5, false, true, panel )
 		
+		-- Sort them nicely
+		table.sort( plugins, function( a, b ) return a.Name:Left( 1 ) < b.Name:Left( 1 ) end )
 		for k,v in pairs( plugins ) do
-		
+
 			-- Background panel for the layout
-			local panel = exsto.CreatePanel( 0, 0, PLUGIN.PluginList:GetWide(), 35, Color( 224, 224, 224, 255 ) )
-				panel.Paint = function( self )
-					draw.RoundedBox( 4, 0, 0, self:GetWide(), self:GetTall(), Color( 224, 224, 224, 255 ) )
-				end
+			local panel = exsto.CreateCollapseCategory( 0, 0, PLUGIN.PluginList:GetWide(), 60, v.Name )
+				panel.Header.Font = "exstoPlyColumn"
+				panel.Header.TextColor = Color( 68, 68, 68, 255 )
+				panel.Color = Color( 224, 224, 224, 255 )
+				
+			local container = exsto.CreatePanel( 0, 0, panel:GetWide(), panel:GetTall(), Color( 0, 0, 0, 0 ) )
+			local descPanel = exsto.CreatePanel( 5, 0, container:GetWide() * ( 7/9 ), container:GetTall(), Color( 0, 0, 0, 0 ), container )
 			
-			-- The label for the plugin name.
-			local label = exsto.CreateLabel( 5, 5, v.Name, "exstoPlyColumn", panel )
-				label:SetTextColor( Color( 0, 0, 0, 255 ) )
-			
+			local label = exsto.CreateLabel( 5, 0, v.Desc, "exstoTitleMenu", descPanel )
+				label:SetSize( descPanel:GetWide(), descPanel:GetTall() )
+				label:SetWrap( true )
+				label:SetTextColor( Color( 68, 68, 68, 255 ) )
+
+			label = exsto.CreateLabel( 5, descPanel:GetTall() - 15, "Created by: " .. v.Owner, "exstoDataLines", descPanel )
+				label:SizeToContents()
+				label:SetWrap( true )
+				label:SetTextColor( Color( 68, 68, 68, 255 ) )
+				
 			if LocalPlayer():IsSuperAdmin() then
 				-- Create the button for enabling
-				local button = exsto.CreateButton( panel:GetWide() - 90, ( 35 - 27 ) / 2, 60, 27, "Disable", panel )
+				local button = exsto.CreateButton( container:GetWide() - 90, ( 35 - 27 ) / 2, 60, 27, "Disable", container )
 					PLUGIN.SetButton( button, settings[k] )
 					
 					button.DoClick = function( self )
@@ -176,7 +193,12 @@ elseif CLIENT then
 			end
 			
 			-- Add the plugin into the list
+			panel:SetContents( container )
 			PLUGIN.PluginList:AddItem( panel )
+			
+			if v.Disabled then
+				panel:SetExpanded( true )
+			end
 		
 		end
 		

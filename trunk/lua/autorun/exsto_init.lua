@@ -116,6 +116,7 @@ elseif CLIENT then
 	local function init( UM )
 		
 		exstoInit()
+		hook.Call( "ExInitialized" )
 		
 	end
 	usermessage.Hook( "clexsto_load", init )
