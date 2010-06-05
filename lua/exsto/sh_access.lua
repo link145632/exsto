@@ -531,6 +531,24 @@ if SERVER then
 		ACCESS_LoadFromULX( arg[1]:Trim():lower() )
 	end)
 	
+	function ACCESS_RecreateRanks( ply )
+	
+		ply:Print( exsto_CONSOLE, "ACCESS --> Deleting and recreating the rank table!" )
+		FEL.Query( "DROP TABLE exsto_data_access;" )
+		
+		local tblInfo = FEL.CreatedTables["exsto_data_access"]
+		
+		FEL.MakeTable_Internal( "exsto_data_access", tblInfo )
+		
+		ACCESS_CreateDefaults()
+		ACCESS_LoadFiles()
+		
+	end
+	concommand.Add( "ACCESS_DeleteAllRanks", function( ply, _, arg )
+		if !ply:IsSuperAdmin() then ply:Print( exsto_CLIENT, ply, "You are not an admin!" ) return end
+		ACCESS_RecreateRanks( ply )
+	end )
+	
 	ACCESS_CreateDefaults()
 	ACCESS_LoadFiles()
 
@@ -819,9 +837,7 @@ function _R.Player:IsAllowed( flag, victim )
 	if victim then
 		if !rank.Immunity or !victimRank.Immunity then -- Just ignore it if they don't exist, we don't want to break Exsto.
 			if table.HasValue( rank.Flags, flag ) then return true end
-		end
-		
-		if rank.Immunity <= victimRank.Immunity then
+		elseif rank.Immunity <= victimRank.Immunity then
 			if table.HasValue( rank.Flags, flag ) then return true end
 		end
 	else

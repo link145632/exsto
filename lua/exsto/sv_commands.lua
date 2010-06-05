@@ -263,6 +263,8 @@ function exsto.ParseArguments( ply, text, data, alreadyString )
 	if !alreadyString then
 		text_args = exsto.ParseStrings( text:Trim() )
 	end
+	
+	PrintTable( text_args )
 
 	for I = 1, #returnOrder do
 	
@@ -354,12 +356,17 @@ local function ExstoParseCommand( ply, command, args, style )
 		end
 	end
 	
-	local args = string.Implode( " ", args )
-	
 	if Found then
+	
+		local alreadyTable = false
+		if style == "console" then
+			alreadyTable = true
+		else
+			args = string.Implode( " ", args )
+		end
 
 		if Found.Args != "" then 
-			args = exsto.ParseArguments( ply, args, Found, false )
+			args = exsto.ParseArguments( ply, args, Found, alreadyTable )
 		else
 			args = {ply}
 		end
@@ -551,11 +558,12 @@ function exsto.CommandCall( ply, _, args )
 	if #args == 0 then ply:Print( exsto_CLIENT, "No command recieved!  Type 'exsto Commands' for the command list!" ) return end
 	
 	-- Copy the table so we can edit it clean.
-	local args = table.Copy( args )
 	local command = args[1]
 	
 	-- Remove the command, we don't need it.  It should leave us with the function arguments.
 	table.remove( args, 1 )
+	
+	PrintTable( args )
 
 	local finished = exsto.RunCommand( ply, command, args )
 	

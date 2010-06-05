@@ -8,23 +8,27 @@ PLUGIN:SetInfo({
 	Owner = "Prefanatic",
 } )
 
+function PLUGIN:OnCanPlayerSuicide( ply )
+	if ply.NoSuicide then return false end
+end
+
 function PLUGIN.Freeze( self, ply )
 
-	local cur_movetype = ply:GetMoveType()
-	
-	if cur_movetype == MOVETYPE_WALK then
-		ply:SetMoveType( MOVETYPE_NONE )
-		return {
-			Activator = self,
-			Player = ply,
-			Wording = " has frozen ",
-		}
-	else
-		ply:SetMoveType( MOVETYPE_WALK )
+	if ply:IsFrozen() then
+		ply.NoSuicide = false
+		ply:Freeze( false )
 		return {
 			Activator = self,
 			Player = ply,
 			Wording = " has unfrozen ",
+		}
+	else
+		ply.NoSuicide = true
+		ply:Freeze( true )
+		return {
+			Activator = self,
+			Player = ply,
+			Wording = " has frozen ",
 		}
 	end
 	

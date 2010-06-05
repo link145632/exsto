@@ -161,6 +161,10 @@ elseif CLIENT then
 	end
 	
 	local Find_List = {}
+	
+	hook.Add( "ExRecCommands", "exstoWaitForCommands", function()
+		PLUGIN.CommandsRecieved = true
+	end )
 
 	function PLUGIN:OnChatTextChanged( text )
 	
@@ -170,7 +174,7 @@ elseif CLIENT then
 		
 		-- CPU Intensive? test.
 		local first = string.Explode( " ", text )
-		if exsto.Commands and first[1] != "" and first[1]:First() == "!" then
+		if self.CommandsRecieved and first[1] != "" and first[1]:First() == "!" then
 		
 			Find_List = {}
 			
@@ -190,9 +194,6 @@ elseif CLIENT then
 						if string.FindStart( command:lower():Trim(), look:lower():Trim() ) then
 						
 							local width, height = surface.GetTextSize( v )
-							
-							if width == 0 then print( "Ugh, width == 0" ) end
-							if height == 0 then print( "Ugh, height == 0" ) end
 						
 							table.insert( Find_List, { Name = v, Width = width, Height = height, ReturnOrder = data.ReturnOrder, Args = data.Args, Optional = data.Optional } )
 							
@@ -549,7 +550,7 @@ elseif CLIENT then
 
 	end
 
-	local w, h, alpha, mul, add_w, height, width, place, ToDraw, name, returnOrder, args, optional, argument, dataType, newOptional, format, commandColor
+	local w, h, alpha, mul, add_w, comWidth, height, width, place, ToDraw, name, returnOrder, args, optional, argument, dataType, newOptional, format, commandColor
 	function PLUGIN.DrawInputBox()
 
 		surface.SetFont( PLUGIN.Font )
@@ -617,8 +618,6 @@ elseif CLIENT then
 					args = command.Args
 					optional = command.Optional
 					
-					if w >= width then width = w + 20 end
-					
 					-- We need to increase width depending on the list of argumentals.
 					local comInfo = ""
 					for I = 1, #returnOrder do
@@ -626,7 +625,8 @@ elseif CLIENT then
 						-- We need to build the argument text for this command
 						argument = returnOrder[I]
 						dataType = args[argument]
-						newOptional = optional[argument]
+						
+						if optional then newOptional = optional[argument] end
 						
 						if argument then
 							argument = argument:Trim():lower()
@@ -639,9 +639,9 @@ elseif CLIENT then
 						
 					end
 					
-					w, h = surface.GetTextSize( comInfo )
+					comWidth, h = surface.GetTextSize( comInfo )
 					
-					if w >= width then width = w + 50 end
+					if ( w + comWidth + 10 ) >= width then width = w + comWidth + 10 end
 					
 					table.insert( ToDraw, { Name = name, Place = place, Args = comInfo } )
 					
@@ -658,7 +658,7 @@ elseif CLIENT then
 			surface.SetDrawColor( 255, 255, 255, PLUGIN.Box_Alpha / 2 )
 			surface.DrawOutlinedRect( PLUGIN.X, PLUGIN.Y + 20, width, height )
 			
-			for k,v in pairs( ToDraw ) do
+			for k,v in ipairs( ToDraw ) do
 			
 				commandColor = Color( COLOR.NAME.r, COLOR.NAME.g, COLOR.NAME.b, PLUGIN.Box_Alpha )
 				w, h = surface.GetTextSize( v.Name )
@@ -680,7 +680,7 @@ elseif CLIENT then
 			command = Find_List[1]
 			
 			if command and #split == 1 then
-				return command.Name
+				return command.Name .. " "
 			end
 			
 		end

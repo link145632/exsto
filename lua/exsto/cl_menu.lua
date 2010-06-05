@@ -538,3 +538,79 @@ function Menu.AddToPanelList( info )
 	-- Create an indexed list of the pages.
 	table.insert( Menu.ListIndex, info.Short )
 end
+
+--[[ -----------------------------------
+	Category: Quick Menu
+	----------------------------------- ]]
+QMenu = {}
+
+function QMenu:Initialize()
+	
+	-- Variables
+	self.Wide = ScrW()
+	self.Tall = ScrH()
+	
+	self.PlayerButtons = {}
+	
+	self.Panel = exsto.CreatePanel( 0, 0, self.Wide, self.Tall, Color( 255, 255, 255, 0 ) )
+	self.Panel:SetVisible( false )
+	
+end
+
+function QMenu:BuildPlayerList()
+	self.PlayerStackY = 100
+	self.PlayerStackX = 20
+	
+	surface.SetFont( "exstoButtons" )
+	
+	-- First, clean out all old buttons
+	for k,v in pairs( self.PlayerButtons ) do
+		if v then 
+			v:Remove()
+			self.PlayerButtons[k] = nil
+		end
+	end
+	
+	local buttonWide = 0
+	
+	-- Check to see who has the longest name, so we match it with buttons.
+	local wide
+	for k,v in pairs( player.GetAll() ) do	
+		wide = surface.GetTextSize( v:Nick() )
+		
+		if wide > buttonWide then buttonWide = wide + 20 end
+	end
+	
+	local plyButton
+	for k,v in pairs( player.GetAll() ) do
+		
+		plyButton = exsto.CreateButton( -buttonWide, self.PlayerStackY, buttonWide, 46, v:Nick(), self.Panel )
+		table.insert( self.PlayerButtons, plyButton )
+		
+		self.PlayerStackY = self.PlayerStackY + 60
+		if ( self.PlayerStackY + 100 ) >= ScrH() then 
+			self.PlayerStackY = 100
+			self.PlayerStackX = self.PlayerStackX + buttonWide + 10
+		end
+		
+	end
+	
+end
+
+hook.Add( "ExInitialized", "ExCreateQMenu", function() QMenu.Initialize( QMenu ) end )
+
+function QMenu:Open()
+	if !QMenu.Panel then return end
+	gui.EnableScreenClicker( true )
+	QMenu.BuildPlayerList( QMenu )
+	QMenu.Panel:SetVisible( true )
+end
+concommand.Add( "+exstoQMenu", QMenu.Open )
+
+function QMenu:Close()
+	if !QMenu.Panel then return end
+	gui.EnableScreenClicker( false )
+	QMenu.Panel:SetVisible( false )
+end
+concommand.Add( "-exstoQMenu", QMenu.Close )
+	

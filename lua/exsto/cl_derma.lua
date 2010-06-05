@@ -124,10 +124,25 @@ function exsto.CreateButton( x, y, w, h, text, parent )
 			draw.SimpleText( self.Text, self.Font, self:GetWide() / 2, self:GetTall() / 2, Color( 255, 255, 255, 255 ), 1, 1 )
 		end
 		
+		button.SetStyle = function( style )
+			if style == "normal" then
+				button.Color = Color( 155, 228, 255, 255 )
+				button.HoverCol = Color( 136, 199, 255, 255 )
+				button.DepressedCol = Color( 156, 179, 255, 255 )
+			elseif style == "hot" then
+				button.Color = Color( 255, 155, 155, 255 )
+				button.HoverCol = Color( 255, 126, 126, 255 )
+				button.DepressedCol = Color( 255, 106, 106, 255 )
+			elseif style == "cool" then
+				button.Color = Color( 171, 255, 155, 255 )
+				button.HoverCol = Color( 143, 255, 126, 255 )
+				button.DepressedCol = Color( 123, 255, 106, 255 )
+			end
+		end
+		
+		button.SetStyle( "normal" )
+		
 		button.Text = text
-		button.Color = Color( 155, 228, 255, 255 )
-		button.HoverCol = Color( 136, 199, 255, 255 )
-		button.DepressedCol = Color( 156, 179, 255, 255 )
 		button.Paint = buttonDraw
 		
 		-- Font bug fix, wtf.
@@ -371,7 +386,7 @@ function exsto.CreateCollapseCategory( x, y, w, h, label, parent )
 	local category = vgui.Create( "DCollapsibleCategory", parent )
 		category:SetPos( x, y )
 		category:SetSize( w, h )
-		category:SetExpanded( 0 )
+		category:SetExpanded( false )
 		category:SetLabel( "" )
 		
 	category.Header.Label = label
