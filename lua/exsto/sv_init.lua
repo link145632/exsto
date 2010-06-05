@@ -25,6 +25,7 @@
      ----------------------------------- ]]
 local console = _R.Entity
 
+function console:Name() if !self:IsValid() then return "Console" end end
 function console:Nick() if !self:IsValid() then return "Console" end end
 function console:IsAllowed() if !self:IsValid() then return true end end
 function console:IsSuperAdmin() if !self:IsValid() then return true end end
