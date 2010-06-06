@@ -82,10 +82,17 @@ if SERVER then
 		if !tonumber( id ) then exsto.ErrorNoHalt( "UMSG --> Cannot create a table send action with a non-numeric ID!" ) return end
 		
 		exsto.UMStart( "ExTblBegin", ply, id )
-	
-		for k,v in pairs( tbl ) do
-			exsto.UMStart( "ExTblSend", ply, id, k, v )
+		
+		-- Lets try this with glon now.
+		local encode = glon.encode( tbl )
+		
+		for k,v in pairs( string.split( encode, 128 ) ) do
+			exsto.UMStart( "ExTblSend", ply, id, v )
 		end
+	
+		--[[for k,v in pairs( tbl ) do
+			exsto.UMStart( "ExTblSend", ply, id, k, v )
+		end]]
 		
 		exsto.UMStart( "ExTblEnd", ply, id )
 		currentHandles[id] = nil
@@ -95,6 +102,17 @@ if SERVER then
 		exsto.UMStart( "_TestUMSG", ply, "Heres a string bro.", Vector( 10, 10, 10 ), { 23, "I'm a table!" } )
 		//exsto.SendTable( ply, { "String Test", 13, Vector( 100, 100, 100 ) }, 24 )
 	end )
+	
+	function string.split(str,d)
+		local t = {}
+		local len = str:len()
+		local i = 0
+		while i*d < len do
+				t[i+1] = str:sub(i*d+1,(i+1)*d)
+				i=i+1
+		end
+		return t
+	end
 	
 --[[ -----------------------------------
 	Function: exsto.CreateTableID
@@ -195,11 +213,17 @@ if SERVER then
 	
 		if not arg then nothing = true end
 		
+		local function count( tbl )
+			local num = 1
+			for k,v in pairs( tbl ) do
+				if type( v ) == "table" then num = num + count( v ) end
+				num = num + 1
+			end
+			return num
+		end
+		
 		for I = 1, num do
 			ply = players[I]
-			--[[if name != "ExTblSend" or name != "ExTblEnd" or name != "ExTblBegin" then
-				exsto.Print( exsto_CONSOLE, "Usermessage Parse " .. name .. " to " .. ply:Nick() .. "!" )
-			end]]
 			
 			umsg.Start( name, ply )
 				umsg.Char( #arg )
@@ -215,6 +239,10 @@ if SERVER then
 				exsto.SendTable( sendTable[1], sendTable[2], sendTable[3] )
 			end
 		end
+	end
+	
+	local function UMSGQueue()
+	
 	end
 	
 end
@@ -256,8 +284,8 @@ if CLIENT then
 				elseif format == exsto.UMSG.ANGLE then
 					ret = um:ReadAngle()
 				elseif format == exsto.UMSG.TABLE_BEGIN then
-					ret = "tbl_BEGIN"
 					tblID = um:ReadChar()
+					ret = tblID
 					tblWait = true
 				elseif format == exsto.UMSG.COLOR_BEGIN then
 					local r = um:ReadChar() + 128
@@ -288,7 +316,16 @@ if CLIENT then
 				exsto.TableHook( tblID, function( tbl )
 
 					for k,v in pairs( data ) do
-						if v == "tbl_BEGIN" then data[k] = tbl break end
+						if v == tblID then data[k] = tbl break end
+					end
+					
+					local function count( tbl )
+						local num = 1
+						for k,v in pairs( tbl ) do
+							if type( v ) == "table" then num = num + count( v ) end
+							num = num + 1
+						end
+						return num
 					end
 					
 					call()
@@ -311,18 +348,19 @@ if CLIENT then
 		if !dataHooks[ id ] then
 			dataHooks[ id ] = noFunc
 		end
-		dataProcess[id] = {}
+		dataProcess[id] = ""
 	end
 	exsto.UMHook( "ExTblBegin", exsto.BeginTableRecieve )
 	
-	function exsto.TableRecieve( id, k, v )
-		dataProcess[id][k] = v
+	function exsto.TableRecieve( id, encode )
+		dataProcess[id] = dataProcess[id] .. encode
 	end
 	exsto.UMHook( "ExTblSend", exsto.TableRecieve )
 	
 	function exsto.EndTableRecieve( id )
-		dataHooks[ id ]( dataProcess[ id ] )
-		dataProcess[ id ] = {}
+		local decode = glon.decode( dataProcess[ id ] )
+		dataHooks[ id ]( decode )
+		dataProcess[ id ] = ""
 	end
 	exsto.UMHook( "ExTblEnd", exsto.EndTableRecieve )
 	

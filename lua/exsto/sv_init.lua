@@ -21,6 +21,13 @@
 -- Pretty much Misc.
 
 --[[ -----------------------------------
+	Category:  Player Utils
+     ----------------------------------- ]]
+local ply = _R.Player
+
+function ply:IsConsole() if !self:IsValid() then return false end end 
+
+--[[ -----------------------------------
 	Category:  Console Utils
      ----------------------------------- ]]
 local console = _R.Entity
@@ -30,6 +37,8 @@ function console:Nick() if !self:IsValid() then return "Console" end end
 function console:IsAllowed() if !self:IsValid() then return true end end
 function console:IsSuperAdmin() if !self:IsValid() then return true end end
 function console:IsAdmin() if !self:IsValid() then return true end end
+function console:IsConsole() if !self:IsValid() then return true end end
+function console:IsPlayer() if !self:IsValid() then return false end end
 
 --[[ -----------------------------------
 	Category:  Player Extras
