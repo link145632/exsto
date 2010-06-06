@@ -56,7 +56,41 @@ CTEXT ={}
 for k,v in pairs( COLOR ) do
 	CTEXT[tostring( k ):lower()] = v
 end
+
+--[[ -----------------------------------
+	Function: exsto.GetClosestString
+	Description: Returns the closest string in a table.
+    ----------------------------------- ]]
+local function StringDist( s, t )
+	local d, sn, tn = {}, #s, #t
+	local byte, min = string.byte, math.min
+		for i = 0, sn do d[i * tn] = i end
+		for j = 0, tn do d[j] = j end
+		for i = 1, sn do
+			local si = byte(s, i)
+			for j = 1, tn do
+				d[i*tn+j] = min(d[(i-1)*tn+j]+1, d[i*tn+j-1]+1, d[(i-1)*tn+j-1]+(si == byte(t,j) and 0 or 1))
+			end
+		end
+	return d[#d]
+end
 	
+function exsto.GetClosestString( str, possible, id, ply, text )
+	local data = { Max = 100, New = "" }
+	local dist
+
+	for k,v in pairs( possible ) do
+		if id then v = v[id] end
+		dist = StringDist( str, v )
+		if dist < data.Max then data.Max = dist data.New = v end
+	end
+	
+	if text and ply then
+		ply:Print( exsto_CHAT, COLOR.NORM, text .. " ", COLOR.NAME, str, COLOR.NORM, ".  Maybe you want ", COLOR.NAME, data.New, COLOR.NORM, "?" )
+	end
+	
+	return data.New
+end
 --[[ -----------------------------------
 	Function: exsto.SmartNumber
 	Description: Returns the number in a table that has no index.
@@ -223,6 +257,15 @@ exsto.DefaultRanks = {
 			"cexec",
 			"plugindisable",
 			"runtest",
+			"denystool",
+			"allowstool",
+			"allowentity",
+			"denyentity",
+			"allowswep",
+			"denyswep",
+			"allowprop",
+			"denyprop",
+			"rankrestrictions",
 		}
 	},
 	
@@ -291,6 +334,7 @@ exsto.DefaultRanks = {
 			"playerlist",
 			"checkversion",
 			"pluginlist",
+			"printrestrict",
 		}
 	}
 }
@@ -443,4 +487,26 @@ exsto.GMHooks = {
 	"ShouldDrawLocalPlayer",
 	"StartChat",
 	"SuppressHint",
+	"CanTool",
+	"PlayerGiveSWEP",
+	"PlayerSpawnObject",
+	"PlayerSpawnProp",
+	"PlayerSpawnSENT",
+	"PlayerSpawnSWEP",
+	"PlayerSpawnNPC",
+	"PlayerSpawnVehicle",
+	"PlayerSpawnEffect",
+	"PlayerSpawnRagdoll",
+	"PlayerSpawnedProp",
+	"PlayerSpawnedSENT",
+	"PlayerSpawnedNPC",
+	"PlayerSpawnedVehicle",
+	"PlayerSpawnedEffect",
+	"PlayerSpawnedRagdoll",
+	"AddHint",
+	"AddNotify",
+	"GetSENTMenu",
+	"GetSWEPMenu",
+	"PopulateSTOOLMenu",
+	"SpawnMenuEnabled",
 }

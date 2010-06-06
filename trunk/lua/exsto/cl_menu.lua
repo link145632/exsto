@@ -54,7 +54,7 @@ function exsto.Menu( key )
 		-- If we are not the same rank as we were before, update the content we can see.
 		if Menu.LastRank != LocalPlayer():GetRank() then
 			Menu.LastRank = LocalPlayer():GetRank()
-			//Menu.CreateExtras()
+			Menu.CreateExtras( Menu.Background, flags )
 		end
 		
 		Menu.Frame:SetVisible( true )

@@ -66,9 +66,10 @@ function exsto.SendCommandList( ply, format )
 	
 	exsto.Print( exsto_CONSOLE_DEBUG, "COMMANDS --> Streaming command list to " .. ply:Nick() )
 	
-	timer.Simple( 0.1, exsto.UMStart, "ExRecCommands", ply, Send )
+	exsto.UMStart( "ExRecCommands", ply, Send )
 end
 hook.Add( "exsto_InitSpawn", "exsto_StreamCommandList", exsto.SendCommandList )
+concommand.Add( "_ResendCommands", exsto.SendCommandList )
 
 --[[ -----------------------------------
 	Function: exsto.ResendCommands
@@ -299,7 +300,7 @@ function exsto.ParseArguments( ply, text, data, alreadyString )
 				exsto.Print( exsto_CONSOLE_DEBUG, "COMMANDS --> Optional value \"" .. argName .. "\" is being inserted with a value of " .. tostring( optional[argName] ) ) 
 			else
 				-- Lets see what hes trying to access.  If he is trying to access a PLAYER with no value, substitue himself.
-				if curArg == "PLAYER" and I == 1 then
+				if curArg == "PLAYER" and I == 1 and ply:IsPlayer() then
 					table.insert( Return, ply )
 					exsto.Print( exsto_CONSOLE_DEBUG, "COMMANDS --> Adding in caller value for \"" .. argName .. "\'!" )
 				elseif curArg == "PLAYER" then
@@ -394,7 +395,7 @@ local function ExstoParseCommand( ply, command, args, style )
 			end
 
 			local style = { exsto_CHAT_ALL }
-			if type( data ) == "table" and type( data[1] ) == "Player" then style = { exsto_CHAT, data[1] } end
+			if type( data ) == "table" and ( type( data[1] ) == "Player" or type( data[1] ) == "Entity" ) and data[1]:CanPrint() then style = { exsto_CHAT, data[1] } end
 		
 			if type( data ) == "table" and (data.Activator and data.Wording) then
 			

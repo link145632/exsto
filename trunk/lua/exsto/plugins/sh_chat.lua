@@ -620,33 +620,36 @@ elseif CLIENT then
 					
 					-- We need to increase width depending on the list of argumentals.
 					local comInfo = ""
-					for I = 1, #returnOrder do
-						
-						-- We need to build the argument text for this command
-						argument = returnOrder[I]
-						dataType = args[argument]
-						
-						if optional then newOptional = optional[argument] end
-						
-						if argument then
-							argument = argument:Trim():lower()
+					if type( returnOrder ) == "table" then
+						for I = 1, #returnOrder do
 							
-							format = argument
-							if newOptional then format = "[" .. argument .. "]" end
+							-- We need to build the argument text for this command
+							argument = returnOrder[I]
+							dataType = args[argument]
 							
-							comInfo = comInfo .. format .. " "
+							if optional then newOptional = optional[argument] end
+							
+							if argument then
+								argument = argument:Trim():lower()
+								
+								format = argument
+								if newOptional then format = "[" .. argument .. "]" end
+								
+								comInfo = comInfo .. format .. " "
+							end
+							
 						end
 						
+						comWidth, h = surface.GetTextSize( comInfo )
+						
+						if ( w + comWidth + 10 ) >= width then width = w + comWidth + 10 end
+						
+						table.insert( ToDraw, { Name = name, Place = place, Args = comInfo } )
+						
+						place = place + h
+						height = height + h
+						
 					end
-					
-					comWidth, h = surface.GetTextSize( comInfo )
-					
-					if ( w + comWidth + 10 ) >= width then width = w + comWidth + 10 end
-					
-					table.insert( ToDraw, { Name = name, Place = place, Args = comInfo } )
-					
-					place = place + h
-					height = height + h
 					
 				end
 				

@@ -37,7 +37,8 @@ end
 exsto_CHAT = AddPrint( 
 	function( ply, ... )
 		if CLIENT then return end
-		if type( ply ) != "Player" then return end
+		print( ply:Name() )
+		if ply:IsConsole() then return end
 		
 		exsto.UMStart( "exsto_ChatPrint", ply, COLOR.EXSTO, "[Exsto] ", unpack( {...} ) )
 	end, true
@@ -148,6 +149,23 @@ function exsto.Print( style, ... )
 	end
 end
 
+function _R.Entity.Print( self, style, ... )
+	print( style )
+	if style == exsto_CLIENT then
+		print( {...} )
+	elseif style == exsto_CHAT then
+		local build = ""
+		for k,v in pairs( {...} ) do
+			if type( v ) == "string" then
+				build = build .. v .. " "
+			elseif type( v ) == "Player" then
+				build = build .. v:Name() .. " "
+			end
+		end
+		print( build )
+	end
+end
+
 function _R.Player.Print( ply, style, ... )
 
 	for k,v in pairs( exsto.PrintStyles ) do
@@ -157,6 +175,14 @@ function _R.Player.Print( ply, style, ... )
 	end
 	
 end
+
+--[[ -----------------------------------
+	Function: meta:CanPrint
+	Description: Returns true if the object is a valid printing device.
+     ----------------------------------- ]]
+	
+	function _R.Player.CanPrint( self ) return true end
+	function _R.Entity.CanPrint( self ) return true end
 
 --[[ -----------------------------------
 	Function: exsto.IgnorePrints
