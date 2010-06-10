@@ -41,7 +41,7 @@ FEL = {}
 	FEL.ErrorTable = {}
 
 if SERVER then
-	--require( "mysqloo" )
+	require( "mysqloo" )
 	require( "mysql" )
 	
 	local query = sql.Query
@@ -83,22 +83,24 @@ if SERVER then
 				exsto.Print( exsto_CONSOLE, "FEL --> Couldn't locate MySQL library!  Falling back to SQL!" )
 				FEL.Settings["MySQL"] = false
 			else
-				--[[FEL.Database = mysqloo.connect( FEL.Settings["Host"], FEL.Settings["Username"], FEL.Settings["Password"], FEL.Settings["Database"], 3306 )
+				FEL.Database = mysqloo.connect( FEL.Settings["Host"], FEL.Settings["Username"], FEL.Settings["Password"], FEL.Settings["Database"], 3306 )
 				FEL.Database:connect()
-				--FEL.Database:wait()
+				FEL.Database:wait()
 
 				if FEL.Database:status() == mysqloo.DATABASE_NOT_CONNECTED or FEL.Database:status() == mysqloo.DATABASE_INTERNAL_ERROR then
 					exsto.Print( exsto_CONSOLE, "FEL --> Couldn't connect to MySQL server!  Falling back to SQL!" )
 					FEL.Settings["MySQL"] = false
-				end]]
+				elseif FEL.Database:status() == mysqloo.DATABASE_CONNECTED then
+					exsto.Print( exsto_CONSOLE, "FEL --> Running under MySQL!" )
+				end
 				
-				FEL.Database, error = mysql.connect( FEL.Settings["Host"], FEL.Settings["Username"], FEL.Settings["Password"], FEL.Settings["Database"] )
+				--[[FEL.Database, error = mysql.connect( FEL.Settings["Host"], FEL.Settings["Username"], FEL.Settings["Password"], FEL.Settings["Database"] )
 				if FEL.Database == 0 then
 					exsto.Print( exsto_CONSOLE, "FEL --> Couldn't connect to MySQL server!  Falling back to SQL!" )
 					FEL.Settings["MySQL"] = false
 				else
 					exsto.Print( exsto_CONSOLE, "FEL --> Running under MySQL!" )
-				end
+				end]]
 			end
 		end
 	end
@@ -107,10 +109,10 @@ if SERVER then
 	Function: mysqlQuery
 	Description: Helper function to query MySQL.
      ----------------------------------- ]]
-	local function mysqlQuery( run, threaded )
+	local function mysqlQuery( run, threaded, query )
 		local data, success, err = mysql.query( FEL.Database, run, mysql.QUERY_FIELDS )
 		
-		--[[if FEL.Database:status() != mysqloo.DATABASE_CONNECTED then return nil end
+		if FEL.Database:status() != mysqloo.DATABASE_CONNECTED then return nil end
 		
 		local query = FEL.Database:query( run )
 		query:start()
@@ -124,12 +126,18 @@ if SERVER then
 		end
 		
 		-- Check to make sure we are threaded, we don't want to halt up the server!
-		if !threaded then
-			query:wait()
+		if threaded then
+			qurey.onSuccess = function()
+				callback( query:getData() )
+			end
+			return
 		end
 		
-		local data = query:getData()]]
+		query:wait()
 		
+		local data = query:getData()
+		
+		--[[
 		if err != "OK" then
 			FEL.PrintError( {
 				MySQL = true,
@@ -137,7 +145,7 @@ if SERVER then
 				Error = tostring( err ),
 			} )
 			return false
-		end
+		end]]
 
 		if table.Count( data ) < 1 then return nil end
 		return data		
@@ -216,17 +224,11 @@ if SERVER then
 	Description: Makes a string nice.
      ----------------------------------- ]]
 	function FEL.Escape( str )
-
 		if FEL.Settings["MySQL"] then
-		
 			return "'" .. str .. "'"
-			
 		else
-		
 			return SQLStr( str )
-			
 		end
-		
 	end
 	
 --[[ -----------------------------------
@@ -400,9 +402,10 @@ if SERVER then
 
 			local build = ""
 			local cur = 1
+			local format
 			for k,v in pairs( info.Data ) do
 				
-				local format = "%s%s, "
+				format = "%s%s, "
 				if table.Count( info.Data ) == cur then
 					format = "%s%s"
 				end
@@ -422,7 +425,7 @@ if SERVER then
 			if type( v ) == "string" then v = FEL.Escape( v ) end
 			if type( v ) == "boolean" then v = FEL.Escape( tostring( v ) ) end
 			
-			local format = "%s%s, "
+			format = "%s%s, "
 			
 			-- UPDATE table SET %s WHERE %s = %s;
 			if update then

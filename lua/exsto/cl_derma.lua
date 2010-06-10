@@ -121,10 +121,12 @@ function exsto.CreateButton( x, y, w, h, text, parent )
 			end
 			
 			draw.RoundedBox( 4, 0, 0, self:GetWide(), self:GetTall(), col )
-			draw.SimpleText( self.Text, self.Font, self:GetWide() / 2, self:GetTall() / 2, Color( 255, 255, 255, 255 ), 1, 1 )
+			draw.SimpleText( self.Text, self.Font, self:GetWide() / 2, self:GetTall() / 2, Color( 255, 255, 255, self.Color.a ), 1, 1 )
 		end
 		
-		button.SetStyle = function( style )
+		button.SetStyle = function( self, style )
+			if type( self ) == "string" then style = self end
+			
 			if style == "normal" then
 				button.Color = Color( 155, 228, 255, 255 )
 				button.HoverCol = Color( 136, 199, 255, 255 )

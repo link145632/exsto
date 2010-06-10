@@ -29,6 +29,7 @@ Menu = {}
 	Menu.BaseTitle = "Exsto / "
 	Menu.NextPage = {}
 	Menu.CurrentPage = {}
+	Menu.DefaultPage = {}
 	Menu.PreviousPage = {}
 	Menu.CurrentIndex = 1
 	
@@ -54,9 +55,22 @@ function exsto.Menu( key )
 		-- If we are not the same rank as we were before, update the content we can see.
 		if Menu.LastRank != LocalPlayer():GetRank() then
 			Menu.LastRank = LocalPlayer():GetRank()
+			
+			for k,v in pairs( Menu.List ) do
+				v.Panel:Remove()
+			end
+			
+			Menu.List = {}
+			Menu.ListIndex = {}
+			Menu.NextPage = {}
+			Menu.CurrentPage = {}
+			Menu.DefaultPage = {}
+			Menu.PreviousPage = {}
 			Menu.CreateExtras( Menu.Background, flags )
+			
+			Menu.SetTitle( Menu.DefaultPage.Title )
 		end
-		
+
 		Menu.Frame:SetVisible( true )
 		return 
 	end
@@ -168,16 +182,11 @@ function exsto.Menu( key )
 	
 	Menu.CreateExtras( Menu.Background, flags )
 	
-	local switchPages = function( forward )
-		local next = Menu.NextPage
-		local prev = Menu.PreviousPage
-		local current = Menu.CurrentPage
-		local index = Menu.CurrentIndex
-		
+	local switchPages = function( forward )	
 		if forward then
-			Menu.MoveToPage( next.Short )
+			Menu.MoveToPage( Menu.NextPage.Short )
 		else
-			Menu.MoveToPage( prev.Short )
+			Menu.MoveToPage( Menu.PreviousPage.Short )
 		end
 	end
 	
@@ -395,6 +404,7 @@ function Menu.CreateExtras( bg, flags )
 		if Menu.List[v] and Menu.List[v].Default then
 			exsto.Print( exsto_CONSOLE_DEBUG, "MENU --> Found a default page, setting it to current!" )
 			Menu.CurrentPage = Menu.List[v]
+			Menu.DefaultPage = Menu.List[v]
 			
 			if k - 1 < 1 then
 				Menu.PreviousPage = Menu.List[Menu.ListIndex[#Menu.ListIndex]]
@@ -545,72 +555,487 @@ end
 QMenu = {}
 
 function QMenu:Initialize()
+
+	self:BuildPlayerList()
+	self:BuildActionList()
+
+	self.ActionList:AddCategory( "Administration", "hot" )
+	self.ActionList:AddCategory( "Fun", "cool" )
+	self.ActionList:AddCategory( "Access", "hot" )
+	self.ActionList:AddCategory( "Restriction", "cool" )
+	self.ActionList:AddCategory( "Misc" )
 	
-	-- Variables
-	self.Wide = ScrW()
-	self.Tall = ScrH()
+	self.ActionList:AddItem( "Administration", "kick" )
+	self.ActionList:AddItem( "Administration", "ban" )
 	
-	self.PlayerButtons = {}
+	self.ActionList:AddItem( "Fun", "rape" )
 	
-	self.Panel = exsto.CreatePanel( 0, 0, self.Wide, self.Tall, Color( 255, 255, 255, 0 ) )
-	self.Panel:SetVisible( false )
+	self.ActionList:Build()
+end
+
+function QMenu:BuildActionList()
+
+	local wide = ScrW() - 20
+	local tall = 30
+	
+	local openx = 10
+	local openy = ScrH() - tall - 10
+	
+	local closex = 10
+	local closey = ScrH() + 40
+
+	self.ActionList = exsto.CreatePanel( closex, closey, wide, tall, Color( 255, 255, 255, 255 ) )
+
+	self.ActionList.Categories = {}
+	self.ActionList.Commands = {}
+	self.ActionList.CommandLists = {}
+	self.ActionList.Buttons = {}
+	self.ActionList.ScreenArea = ScrW() - 20
+
+	self.ActionList.Build = function( self )
+		-- Get the size of the buttons we can use.
+		local size = self.ScreenArea / #self.Categories
+		
+		local button, combutton
+		local curX = 0
+		for k,v in ipairs( self.Categories ) do
+			button = exsto.CreateButton( curX, 0, size, self:GetTall(), v.Name, self )
+			if v.Style then button:SetStyle( v.Style ) end
+			
+			button.Category = v.Name
+			
+			button.SaveExpandData = function( self )
+				local _x, _y = self:GetPos()
+				local _w, _h = self:GetSize()
+				
+				self.ExpandData = {
+					x = _x,
+					y = _y,
+					w = _w,
+					h = _h,
+				}
+			end
+			
+			button.DoClick = function( self )
+				if !self:GetParent():Locked() then
+					self:GetParent():ExpandButton( self.Category )
+					self:GetParent():LockCurrent( self )
+					self.CommandLink:Open()
+				elseif self:GetParent():Locked() then
+					self:GetParent():UnlockCurrent()
+					self:GetParent():ResetButtons()
+					self.CommandLink:Close()
+				end
+			end
+			
+			button.OnCursorEntered = function( self )
+				//self:GetParent():ExpandButton( self.Category )
+			end
+			
+			button.OnCursorExited = function( self )
+				//self:GetParent():ResetButtons()
+			end
+
+			if self.Commands[ v.Name ] then
+				
+				local curX = curX + 20
+			
+				self.CommandLists[ v.Name ] = exsto.CreatePanelList( ( curX + ( size / 2 ) ) - ( size / 4 ) + 10, 0, size / 2, 300, 5, false, true )
+				local comlist = self.CommandLists[ v.Name ] 
+				
+				comlist.ButtonLink = button
+				button.CommandLink = self.CommandLists[ v.Name ] 
+				
+				comlist.Open = function( self )
+					local x, y = self.ButtonLink:GetPos()
+					self:SetPos( ( x + ( self.ButtonLink:GetWide() / 2 ) ) - ( self:GetWide() / 2 ) + 10, openy - self:GetTall() )
+					self:FadeAlpha( 255 )
+				end
+				
+				comlist.Close = function( self )
+					local x, y = self.ButtonLink:GetPos()
+					self:SetPos( ( x + ( self.ButtonLink:GetWide() / 2 ) ) - ( self:GetWide() / 2 ) + 10, openy + 20  )
+					self:FadeAlpha( 0 )
+				end
+
+				local think, col
+				local curH = 0
+				for _, command in ipairs( self.Commands[ v.Name ] ) do
+					
+					combutton = exsto.CreateButton( 0, 0, comlist:GetWide(), 30, command )
+					
+					local a = 0
+					if combutton.Think then think = combutton.Think end
+					combutton.Think = function( self )
+						if think then think( self ) end
+						
+						a = comlist.AnimTable[ 8 ].Last
+						
+						col = self.Color
+						col.a = a
+						self.Color = col
+						
+						col = self.HoverCol
+						col.a = a
+						self.HoverCol = col
+						
+						col = self.DepressedCol
+						col.a = a
+						self.DepressedCol = col
+					end
+					
+					comlist:AddItem( combutton )
+					
+					curH = curH + 35
+					
+				end
+				
+				comlist:SetTall( curH )
+				
+				QMenu:AnimateObject( comlist, 20, true )
+				comlist:Close()
+			end
+			
+			self.Buttons[ v.Name ] = button
+			curX = curX + size
+		end
+		
+	end
+	
+	self.ActionList.Locked = function( self )
+		if self._LockedButton then return true end
+		return false
+	end
+	
+	self.ActionList.UnlockCurrent = function( self )
+		if !self._LockedButton then return end
+		self._LockedButton.CommandLink:Close()
+		self._LockedButton = nil
+	end
+	
+	self.ActionList.LockCurrent = function( self, button )
+		self._LockedButton = button
+	end
+	
+	self.ActionList.SetHovered = function( self, button )
+		self.HoveredButton = button
+	end
+	
+	self.ActionList.GetHovered = function( self )
+		return self.HoveredButton
+	end
+	
+	self.ActionList.ResetButtons = function( self )
+		if self:Locked() then return end
+		if #self.Categories <= 2 then return end
+		
+		local expandData, button
+		for k,v in ipairs( self.Categories ) do
+			button = self.Buttons[ v.Name ]
+			expandData = button.ExpandData
+			
+			button:SetSize( expandData.w, expandData.h )
+			button:SetPos( expandData.x, expandData.y )
+			
+			button.ExpandData = {}
+		end
+		
+		self:SetHovered( nil )
+	end
+	
+	self.ActionList.ExpandButton = function( self, category )
+		if self:Locked() then return end
+		if #self.Categories <= 2 then return end
+		
+		local foundIndex
+		for k,v in ipairs( self.Categories ) do
+			if v.Name == category then foundIndex = k break end
+		end
+		
+		if !foundIndex then return end		
+		
+		self:SetHovered( self.Buttons[ foundIndex ] )
+		
+		local w, button
+		local curX = 0
+		local newSize = 0
+		for I = 1, #self.Categories do
+			button = self.Buttons[ self.Categories[ I ].Name ]
+			w = button:GetWide() / 2
+
+			button:SaveExpandData()
+			
+			if I == foundIndex then
+				w = w * ( #self.Categories + 1 )
+			end
+
+			button:SetWide( w )
+			button:SetPos( curX, 0 )
+			
+			newSize = newSize + w
+			curX = curX + w
+		end
+
+	end
+	
+	self.ActionList.AddItem = function( self, category, command )
+		local tbl = self.Commands[ category ]
+		if !tbl then self.Commands[ category ] = { command } end
+		
+		tbl = table.Add( tbl, { command } )
+		self.Commands[ category ] = tbl
+	end
+	
+	self.ActionList.AddCategory = function( self, name, style )
+		table.insert( self.Categories, { Name = name, Style = style } )
+	end
+
+	self.ActionList.Open = function( self )
+		self:SetPos( openx, openy )
+	end
+	
+	self.ActionList.Close = function( self )
+		self:SetPos( closex, closey )
+		
+		if self:Locked() then
+			self:UnlockCurrent()
+			self:ResetButtons()
+		end
+	end
+	
+	self:AnimateObject( self.ActionList )
 	
 end
 
 function QMenu:BuildPlayerList()
-	self.PlayerStackY = 100
-	self.PlayerStackX = 20
+
+	local wide = 300
+	local tall = 400
 	
-	surface.SetFont( "exstoButtons" )
+	local openx = ScrW() - wide - 50
+	local openy = 5
 	
-	-- First, clean out all old buttons
-	for k,v in pairs( self.PlayerButtons ) do
-		if v then 
-			v:Remove()
-			self.PlayerButtons[k] = nil
+	local closex = openx
+	local closey = ( tall * -1 ) - 5
+	
+	self.PlayerSheet = exsto.CreatePanelList( closex, closey, wide, tall, 5, false, true )
+	self.PlayerSheet:SetVisible( true )
+	
+	self.PlayerSheet.Update = function( self )
+		self:Clear()
+		local button
+		
+		for k,v in ipairs( player.GetAll() ) do
+			button = exsto.CreateButton( 0, 0, self:GetWide(), 40, v:Nick() )
+				button:SetStyle( "normal" )
+			self:AddItem( button )
 		end
 	end
 	
-	local buttonWide = 0
-	
-	-- Check to see who has the longest name, so we match it with buttons.
-	local wide
-	for k,v in pairs( player.GetAll() ) do	
-		wide = surface.GetTextSize( v:Nick() )
-		
-		if wide > buttonWide then buttonWide = wide + 20 end
+	self.PlayerSheet.NextUpdate = 0
+	self.PlayerSheet.Think = function( self )
+		if self.NextUpdate < CurTime() then
+			self.NextUpdate = CurTime() + 5
+			self:Update()
+		end
 	end
 	
-	local plyButton
-	for k,v in pairs( player.GetAll() ) do
+	self.PlayerSheet.Open = function( self )
+		self:SetPos( openx, openy )
+		//self:MoveTo( openx, openy, 0.5, 0, 2 )
+	end
+	
+	self.PlayerSheet.Close = function( self )
+		self:SetPos( closex, closey )
+		//self:MoveTo( closex, closey, 1, 0, 2 )
+	end
+	
+	self:AnimateObject( self.PlayerSheet, 9 )
+	
+end
+
+function QMenu:AnimateObject( obj, rate, colors )
+
+	obj.AnimTable = {}
+	obj.OldFuncs = {}
+	
+	local x, y = obj:GetPos()
+	local w, h = obj:GetSize()
+	
+	obj.OldFuncs.SetPos = obj.SetPos
+	obj.OldFuncs.SetX = function( self, x ) obj.OldFuncs.SetPos( self, x, self.AnimTable[ 2 ].Current ) end
+	obj.OldFuncs.SetY = function( self, y ) obj.OldFuncs.SetPos( self, self.AnimTable[ 1 ].Current, y ) end
+	
+	obj.OldFuncs.SetSize = obj.SetSize
+	obj.OldFuncs.SetWide = function( self, w ) obj.OldFuncs.SetSize( self, w, self.AnimTable[ 4 ].Current ) end
+	obj.OldFuncs.SetTall = function( self, h ) obj.OldFuncs.SetSize( self, self.AnimTable[ 4 ].Current, h ) end
+	
+	obj.OldFuncs.SetRed = function( self, r ) obj.Color.r = r end
+	obj.OldFuncs.SetGreen = function( self, g ) obj.Color.g = g end
+	obj.OldFuncs.SetBlue = function( self, b ) obj.Color.b = b end
+	obj.OldFuncs.SetAlpha = function( self, a ) obj.Color.a = a end
+	
+	obj.Fade = function( self, col )
+		self.AnimTable[ 5 ].Current = col.r or 255
+		self.AnimTable[ 6 ].Current = col.g or 255
+		self.AnimTable[ 7 ].Current = col.b or 255
+		self.AnimTable[ 8 ].Current = col.a or 255
+	end
+	
+	obj.FadeAlpha = function( self, a )
+		self.AnimTable[ 8 ].Current = a
+	end
+	
+	obj.SetX = function( self, x )
+		self.AnimTable[ 1 ].Current = x
+	end
+	
+	obj.SetY = function( self, y )
+		self.AnimTable[ 2 ].Current = y
+	end
+	
+	obj.SetPos = function( self, x, y )
+		self:SetX( x )
+		self:SetY( y )
+	end
+	
+	obj.SetWide = function( self, w )
+		self:SetSize( w, self:GetTall() )
+	end
+	
+	obj.SetTall = function( self, h )
+		self:SetSize( self:GetWide(), h )
+	end
+	
+	obj.SetSize = function( self, w, h )
+		self.AnimTable[ 3 ].Current = w
+		self.AnimTable[ 4 ].Current = h
+	end
+	
+	obj.GetPos = function( self )
+		return self.AnimTable[1].Current, self.AnimTable[2].Current
+	end
+	
+	obj.GetWide = function( self )
+		return self.AnimTable[ 3 ].Current
+	end
+	
+	obj.GetTall = function( self )
+		return self.AnimTable[ 4 ].Current
+	end
+	
+	obj.GetSize = function( self )
+		return self:GetWide(), self:GetTall()
+	end
+	
+	-- X
+	table.insert( obj.AnimTable, 1, {
+		Last = x,
+		Current = x,
+		Mul = rate or 20,
+		Call = obj.OldFuncs.SetX,
+	} )
+	
+	-- Y
+	table.insert( obj.AnimTable, 2, {
+		Last = y,
+		Current = y,
+		Mul = rate or 20,
+		Call = obj.OldFuncs.SetY,
+	} )
+	
+	-- W
+	table.insert( obj.AnimTable, 3, {
+		Last = w,
+		Current = w,
+		Mul = rate or 20,
+		Call = obj.OldFuncs.SetWide,
+	} )
+			
+	-- H
+	table.insert( obj.AnimTable, 4, {
+		Last = h,
+		Current = h,
+		Mul = rate or 20,
+		Call = obj.OldFuncs.SetTall,
+	} )
+	
+	if colors then
+	
+		-- COLORS
+		table.insert( obj.AnimTable, 5, {
+			Last = obj.Color.r,
+			Current = obj.Color.r,
+			Mul = rate or 20,
+			Call = obj.OldFuncs.SetRed,
+		} )
 		
-		plyButton = exsto.CreateButton( -buttonWide, self.PlayerStackY, buttonWide, 46, v:Nick(), self.Panel )
-		table.insert( self.PlayerButtons, plyButton )
+		table.insert( obj.AnimTable, 6, {
+			Last = obj.Color.g,
+			Current = obj.Color.g,
+			Mul = rate or 20,
+			Call = obj.OldFuncs.SetGreen,
+		} )
 		
-		self.PlayerStackY = self.PlayerStackY + 60
-		if ( self.PlayerStackY + 100 ) >= ScrH() then 
-			self.PlayerStackY = 100
-			self.PlayerStackX = self.PlayerStackX + buttonWide + 10
+		table.insert( obj.AnimTable, 7, {
+			Last = obj.Color.b,
+			Current = obj.Color.b,
+			Mul = rate or 20,
+			Call = obj.OldFuncs.SetBlue,
+		} )
+		
+		table.insert( obj.AnimTable, 8, {
+			Last = obj.Color.a,
+			Current = obj.Color.a,
+			Mul = rate or 20,
+			Call = obj.OldFuncs.SetAlpha,
+		} )
+	end
+	
+	local dist, speed
+	local last, current, mul, call
+	
+	local oldThink
+	if obj.Think then oldThink = obj.Think end
+	obj.Think = function( self )
+		if oldThink then oldThink( self ) end
+
+		for k,v in ipairs( self.AnimTable ) do
+			last = v.Last
+			current = v.Current
+			mul = v.Mul
+			call = v.Call
+
+			if math.Round( last ) != math.Round( current ) then
+				dist = current - last
+				speed = dist / mul
+
+				self.AnimTable[ k ].Last = math.Approach( last, current, speed )
+				call( obj, self.AnimTable[ k ].Last )
+			end
+			
+			last, current, mul, call = nil
 		end
 		
 	end
-	
+
 end
 
 hook.Add( "ExInitialized", "ExCreateQMenu", function() QMenu.Initialize( QMenu ) end )
 
-function QMenu:Open()
-	if !QMenu.Panel then return end
+function QMenu:Open()	
 	gui.EnableScreenClicker( true )
-	QMenu.BuildPlayerList( QMenu )
-	QMenu.Panel:SetVisible( true )
+
+	QMenu.PlayerSheet:Open()
+	QMenu.ActionList:Open()
 end
 concommand.Add( "+exstoQMenu", QMenu.Open )
 
 function QMenu:Close()
-	if !QMenu.Panel then return end
 	gui.EnableScreenClicker( false )
-	QMenu.Panel:SetVisible( false )
+	
+	QMenu.PlayerSheet:Close()
+	QMenu.ActionList:Close()
 end
 concommand.Add( "-exstoQMenu", QMenu.Close )
 	

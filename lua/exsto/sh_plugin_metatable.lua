@@ -106,8 +106,7 @@ function plugin:Register()
 			
 			-- Remove all of our hooks
 			for k,v in pairs( self.Hooks ) do
-				local id = self.HookID[k]
-				hook.Remove( k, id )
+				hook.Remove( k, self.HookID[k] )
 			end
 
 			self.Hooks = {}
@@ -185,8 +184,7 @@ function plugin:Unload()
 
 	-- Remove all of our hooks
 	for k,v in pairs( self.Hooks ) do
-		local id = self.HookID[k]
-		hook.Remove( k, id )
+		hook.Remove( k, self.HookID[k] )
 	end
 	
 	self.Hooks = {}

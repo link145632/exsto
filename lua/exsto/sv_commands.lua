@@ -317,7 +317,11 @@ function exsto.ParseArguments( ply, text, data, alreadyString )
 			
 				local form = type( data );
 					
-				if form == "number" and exsto.Arguments[argkey].Type == "Player" then form = "nobody! (Couldn't find player!)" end		
+				if form == "string" and exsto.Arguments[argkey].Type == "Player" then
+					local tbl = exsto.BuildPlayerNicks()
+					exsto.GetClosestString( data, tbl, nil, ply, "Unknown player" )
+					return nil
+				end		
 				// Temp String Fix-- HACK
 				if form == "nil" and exsto.Arguments[argkey].Type == "number" then form = "string!" end
 				

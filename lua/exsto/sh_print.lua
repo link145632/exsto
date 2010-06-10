@@ -150,10 +150,9 @@ function exsto.Print( style, ... )
 end
 
 function _R.Entity.Print( self, style, ... )
-	print( style )
 	if style == exsto_CLIENT then
 		print( {...} )
-	elseif style == exsto_CHAT then
+	elseif style == exsto_CHAT or style == exsto_CHAT_ALL or style == exsto_CHAT_NOLOGO then
 		local build = ""
 		for k,v in pairs( {...} ) do
 			if type( v ) == "string" then
@@ -180,7 +179,6 @@ end
 	Function: meta:CanPrint
 	Description: Returns true if the object is a valid printing device.
      ----------------------------------- ]]
-	
 	function _R.Player.CanPrint( self ) return true end
 	function _R.Entity.CanPrint( self ) return true end
 
@@ -206,11 +204,10 @@ if CLIENT then
 --[[ -----------------------------------
 		Printing Helpers
      ----------------------------------- ]]
-	
-	function exsto.ChatPrint( ... )
+	local function chatprint( ... )
 		chat.AddText( unpack( {...} ) )
 	end
-	exsto.UMHook( "exsto_ChatPrint", exsto.ChatPrint )
+	exsto.UMHook( "exsto_ChatPrint", chatprint )
 	
 	local function msg( str )
 		Msg( str )
