@@ -43,7 +43,6 @@ function console:IsPlayer() if !self:IsValid() then return false end end
 --[[ -----------------------------------
 	Category:  Player Extras
      ----------------------------------- ]]
-	
 function exsto.MenuCall( id, func )
 	concommand.Add( id, function( ply, command, args )
 		if tonumber( ply.MenuAuthKey ) != tonumber( args[1] ) then return end
@@ -53,24 +52,27 @@ function exsto.MenuCall( id, func )
 	end )
 end
 
-function exsto.FindPlayer( ply )
-
-	local ply = string.lower( ply )
+function exsto.BuildPlayerNicks()
+	local tbl = {}
 	
 	for k,v in pairs( player.GetAll() ) do
-	
-		local nick = string.lower( v:Nick() )
-
-		if string.find( nick, ply, 1, true ) or nick == ply then
-		
-			return v 
-			
-		end
-		
+		table.insert( tbl, v:Nick() )
 	end
+	return tbl
+end
+
+function exsto.FindPlayer( ply )
+
+	local newply = string.lower( ply )
+	local nick
 	
-	return -1
-	
+	for k,v in pairs( player.GetAll() ) do
+		nick = string.lower( v:Nick() )
+		if string.find( nick, newply, 1, true ) or nick == newply then
+			return v 
+		end
+	end
+	return ply
 end
 
 timer.Create( "Exsto_TagCheck", 1, 0, function()

@@ -98,11 +98,6 @@ if SERVER then
 		currentHandles[id] = nil
 	end
 	
-	concommand.Add( "_TestTableSend", function( ply, _, args )
-		exsto.UMStart( "_TestUMSG", ply, "Heres a string bro.", Vector( 10, 10, 10 ), { 23, "I'm a table!" } )
-		//exsto.SendTable( ply, { "String Test", 13, Vector( 100, 100, 100 ) }, 24 )
-	end )
-	
 	function string.split(str,d)
 		local t = {}
 		local len = str:len()
@@ -118,17 +113,18 @@ if SERVER then
 	Function: exsto.CreateTableID
 	Description: Creates an ID handle for the table send in UMSG.
      ----------------------------------- ]]	
-	function exsto.CreateTableID()
+	local function create()
+		local id = math.random( -128, 128 )
 		
-		local id
-		local function create()
-			id = math.random( -128, 128 )
-			
-			if id == 0 then create() end
-			if id >= 0 and id <= #exsto.UMSG - 1 then create() end
-			if currentHandles[id] then create() end
-		end
-		create()
+		if id == 0 then create() end
+		if id >= 0 and id <= #exsto.UMSG - 1 then create() end
+		if currentHandles[id] then create() end
+		
+		return id
+	end
+	
+	function exsto.CreateTableID()
+		local id = create()
 		
 		-- Insert his ID into the current handles list.
 		currentHandles[id] = true
@@ -205,23 +201,13 @@ if SERVER then
 	function exsto.UMStart( name, ply, ... )
 		if type( name ) != "string" then exsto.ErrorNoHalt( "No name to send usermessage to!" ) return end
 		if type( ply ) != "Player" and type( ply ) != "table" then exsto.ErrorNoHalt( "No player to send usermessage to!" ) return end
-	
-		local arg = {...}
+
 		local nothing = false
-		local tab, text, sendTable
+		local sendTable
 		local num, players = exsto.MultiplePlayers( ply )
 	
 		if not arg then nothing = true end
-		
-		local function count( tbl )
-			local num = 1
-			for k,v in pairs( tbl ) do
-				if type( v ) == "table" then num = num + count( v ) end
-				num = num + 1
-			end
-			return num
-		end
-		
+
 		for I = 1, num do
 			ply = players[I]
 			
@@ -241,10 +227,6 @@ if SERVER then
 		end
 	end
 	
-	local function UMSGQueue()
-	
-	end
-	
 end
 
 if CLIENT then
@@ -253,6 +235,11 @@ if CLIENT then
 	Function: exsto.UMHook
 	Description: Hooks into a usermessage that recieves data.
      ----------------------------------- ]]
+	local function call( data, name, func )
+		func( unpack( data ) )
+		hook.Call( name )
+	end
+	
 	function exsto.UMHook( name, func )
 		if type( name ) != "string" then exsto.ErrorNoHalt( "No name specified for UM Hook!" ) return end
 		if type( func ) != "function" then exsto.ErrorNoHalt( "No function callback for " .. name .. "!" ) return end
@@ -260,7 +247,7 @@ if CLIENT then
 		local function um( um )
 		
 			local data = {}
-			local ret, format, tblWait, tblID
+			local ret, format, tblWait, tblID, r, g, b, a
 			local num = um:ReadChar()
 			
 			for I = 1, num do
@@ -288,10 +275,10 @@ if CLIENT then
 					ret = tblID
 					tblWait = true
 				elseif format == exsto.UMSG.COLOR_BEGIN then
-					local r = um:ReadChar() + 128
-					local g = um:ReadChar() + 128
-					local b = um:ReadChar() + 128
-					local a = um:ReadChar() + 128
+					r = um:ReadChar() + 128
+					g = um:ReadChar() + 128
+					b = um:ReadChar() + 128
+					a = um:ReadChar() + 128
 					
 					if um:ReadChar() == exsto.UMSG.COLOR_END then
 						ret = Color( r, g, b, a )
@@ -306,11 +293,6 @@ if CLIENT then
 				
 			end
 			
-			local function call()
-				func( unpack( data ) )
-				hook.Call( name )
-			end
-			
 			if tblWait then
 				-- We are waiting for a table.  Don't call our callback until we can peice togeather everything we need
 				exsto.TableHook( tblID, function( tbl )
@@ -318,20 +300,11 @@ if CLIENT then
 					for k,v in pairs( data ) do
 						if v == tblID then data[k] = tbl break end
 					end
-					
-					local function count( tbl )
-						local num = 1
-						for k,v in pairs( tbl ) do
-							if type( v ) == "table" then num = num + count( v ) end
-							num = num + 1
-						end
-						return num
-					end
-					
-					call()
+
+					call( data, name, func )
 				end )
 			else
-				call()
+				call( data, name, func )
 			end
 			
 		end
@@ -367,11 +340,6 @@ if CLIENT then
 	function exsto.TableHook( id, func )
 		dataHooks[ id ] = func
 	end
-	
-	exsto.UMHook( "_TestUMSG", function( str, vector, tbl )
-		print( str, vector )
-		PrintTable( tbl )
-	end )
 	
 --[[ -----------------------------------
 		Rank Recieving UMSGS

@@ -396,45 +396,7 @@ if SERVER then
 	function ACCESS_ResendRanks()
 		exsto.SendRanks( player.GetAll() )
 	end
-	
---[[ -----------------------------------
-	Function: FEL.Query
-	Description: Main query, returns data from SQL query
-	----------------------------------- ]]
-	--[[function ACCESS_ConvertLegacyFlags()
-		for k,v in pairs( exsto.Levels ) do
-		
-			local newFlags = {}
-			for k,v in pairs( v.Flags ) do
-				table.insert( newFlags, v:Replace( "exsto-", "" ) )
-			end
-			
-			FEL.AddData( "exsto_data_access", {
-				Look = {
-					Short = v.Short,
-				},
-				Data = {
-					Name = v.Name,
-					Description = v.Desc,
-					Short = v.Short,
-					Derive = v.Derive,
-					Color = FEL.NiceColor( v.Color ),
-					Immunity = v.Immunity,
-					Flags = FEL.NiceEncode( newFlags ),
-					//CanModify, "false",
-				},
-				Options = {
-					Update = true,
-				}
-			} )
-		end
-	end
-	
-	concommand.Add( "ACCESS_ConvertLegacyFlags", function( ply )
-		if !ply:IsSuperAdmin() then return end
-		ACCESS_ConvertLegacyFlags()
-	end )]]
-	
+
 --[[ -----------------------------------
 	Function: ACCESS_LoadFromULX
 	Description: Loads data from ULX
@@ -573,8 +535,11 @@ if SERVER then
 			if k == rank then Found = v end
 		end
 		
-		if !Found then exsto.Print( exsto_CHAT, ply, COLOR.NAME, rank, COLOR.NORM, " is not a valid rank!" ) return end
-				
+		if !Found then
+			local closeRank = exsto.GetClosestString( rank, exsto.Levels, "Short", ply, "Unknown rank" )
+			return
+		end
+		
 		exsto.Print( exsto_CONSOLE, "Setting " .. user:Nick() .. " as " .. rank )
 		exsto.Print( exsto_CHAT_ALL, COLOR.NAME, user:Nick(), COLOR.NORM, " has been given rank ", COLOR.NAME, rank )
 		
@@ -627,7 +592,7 @@ if SERVER then
 		
 		if !plydata then
 			-- Its his first time here!  Welcome him to the beautiful environment of Exsto.
-			exsto.Print( exsto_CHAT, ply, COLOR.NORM, "Hello!  This server is proudly running ", COLOR.NAME, "Exsto", COLOR.NORM, "!  For more information, visit the !menu" )
+			ply:Print( exsto_CHAT, COLOR.NORM, "Hello!  This server is proudly running ", COLOR.NAME, "Exsto", COLOR.NORM, "!  For more information, visit the !menu" )
 		end
 
 		if !isDedicatedServer() then
@@ -635,15 +600,15 @@ if SERVER then
 				ply:SetNWString( "rank", "superadmin" )
 			elseif ply:IsListenServerHost() and ply:GetRank() != "superadmin" then
 				-- If hes the host, but has a different rank, we need to give him the option to re-set as superadmin.
-				exsto.Print( exsto_CHAT, ply, COLOR.NORM, "Exsto seems to have noticed you are the host of this listen server, yet your rank isnt superadmin!" )
-				exsto.Print( exsto_CHAT, ply, COLOR.NORM, "If you want to reset your rank to superadmin, run this chat command. ", COLOR.NAME, "!updateowner" )
+				ply:Print( exsto_CHAT, COLOR.NORM, "Exsto seems to have noticed you are the host of this listen server, yet your rank isnt superadmin!" )
+				ply:Print( exsto_CHAT, COLOR.NORM, "If you want to reset your rank to superadmin, run this chat command. ", COLOR.NAME, "!updateowner" )
 			end
 		else
 			-- We are running a dedicated server, and someone joined.  Lets check to see if there are any admins.
 			if !exsto.AnyAdmins() then
-				exsto.Print( exsto_CHAT, ply, COLOR.NORM, "Exsto has detected this is a dedicated server environment, and is no superadmins set yet." )
-				exsto.Print( exsto_CHAT, ply, COLOR.NORM, "If you are the owner of this server, please run the command !updateowner with your rcon password." )
-				exsto.Print( exsto_CHAT, ply, COLOR.NORM, "Example: !updateowner rcon_pass123" )
+				ply:Print( exsto_CHAT, COLOR.NORM, "Exsto has detected this is a ", COLOR.NAME, "dedicated server environment", COLOR.NORM, ", and is no superadmins set yet." )
+				ply:Print( exsto_CHAT, COLOR.NORM, "If you are the owner of this server, please rcon the following command:" )
+				ply:Print( exsto_CHAT, COLOR.NORM, "exsto rank " .. ply:Name() .. " superadmin" )
 			end
 		end
 		
@@ -667,7 +632,16 @@ if SERVER then
 				return { self, COLOR.NORM, "You are not the host of this listen server!" }
 			end
 		else
-			if rcon == "" then return { COLOR.NORM, "No RCON password inputed!" } end
+			if !self.UpdateRecommendSent then
+				self.UpdateRecommendSent = true
+				
+				self:Print( exsto_CHAT, COLOR.NAME, "Hey!", COLOR.NORM, "  Before you use this command, maybe you just want to set yourself through ", COLOR.NAME, "rcon?" )
+				self:Print( exsto_CHAT, COLOR.NORM, "Just run the command as rcon: ", COLOR.NAME, "exsto rank " .. self:Name() .. " superadmin" )
+				
+				return { self, COLOR.NORM, "If you still want to run the !updateowner command, run it ", COLOR.NAME, "again." }
+			end
+			
+			if rcon == "" then return { self, COLOR.NORM, "No RCON password inputed!" } end
 			local rconPass = exsto.ReadRCONPass( location )
 			if !rconPass then return { self, COLOR.NORM, "There was an issue reading the RCON pass!" } end
 			rconPass = string.Trim( rconPass )
@@ -738,33 +712,34 @@ if SERVER then
 	hook.Add( "exsto_InitSpawn", "exsto_SendRankData", exsto.SendRankData )
 	concommand.Add( "_ResendRanks", exsto.SendRankData )
 	
-	--[[ -----------------------------------
+--[[ -----------------------------------
 	Function: exsto.FixInitSpawn
 	Description: Pings the client and waits till hes loaded, then calls the exsto_InitSpawn hook.
 	----------------------------------- ]]
-	function exsto.FixInitSpawn( ply, sid, uid )
-	
-		local function MainLoad()
-			if ply:SteamID() == "STEAM_ID_PENDING" or !ply:IsValid() or !ply:IsPlayer() then
-				exsto.ErrorNoHalt( ply:Nick() .. " does not have a SteamID!  Waiting a little bit to check again." )
-				ply.HasID = false
-				timer.Simple( 0.1, MainLoad )
-				return
-			end
-			
-			ply.HasID = true	
-			uid = tonumber( uid )
-			
-			local function PingForClient()
-				if ply.InitSpawn then -- If the client is clear to load.
-					hook.Call( "exsto_InitSpawn", nil, ply, sid, uid )
-				else
-					timer.Simple( 0.1, PingForClient )
-				end
-			end
-			PingForClient()
+	local function PingForClient( ply, sid, uid )
+		if ply.InitSpawn then -- If the client is clear to load.
+			hook.Call( "exsto_InitSpawn", nil, ply, sid, uid )
+		else
+			timer.Simple( 0.1, PingForClient, ply, sid, uid )
 		end
-		MainLoad()
+	end
+	
+	local function MainLoad( ply, sid, uid )
+		if ply:SteamID() == "STEAM_ID_PENDING" or !ply:IsValid() or !ply:IsPlayer() then
+			exsto.ErrorNoHalt( ply:Nick() .. " does not have a SteamID!  Waiting a little bit to check again." )
+			ply.HasID = false
+			timer.Simple( 0.1, MainLoad, ply, sid, uid )
+			return
+		end
+		
+		ply.HasID = true	
+		uid = tonumber( uid )
+
+		PingForClient( ply, sid, uid )
+	end
+	
+	function exsto.FixInitSpawn( ply, sid, uid )
+		MainLoad( ply, sid, uid )
 	end
 	hook.Add( "PlayerAuthed", "FakeInitialSpawn", exsto.FixInitSpawn )
 	
@@ -823,8 +798,7 @@ end
 function _R.Player:IsAllowed( flag, victim )
 	if self:EntIndex() == 0 then return true end -- If we are console :3
 
-	local rank = self:GetRank()
-	local rank = exsto.GetRankData( rank )
+	local rank = exsto.GetRankData( self:GetRank() )
 	
 	local victimRank
 	
@@ -859,7 +833,7 @@ function _R.Player:GetRank()
 	if !rank then return "guest" end
 	if !exsto.RankExists( rank ) then return "guest" end
 	
-	return self:GetNetworkedString( "rank" )
+	return rank
 end
 
 --[[ -----------------------------------
@@ -869,11 +843,9 @@ end
 function _R.Player:IsAdmin()
 
 	if self:EntIndex() == 0 then return true end -- If we are console :3
-
-	local rank = self:GetRank()
 	
 	if self:IsAllowed( "isadmin" ) then return true end
-	if rank == "admin" or self:IsSuperAdmin() then return true end
+	if self:GetRank() == "admin" or self:IsSuperAdmin() then return true end
 	if self:IsUserGroup( "admin" ) then return true end
 	
 	return false
@@ -886,11 +858,9 @@ end
 function _R.Player:IsSuperAdmin()
 
 	if self:EntIndex() == 0 then return true end -- If we are console :3
-
-	local rank = self:GetRank()
 	
 	if self:IsAllowed( "issuperadmin" ) then return true end
-	if rank == "superadmin" then return true end 
+	if self:GetRank() == "superadmin" then return true end 
 	if self:IsUserGroup( "superadmin" ) then return true end
 	
 	return false
@@ -901,7 +871,5 @@ end
 	Description: Checks if a player is a rank.
 	----------------------------------- ]]
 function _R.Player:IsUserGroup( id )	
-	local rank = self:GetRank()
-	if rank == id then return true end
-	return false
+	return self:GetRank() == id
 end
