@@ -10,37 +10,36 @@ PLUGIN:SetInfo({
 	Owner = "Prefanatic",
 } )
 
-local svn = require( "svn" )
+if !svn then require( "svn" ) end
 
 PLUGIN.Latest = 0
-PLUGIN.Current = 0
 
 function PLUGIN.CheckForUpdate( ply )
 
-	PLUGIN.Current = file.Read( "exsto_version.txt" )
-
 	http.Get( "http://94.23.154.153/Exsto/version.php?simple=true", "", function( contents, size )
-		PLUGIN.Latest = tostring( contents )
+		PLUGIN.Latest = tonumber( contents )
 		
 		if PLUGIN.Latest == 0 then return end
-		if ply:IsSuperAdmin() and PLUGIN.Latest > PLUGIN.Current then
+		if ply:IsAdmin() and PLUGIN.Latest > exsto.VERSION then
 			exsto.Print( exsto_CHAT, ply, COLOR.NORM, "Update Availible: Revision ", COLOR.NAME, tostring( PLUGIN.Latest ), COLOR.NORM, "!" )
 			
 			local style = "revision"
-			if ( PLUGIN.Latest - PLUGIN.Current ) > 1 then style = "revisions" end
+			if ( PLUGIN.Latest - exsto.VERSION ) > 1 then style = "revisions" end
 			
-			exsto.Print( exsto_CHAT, ply, COLOR.NORM, "Exsto is currently ", COLOR.NAME, tostring( PLUGIN.Latest - PLUGIN.Current ) .. " " .. style, COLOR.NORM, " behind!" )
+			exsto.Print( exsto_CHAT, ply, COLOR.NORM, "Exsto is currently ", COLOR.NAME, tostring( PLUGIN.Latest - exsto.VERSION ) .. " " .. style, COLOR.NORM, " behind!" )
 		end
 	end )
 	
 end
 concommand.Add( "_checkupdate", PLUGIN.CheckForUpdate )
 
-function PLUGIN.CheckVersion( owner )
+function PLUGIN:Onexsto_InitSpawn( ply )
+	PLUGIN.CheckForUpdate( ply )
+end
 
-	PLUGIN.Current = file.Read( "exsto_version.txt" )
+function PLUGIN.CheckVersion( owner )
 	
-	exsto.Print( exsto_CHAT, owner, COLOR.NORM, "Currently running revision ", COLOR.NAME, tostring( PLUGIN.Current ), COLOR.NORM, "!" )
+	exsto.Print( exsto_CHAT, owner, COLOR.NORM, "Currently running revision ", COLOR.NAME, tostring( exsto.VERSION ), COLOR.NORM, "!" )
 	
 	PLUGIN.CheckForUpdate( owner )
 

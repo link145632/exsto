@@ -16,8 +16,6 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
-require( "datastream" )
-
 -- Chat Commands
 
 -- Variables
@@ -107,16 +105,12 @@ function exsto.AddChatCommand( ID, info )
 	exsto.Commands[ID].Chat = {}
 	if !info.Chat then exsto.Error( ID .. " contains invalid chat commands!  Cannot continue register!" ) return end
 	for k,v in pairs( info.Chat ) do
-	
 		exsto.AddChat( ID, v )
-		
 	end
 	
 	exsto.Commands[ID].Console = {}
 	for k,v in pairs( info.Console ) do
-		
 		exsto.AddConsole( ID, v )
-		
 	end
 	
 end
@@ -264,8 +258,6 @@ function exsto.ParseArguments( ply, text, data, alreadyString )
 	if !alreadyString then
 		text_args = exsto.ParseStrings( text:Trim() )
 	end
-	
-	PrintTable( text_args )
 
 	for I = 1, #returnOrder do
 	
@@ -437,18 +429,19 @@ local function ExstoParseCommand( ply, command, args, style )
 	elseif !Found and string.sub( command, 0, 1 ) == "!" and command and exsto.GetVar( "spellingcorrect" ).Value and style != "chat" then
 		
 		local data = { Max = 100, Com = "" } // Will a command ever be more than 100 chars?
+		local dist
 		// Apparently we didn't find anything...
 		for k,v in pairs( exsto.Commands ) do
 			
 			for k,v in pairs( v.Chat ) do
-				local dist = exsto.StringDist( command, v )
+				dist = exsto.StringDist( command, v )
 			
 				if dist < data.Max then data.Max = dist; data.Com = v end
 			end
 			
 		end
 
-		exsto.Print( exsto_CHAT, ply, COLOR.NAME, command, COLOR.NORM, " is not a valid command.  Maybe you want ", COLOR.NAME, data.Com, COLOR.NORM, "?" )
+		ply:Print( exsto_CHAT, COLOR.NAME, command, COLOR.NORM, " is not a valid command.  Maybe you want ", COLOR.NAME, data.Com, COLOR.NORM, "?" )
 	
 	end
 	
@@ -567,8 +560,6 @@ function exsto.CommandCall( ply, _, args )
 	
 	-- Remove the command, we don't need it.  It should leave us with the function arguments.
 	table.remove( args, 1 )
-	
-	PrintTable( args )
 
 	local finished = exsto.RunCommand( ply, command, args )
 	

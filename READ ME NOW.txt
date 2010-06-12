@@ -1,0 +1,7 @@
+Hey, if you want to use Exsto, read this entire file for the common sense boost you will gain.
+
+	1. BEFORE YOU UPDATE!  Delete all old plugins and files.  Chances are if you zip up Exsto to the server, it won't delete some files that I might have.
+	2. USE THE RIGHT MYSQL MODULE!  Exsto uses the MySQL OO module, not the old one.  Also, be sure to edit the 'exsto_settings.txt' to enable MySQL.
+	3. BEFORE YOU PANIC!  Make sure you didn't do something wrong.  If all else fails, post on the thread.
+	4. BEFORE POSTING!  Get the revision number, the branch you are using, and all other information.  If you do not supply the revision and branch, I will not help.
+	5. BEFORE SAYING EXSTO SUCKS!  Follow #3; chances are you are doing something wrong.

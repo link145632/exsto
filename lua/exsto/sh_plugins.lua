@@ -16,8 +16,6 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
-require( "datastream" )
-
 -- Plugin Man
 include( "exsto/sh_plugin_metatable.lua" )
 if SERVER then AddCSLuaFile( "exsto/sh_plugin_metatable.lua" ) end
@@ -117,9 +115,7 @@ function exsto.InitPlugins()
 		prefixFind = string.find( v, "_" )
 		
 		if !prefixFind then
-			exsto.Print( exsto_CONSOLE, "PLUGINS --> Plugin '" .. v .. "' is missing a run prefix!  Please update it to the correct prefix (sh_, cl_, sv_)" )
-			include( exsto.PlugLocation .. v )
-			AddCSLuaFile( exsto.PlugLocation .. v )
+			//exsto.Print( exsto_ERRORNOHALT, "PLUGINS --> Plugin '" .. v .. "' is missing a run prefix!  Not loading!" )
 		else
 		
 			prefix = string.Left( v, prefixFind - 1 )

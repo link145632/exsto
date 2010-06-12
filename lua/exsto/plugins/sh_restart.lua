@@ -10,8 +10,6 @@ PLUGIN:SetInfo({
 	Owner = "Prefanatic",
 } )
 
-require( "datastream" )
-
 if SERVER then
 
 	PLUGIN.MapList = {}

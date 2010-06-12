@@ -27,8 +27,6 @@ if SERVER then
 		local data = FEL.Query( "SELECT Time, Last FROM exsto_plugin_time WHERE SteamID = '" .. sid .. "';" );
 
 		if !data then
-		
-			print( "Adding user " .. nick )
 
 			FEL.AddData( "exsto_plugin_time", {
 				Look = {
@@ -42,6 +40,7 @@ if SERVER then
 				},
 				Options = {
 					Update = true,
+					Threaded = true,
 				}
 			} )
 			
@@ -68,24 +67,21 @@ if SERVER then
 	
 	function PLUGIN:OnPlayerDisconneced( ply )
 	
-		local steam = ply:SteamID()
 		local sid = ply:SteamID()
-		local nick = ply:Nick()
 		
-		local totaltime = ply:GetTotalTime()
-
 		FEL.AddData( "exsto_plugin_time", {
 			Look = {
 				SteamID = sid,
 			},
 			Data = {
-				Player = nick,
+				Player = ply:Nick(),
 				SteamID = sid, 
-				Time = 0,
+				Time = ply:GetTotalTime(),
 				Last = os.time(),
 			},
 			Options = {
 				Update = true,
+				Threaded = true,
 			}
 		} )
 		
@@ -100,7 +96,7 @@ if SERVER then
 		end
 		
 	end
-	timer.Create( "Time_IntervalSave", 60 * 15, 0, PLUGIN.Interval )
+	timer.Create( "Time_IntervalSave", 60 * 5, 0, PLUGIN.Interval )
 	
 end
 

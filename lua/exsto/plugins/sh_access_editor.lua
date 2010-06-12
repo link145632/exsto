@@ -13,9 +13,6 @@ PLUGIN:SetInfo({
 	Experimental = false,
 } )
 
-require( "datastream" )
-require( "glon" )
-
 if SERVER then 
 
 	PLUGIN.Editing = {}
