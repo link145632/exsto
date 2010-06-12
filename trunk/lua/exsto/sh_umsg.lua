@@ -19,7 +19,7 @@
 
 -- Usermessage Control
 
-require( "glon" )
+if !glon then require( "glon" ) end
 
 if SERVER then
 
@@ -89,11 +89,7 @@ if SERVER then
 		for k,v in pairs( string.split( encode, 128 ) ) do
 			exsto.UMStart( "ExTblSend", ply, id, v )
 		end
-	
-		--[[for k,v in pairs( tbl ) do
-			exsto.UMStart( "ExTblSend", ply, id, k, v )
-		end]]
-		
+
 		exsto.UMStart( "ExTblEnd", ply, id )
 		currentHandles[id] = nil
 	end

@@ -115,6 +115,7 @@ if SERVER then
 			},
 			Options = {
 				Update = true,
+				Threaded = true,
 			}
 		} )
 	end

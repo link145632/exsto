@@ -11,19 +11,16 @@ PLUGIN:SetInfo({
 	Experimental = false,
 } )
 
-require( "datastream" )
-require( "glon" )
-
 if SERVER then
 
-	local gate = require( "gatekeeper" )
+	if !gatekeeper then require( "gatekeeper" ) end
 
 	function PLUGIN.Kick( owner, ply, reason )
 		
 		--if reason == "nil" then reason = "Kicked by " .. owner:Nick() end
 		local nick = ply:Nick()
 		
-		if gate then
+		if gatekeeper then
 			gatekeeper.Drop( ply:UserID(), "KICK: " .. reason )
 		else
 			ply:Kick( reason )
@@ -87,9 +84,9 @@ if SERVER then
 
 		local nick = ply:Nick()
 
-		FEL.SaveBanInfo( ply, len, reason, owner, os.time(), gate )
+		FEL.SaveBanInfo( ply, len, reason, owner, os.time(), gatekeeper )
 		
-		if gate then
+		if gatekeeper then
 			gatekeeper.Drop( ply:UserID(), "BAN: " .. reason )
 		else
 			ply:Ban( len, reason )
@@ -121,7 +118,7 @@ if SERVER then
 	function PLUGIN.UnBan( owner, steamid )
 		steamid = string.upper( steamid ):gsub( " ", "" )
 
-		if !gate then game.ConsoleCommand( "removeid " .. steamid .. ";writeid\n" ) end
+		if !gatekeeper then game.ConsoleCommand( "removeid " .. steamid .. ";writeid\n" ) end
 		FEL.RemoveData( "exsto_data_bans", "SteamID", steamid )
 		
 		PLUGIN.ResendToAll()

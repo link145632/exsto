@@ -16,35 +16,21 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
-
 -- FEL
 
 FEL = {}
+
 	FEL.CreatedTables = {}
-	
 	FEL.Settings = {}
-	
-	local settingParse = {
-		["FEL"] = function( v )
-					local capture = string.gmatch( v, "([%w%p]+)%s+=%s+([%w%p]+)" )
-					for k,v in capture do
-						local type = exsto.ParseVarType( v:Trim() )
-						FEL.Settings[k:Trim()] = exsto.FormatValue( v:Trim(), type )
-					end
-				end,
-	}
+	FEL.Queue = {}
+	FEL.ErrorTable = {}
 	
 	FEL.Database = 0
-
-	FEL.Queue = {}
-	
-	FEL.ErrorTable = {}
+	FEL.QueryObj = 0
 
 if SERVER then
-	require( "mysqloo" )
-	require( "mysql" )
-	
-	local query = sql.Query
+	if !mysqloo then require( "mysqloo" ) end
+	if !mysql then require( "mysql" ) end
 
 	-- Functions
 
@@ -52,6 +38,28 @@ if SERVER then
 	Function: FEL.Init
 	Description: Loads up the File Exstension Library
      ----------------------------------- ]]
+	local function mysqlConnect( disableStatus )
+		if !mysqloo then
+			exsto.Print( exsto_ERRORNOHALT, "FEL --> Couldn't locate MySQL library!  Falling back to SQL!" )
+			if mysql then
+				-- We seem to have the other module...
+				exsto.Print( exsto_ERRORNOHALT, "FEL --> It seems that you have the wrong MySQL module installed.  Please use the MySQLoo module!" )
+			end
+			FEL.Settings["MySQL"] = false
+		else
+			FEL.Database = mysqloo.connect( FEL.Settings["Host"], FEL.Settings["Username"], FEL.Settings["Password"], FEL.Settings["Database"], 3306 )
+			FEL.Database:connect()
+			FEL.Database:wait()
+
+			if FEL.Database:status() == mysqloo.DATABASE_NOT_CONNECTED or FEL.Database:status() == mysqloo.DATABASE_INTERNAL_ERROR then
+				exsto.Print( exsto_ERRORNOHALT, "FEL --> Couldn't connect to MySQL server!  Falling back to SQL!" )
+				FEL.Settings["MySQL"] = false
+			elseif FEL.Database:status() == mysqloo.DATABASE_CONNECTED and not disableStatus then
+				exsto.Print( exsto_CONSOLE, "FEL --> Running under MySQL, DLL version " .. mysqloo.VERSION .. ", Server version " .. FEL.Database:serverVersion() .. "!" )
+			end
+		end
+	end
+	
 	function FEL.Init()
 
 		-- Lets load our settings file first!
@@ -69,39 +77,17 @@ if SERVER then
 		end
 		
 		local data = file.Read( "exsto_settings.txt" ):Trim()
-		local strStart, strEnd, strType = string.find( data, "%[settings%s-=([%w%s%p]-)%]" )
-		local endStart, endEnd = string.find( data, "%[/settings%]" )
 		
-		if !strStart or !endStart then print( "no!") return end
-		
-		local sub = string.sub( data, strEnd + 1, endStart - 1 ):Trim()
-		
-		settingParse[strType:Trim()](sub)
+		for k,v in string.gmatch( data, "%[settings%s-=([%w%s%p]-)%](.-)%[/settings%]" ) do
+			for k,v in string.gmatch( v, "([%w%p]+)%s+=%s+([%w%p]+)" ) do
+				FEL.Settings[k:Trim()] = exsto.FormatValue( v:Trim(), exsto.ParseVarType( v:Trim() ) )
+			end
+		end				
 
 		if FEL.Settings["MySQL"] then
-			if !mysql then
-				exsto.Print( exsto_CONSOLE, "FEL --> Couldn't locate MySQL library!  Falling back to SQL!" )
-				FEL.Settings["MySQL"] = false
-			else
-				FEL.Database = mysqloo.connect( FEL.Settings["Host"], FEL.Settings["Username"], FEL.Settings["Password"], FEL.Settings["Database"], 3306 )
-				FEL.Database:connect()
-				FEL.Database:wait()
-
-				if FEL.Database:status() == mysqloo.DATABASE_NOT_CONNECTED or FEL.Database:status() == mysqloo.DATABASE_INTERNAL_ERROR then
-					exsto.Print( exsto_CONSOLE, "FEL --> Couldn't connect to MySQL server!  Falling back to SQL!" )
-					FEL.Settings["MySQL"] = false
-				elseif FEL.Database:status() == mysqloo.DATABASE_CONNECTED then
-					exsto.Print( exsto_CONSOLE, "FEL --> Running under MySQL!" )
-				end
-				
-				--[[FEL.Database, error = mysql.connect( FEL.Settings["Host"], FEL.Settings["Username"], FEL.Settings["Password"], FEL.Settings["Database"] )
-				if FEL.Database == 0 then
-					exsto.Print( exsto_CONSOLE, "FEL --> Couldn't connect to MySQL server!  Falling back to SQL!" )
-					FEL.Settings["MySQL"] = false
-				else
-					exsto.Print( exsto_CONSOLE, "FEL --> Running under MySQL!" )
-				end]]
-			end
+			mysqlConnect()
+		else
+			exsto.Print( exsto_CONSOLE, "FEL --> Running under SQLite!" )
 		end
 	end
 
@@ -109,43 +95,48 @@ if SERVER then
 	Function: mysqlQuery
 	Description: Helper function to query MySQL.
      ----------------------------------- ]]
-	local function mysqlQuery( run, threaded, query )
-		local data, success, err = mysql.query( FEL.Database, run, mysql.QUERY_FIELDS )
-		
-		if FEL.Database:status() != mysqloo.DATABASE_CONNECTED then return nil end
-		
-		local query = FEL.Database:query( run )
-		query:start()
-		
-		query.OnFailure = function( err ) 
-			FEL.PrintError( {
-				MySQL = true,
-				Running = run,
-				Error = tostring( err ),
-			} )
+	local function onError( err )
+		FEL.PrintError( {
+			MySQL = true,
+			Running = run,
+			Error = tostring( err ),
+		} )
+	end
+
+	local function mysqlQuery( run, threaded, callback )
+
+		if FEL.Database:status() != mysqloo.DATABASE_CONNECTED then 
+			-- Check if we actually are enabled first.
+			if FEL.Settings["MySQL"] then
+				-- We probably disconnected.  Re-establish.
+				exsto.Print( exsto_ERRORNOHALT, "FEL --> Connection lost to MySQL server.  Attempting to reconnect." )
+				mysqlConnect( true )
+				
+				-- Check again, is the SQL server down this time?  Our settings should be false if it is.
+				if !FEL.Settings["MySQL"] then return sqliteQuery( run ) end
+				exsto.Print( exsto_CONSOLE, "FEL --> Reconnected to MySQL!" )
+			end
 		end
+
+		FEL.QueryObj = FEL.Database:query( run )
+		FEL.QueryObj:start()
+		
+		FEL.QueryObj.OnFailure = onError
 		
 		-- Check to make sure we are threaded, we don't want to halt up the server!
 		if threaded then
-			qurey.onSuccess = function()
-				callback( query:getData() )
+			FEL.QueryObj.onSuccess = function()
+				if type( callback ) != "function" then return end
+				callback( FEL.QueryObj:getData() )
 			end
 			return
 		end
 		
-		query:wait()
+		FEL.QueryObj:wait()
 		
-		local data = query:getData()
+		local data = FEL.QueryObj:getData()
 		
-		--[[
-		if err != "OK" then
-			FEL.PrintError( {
-				MySQL = true,
-				Running = run,
-				Error = tostring( err ),
-			} )
-			return false
-		end]]
+		FEL.QueryObj = nil
 
 		if table.Count( data ) < 1 then return nil end
 		return data		
@@ -167,7 +158,6 @@ if SERVER then
 			} )
 			
 		end
-		
 		return result
 	end
 
@@ -175,26 +165,19 @@ if SERVER then
 	Function: FEL.Query
 	Description: Main query, returns data from SQL query
      ----------------------------------- ]]
-	function FEL.Query( run, treaded )
-
-		exsto.Print( exsto_CONSOLE_DEBUG, "FEL --> Running - " .. run )
-		
+	function FEL.Query( run, threaded, callback )
 		if FEL.Settings["MySQL"] then
-		
-			if !mysql then
-				exsto.Print( exsto_CONSOLE, "FEL --> Couldn't locate MySQL library!  Falling back to SQL!" )
+			if !mysqloo then
+				exsto.Print( exsto_ERRORNOHALT, "FEL --> Couldn't locate MySQL library!  Falling back to SQL!" )
 				FEL.Settings["MySQL"] = false
-			else
 				
-				return mysqlQuery( run, threaded )
+				return sqliteQuery( run )
+			else	
+				return mysqlQuery( run, threaded, callback )
 			end
-			
 		else
-
 			return sqliteQuery( run )
-			
 		end
-		
 	end
 	
 --[[ -----------------------------------
@@ -205,11 +188,11 @@ if SERVER then
 	
 		-- If we are in MySQL
 		if FEL.Settings["MySQL"] then 
-			FEL.Query( "SELECT 1 + 1;" )
+			FEL.Query( "SELECT 1 + 1;", true )
 		end
 		
 	end
-	timer.Create( "FEL_MySQLHeartbeat", 30 * 60, 0, FEL.MySQLHeartbeat )
+	timer.Create( "FEL_MySQLHeartbeat", 5 * 60, 0, FEL.MySQLHeartbeat )
 
 --[[ -----------------------------------
 	Function: FEL.PrintError
@@ -261,7 +244,7 @@ if SERVER then
 		
 		-- We already have the table data stored, so lets delete the old table and transfer in the new data.
 		FEL.Query( "DROP TABLE " .. name .. ";" ) -- Bye.
-		exsto.Print( exsto_CONSOLE_DEBUG, "FEL --> Table " .. name .. " doesn't contain all required columns!  Recreating!" )
+		exsto.Print( exsto_ERRORNOHALT, "FEL --> Table " .. name .. " doesn't contain all required columns!  Recreating!" )
 		
 		return tbl 
 		
@@ -453,7 +436,7 @@ if SERVER then
 			syntax = string.format( syntax, args )
 		end
 		
-		return FEL.Query( syntax, options.Threaded )
+		return FEL.Query( syntax, options.Threaded, options.Callback )
 	end	
 
 --[[ -----------------------------------
@@ -669,22 +652,6 @@ if SERVER then
 end
 
 --[[ -----------------------------------
-	Function: FEL.MakeSteamNice
-	Description: Main query, returns data from SQL query
-     ----------------------------------- 
-function FEL.MakeSteamNice( steamid, reverse )
-
-	if !reverse then
-		steamid = string.gsub( steamid, ":", "-" )
-	else
-		steamid = string.gsub( steamid, "-", ":" )
-	end
-	
-	return steamid
-	
-end]]
-
---[[ -----------------------------------
 	Function: FEL.NiceColor
 	Description: Makes a color nice.
      ----------------------------------- ]]
@@ -715,15 +682,14 @@ function FEL.NiceEncode( data )
 	
 	local form = type( data )
 	local encoded = "[form=" .. form .. "]";
+	local oldData = data
 	
 	if form == "Vector" then
-		local oldData = data
 		data = {}
 			data[1] = oldData.x
 			data[2] = oldData.y
 			data[3] = oldData.z
 	elseif form == "Angle" then
-		local oldData = data
 		data = {}
 			data[1] = oldData.p
 			data[2] = oldData.y
@@ -792,30 +758,6 @@ function FEL.NiceDecode( str )
 	return data
 	
 end
---[[
-function FEL.MakeDir( dir )
-
-	if !file.IsDir( dir ) then
-		file.CreateDir( dir )
-	end
-	
-end
-
-function FEL.Read( f, g )
-
-	local data = file.Read( f )
-	
-	if g then data = glon.decode( data ) end
-	
-	return data
-	
-end
-
-function FEL.Write( f, ... )
-
-	file.Write( f, glon.encode( {...} ) )
-	
-end]]
 
 --[[ -----------------------------------
 	Function: FEL.FindTableDifference
@@ -881,19 +823,7 @@ end
 	Description: Creates a .txt settings file.
      ----------------------------------- ]]
 function FEL.CreateSettingsFile( id, tbl )
-	local readData
-	
-	--[[if file.Exists( id .. ".txt" ) then
-		
-		readData = FEL.LoadSettingsFile( id )
-		local difference = FEL.FindTableDifference( readData, tbl )
-		
-		if difference then
-			table.Merge( tbl, difference )
-		end
-		
-	end]]
-	
+	local readData	
 	local header = "[settings = \"" .. id .. "\"]"
 	local body = ""
 	local footer = "[/settings]"

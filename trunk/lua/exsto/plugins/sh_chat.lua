@@ -10,9 +10,6 @@ PLUGIN:SetInfo({
 	Owner = "Prefanatic",
 } )
 
-require( "datastream" )
-require( "glon" )
-
 if SERVER then
 
 	-- Can we do this a different way? :(

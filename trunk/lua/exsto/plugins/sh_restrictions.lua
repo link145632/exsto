@@ -147,8 +147,10 @@ if SERVER then
 			Look = {
 				Rank = rank 
 			},
-			
-			Data = saveData
+			Data = saveData,
+			Options = {
+				Threaded = true,
+			}
 		} )
 	end
 	

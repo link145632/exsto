@@ -21,9 +21,6 @@
 
 -- Variables
 
-require( "datastream" )
-require( "glon" )
-
 exsto.Levels = {}
 exsto.LoadedLevels = {}
 exsto.RankErrors = {} -- For storing errors from ranks.
@@ -527,24 +524,18 @@ if SERVER then
 	Description: Sets a player's rank.
 	----------------------------------- ]]
 	function exsto.SetAccess( ply, user, rank )
-	
-		local plydata = FEL.LoadUserInfo( user )
 		
-		local Found = false
-		for k,v in pairs( exsto.Levels ) do
-			if k == rank then Found = v end
-		end
+		local rank = exsto.Levels[rank]
 		
-		if !Found then
+		if !rank then
 			local closeRank = exsto.GetClosestString( rank, exsto.Levels, "Short", ply, "Unknown rank" )
 			return
 		end
 		
-		exsto.Print( exsto_CONSOLE, "Setting " .. user:Nick() .. " as " .. rank )
-		exsto.Print( exsto_CHAT_ALL, COLOR.NAME, user:Nick(), COLOR.NORM, " has been given rank ", COLOR.NAME, rank )
+		exsto.Print( exsto_CONSOLE, "Setting " .. user:Nick() .. " as " .. rank.Name )
+		exsto.Print( exsto_CHAT_ALL, COLOR.NAME, user:Nick(), COLOR.NORM, " has been given rank ", COLOR.NAME, rank.Name )
 		
-		user:SetNetworkedString( "rank", rank )
-		FEL.SaveUserInfo( user )
+		user:SetRank( rank.Short )
 		
 	end
 	exsto.AddChatCommand( "rank", {
@@ -747,6 +738,25 @@ if SERVER then
 		exsto.Print( exsto_CONSOLE_DEBUG, "InitSpawn --> " .. ply:Nick() .. " is ready for initSpawn!" )
 		ply.InitSpawn = true
 	end )
+	
+	hook.Add( "PlayerInitialSpawn", "PlayerAuthSpawn", function() end )
+	
+--[[ -----------------------------------
+	Function: player:SetRank
+	Description: Sets a player's rank.
+	----------------------------------- ]]
+	function _R.Player:SetRank( rank )
+		self:SetNetworkedString( "rank", rank )
+		FEL.SaveUserInfo( self )
+	end
+	
+--[[ -----------------------------------
+	Function: player:SetUserGroup
+	Description: Sets a player's usergroup.
+	----------------------------------- ]]
+	function _R.Player:SetUserGroup( rank )
+		self:SetRank( rank )
+	end
 
 elseif CLIENT then
 	
