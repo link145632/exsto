@@ -14,6 +14,34 @@ PLUGIN:SetInfo({
 if SERVER then
 
 	if !gatekeeper then require( "gatekeeper" ) end
+	
+	function PLUGIN.KickID( owner, id, reason )
+		if type( id ) == "Player" then
+			return PLUGIN.Kick( owner, id, reason )
+		end
+	
+		if string.Left( id, 6 ) != "STEAM_" then
+			return { owner, COLOR.NORM, "Please input a valid ", COLOR.NAME, "SteamID", COLOR.NORM, "!" }
+		end
+		
+		local ply = exsto.GetPlayerByID( id )
+		
+		if !ply then
+			return { owner, COLOR.NORM, "Couldn't find a player under SteamID ", COLOR.NAME, id, COLOR.NORM, "!" }
+		end
+		
+		return PLUGIN.Kick( owner, ply, reason )
+	end
+	PLUGIN:AddCommand( "kickid", {
+		Call = PLUGIN.KickID,
+		Desc = "Kicks a player by their SteamID",
+		FlagDesc = "Allows users to kick players via SteamID.",
+		Console = { "kickid" },
+		Chat = { "!kickid" },
+		ReturnOrder = "SteamID-Reason",
+		Args = {SteamID = "STRING", Reason = "STRING"},
+		Optional = {SteamID = "", Reason = "Kicked by [self]"}
+	})
 
 	function PLUGIN.Kick( owner, ply, reason )
 		
@@ -79,19 +107,72 @@ if SERVER then
 		return true
 		
 	end
+	
+	PLUGIN.OldPlayers = {}
+	
+	function PLUGIN:OnPlayerDisconnected( ply )
+		table.insert( self.OldPlayers, {
+			SteamID = ply:SteamID(),
+			Nick = ply:Nick(),
+			} )
+	end
+	
+	function PLUGIN.BanID( owner, id, len, reason )
+		if type( id ) == "Player" then
+			return PLUGIN.Ban( owner, id, len, reason )
+		end
+	
+		if string.Left( id, 6 ) != "STEAM_" then
+			return { owner, COLOR.NORM, "Please input a valid ", COLOR.NAME, "SteamID", COLOR.NORM, "!" }
+		end
+		
+		local ply = exsto.GetPlayerByID( id )
+		
+		if !ply then
+			for k,v in ipairs( PLUGIN.OldPlayers ) do
+				if v.SteamID == id then ply = v end
+			end
+		end
+		
+		if !ply then
+			return { owner, COLOR.NORM, "Couldn't find a player under SteamID ", COLOR.NAME, id, COLOR.NORM, "!" }
+		end
+		
+		return PLUGIN.Ban( owner, ply, len, reason )
+	end
+	PLUGIN:AddCommand( "banid", {
+		Call = PLUGIN.BanID,
+		Desc = "Bans a player by their SteamID",
+		FlagDesc = "Allows users to ban players via SteamID.",
+		Console = { "banid" },
+		Chat = { "!banid" },
+		ReturnOrder = "SteamID-Length-Reason",
+		Args = {SteamID = "STRING", Length = "NUMBER", Reason = "STRING"},
+		Optional = {SteamID = "", Length = 0, Reason = "Banned by [self]"}
+	})
 
 	function PLUGIN.Ban( owner, ply, len, reason )
 
-		local nick = ply:Nick()
+		local nick
+		local userID
+		
+		if type( ply ) == "table" then
+			nick = ply.Nick
+			userID = ply.UserID
+		else
+			nick = ply:Nick()
+			userID = ply:UserID()
+		end
 
 		FEL.SaveBanInfo( ply, len, reason, owner, os.time(), gatekeeper )
 		
-		if gatekeeper then
-			gatekeeper.Drop( ply:UserID(), "BAN: " .. reason )
-		else
-			ply:Ban( len, reason )
-			//game.ConsoleCommand( "banid " .. len .. " " .. ply:UserID() .. "\n" )
-			ply:Kick( reason )
+		if type( ply ) != "table" then
+			if gatekeeper then
+				gatekeeper.Drop( userID, "BAN: " .. reason )
+			else
+				ply:Ban( len, reason )
+				ply:Kick( reason )
+			end
 		end
 		
 		PLUGIN.ResendToAll()

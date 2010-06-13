@@ -35,14 +35,20 @@ if SERVER then
 	function PLUGIN.SendServerPlugins( ply )
 	
 		local plugins = {}
+		local commands = {}
 		for k,v in pairs( exsto.Plugins ) do
-			plugins[k] = {
+			for k,v in pairs( v.Object.Commands ) do
+				table.insert( commands, { Chat = v.Chat, ID = v.ID } )
+			end
+			table.insert( plugins, {
 				Name = v.Name,
 				ID = k,
 				Desc = v.Desc,
 				Owner = v.Owner,
 				Experimental = v.Experimental,
-			}
+				Commands = commands,
+			} )
+			commands = {}
 		end
 		
 		local send = { exsto.PluginSettings, plugins }
@@ -113,6 +119,30 @@ elseif CLIENT then
 		
 	end
 	
+	function PLUGIN.GetProperSize( text, max, font )
+		surface.SetFont( font )
+		
+		local w, h = surface.GetTextSize( text )
+		if w < max then return w, h end
+		
+		local spaceW, spaceH = surface.GetTextSize( " " )
+		local split = string.Explode( " ", text )
+		local newW = 0
+		local newH = 0
+		
+		for _, word in ipairs( split ) do
+			w, h = surface.GetTextSize( word )
+			newW = newW + w + spaceW
+			
+			if newW >= max then
+				newW = 0
+				newH = newH + h + 18
+			end
+		end
+
+		return max, newH
+	end
+		
 	function PLUGIN.SetButton( button, enabled )
 		if enabled then
 			button.Text = "Disable"
@@ -127,8 +157,8 @@ elseif CLIENT then
 		end
 	end
 	
-	function PLUGIN.SortPlugs( a, b )
-		return a.Name:Left( 1 ) < b.Name:Left( 1 )
+	local function sort( a, b )
+		return a.Name < b.Name
 	end
 	
 	function PLUGIN.Build( panel )
@@ -139,20 +169,25 @@ elseif CLIENT then
 		PLUGIN.PluginList = exsto.CreatePanelList( 10, 10, panel:GetWide() - 20, panel:GetTall() - 70, 5, false, true, panel )
 		
 		-- Sort them nicely
-		table.sort( plugins, function( a, b ) return a.Name:Left( 1 ) < b.Name:Left( 1 ) end )
-		for k,v in pairs( plugins ) do
+		table.sort( plugins, sort )
+		for k,v in ipairs( plugins ) do
 
 			-- Background panel for the layout
-			local panel = exsto.CreateCollapseCategory( 0, 0, PLUGIN.PluginList:GetWide(), 60, v.Name )
+			local w, h = PLUGIN.GetProperSize( v.Desc, PLUGIN.PluginList:GetWide() * ( 6/9 ), "exstoTitleMenu" )
+			
+			local panel = exsto.CreateCollapseCategory( 0, 0, PLUGIN.PluginList:GetWide(), h + 40, v.Name )
 				panel.Header.Font = "exstoPlyColumn"
 				panel.Header.TextColor = Color( 68, 68, 68, 255 )
 				panel.Color = Color( 224, 224, 224, 255 )
+				panel.Header:SetWide( PLUGIN.PluginList:GetWide() )
 				
 			local container = exsto.CreatePanel( 0, 0, panel:GetWide(), panel:GetTall(), Color( 0, 0, 0, 0 ) )
-			local descPanel = exsto.CreatePanel( 5, 0, container:GetWide() * ( 7/9 ), container:GetTall(), Color( 0, 0, 0, 0 ), container )
+			local descPanel = exsto.CreatePanel( 5, 0, container:GetWide() * ( 6/9 ), container:GetTall(), Color( 0, 0, 0, 0 ), container )
+			local divider = exsto.CreatePanel( descPanel:GetWide() + 5, 0, 3, descPanel:GetTall(), Color( 0, 0, 0, 70 ), container )
+			local commandList = exsto.CreatePanel( descPanel:GetWide() + 8, 0, container:GetWide() - descPanel:GetWide() - 8, container:GetTall(), Color( 0, 0, 0, 0 ), container )
 			
 			local label = exsto.CreateLabel( 5, 0, v.Desc, "exstoTitleMenu", descPanel )
-				label:SetSize( descPanel:GetWide(), descPanel:GetTall() )
+				label:SetSize( w, h )
 				label:SetWrap( true )
 				label:SetTextColor( Color( 68, 68, 68, 255 ) )
 
@@ -161,10 +196,30 @@ elseif CLIENT then
 				label:SetWrap( true )
 				label:SetTextColor( Color( 68, 68, 68, 255 ) )
 				
+				
+			local command = exsto.CreateLabel( 5, 0, "Commands:", "default", commandList )
+			local col = Color( 68, 68, 68, 255 )
+			command:SetTextColor( col )
+			local h = 13
+			local x = 5
+			for k,v in ipairs( v.Commands ) do
+			
+				if h >= commandList:GetTall() - 10 then
+					x = 70
+					h = 0
+				end
+				
+				for k,v in ipairs( v.Chat ) do
+					command = exsto.CreateLabel( x, h, v, "default", commandList )
+					command:SetTextColor( col )
+					h = h + 13
+				end
+			end
+			
 			if LocalPlayer():IsSuperAdmin() then
 				-- Create the button for enabling
-				local button = exsto.CreateButton( container:GetWide() - 90, ( 35 - 27 ) / 2, 60, 27, "Disable", container )
-					PLUGIN.SetButton( button, settings[k] )
+				local button = exsto.CreateButton( panel.Header:GetWide() - 90, 0 / 2, 60, panel.Header:GetTall(), "Disable", panel.Header )
+					PLUGIN.SetButton( button, settings[v.ID] )
 					
 					button.DoClick = function( self )
 						if !LocalPlayer().PlugChange then LocalPlayer().PlugChange = CurTime() end
@@ -172,19 +227,19 @@ elseif CLIENT then
 						
 						LocalPlayer().PlugChange = CurTime() + 1
 						
-						if settings[k] then
+						if settings[v.ID] then
 							-- We are trying to disable the plugin.
 							
-							settings[k] = false
+							settings[v.ID] = false
 							
-							Menu.CallServer( "_TogglePlugin", "false", k )
+							Menu.CallServer( "_TogglePlugin", "false", v.ID )
 							PLUGIN.SetButton( self, false )
 						else
 							-- Trying to enable it.
 							
-							settings[k] = true
+							settings[v.ID] = true
 
-							Menu.CallServer( "_TogglePlugin", "true", k )
+							Menu.CallServer( "_TogglePlugin", "true", v.ID )
 							PLUGIN.SetButton( self, true )
 						end
 					end
