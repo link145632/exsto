@@ -283,7 +283,9 @@ exsto.DefaultRanks = {
 		Flags = {
 			"slay",
 			"kick",
+			"kickid",
 			"ban",
+			"banid",
 			"unban",
 			"variable",
 			"color",

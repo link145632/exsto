@@ -55,7 +55,7 @@ end
 function exsto.BuildPlayerNicks()
 	local tbl = {}
 	
-	for k,v in pairs( player.GetAll() ) do
+	for k,v in ipairs( player.GetAll() ) do
 		table.insert( tbl, v:Nick() )
 	end
 	return tbl
@@ -66,13 +66,20 @@ function exsto.FindPlayer( ply )
 	local newply = string.lower( ply )
 	local nick
 	
-	for k,v in pairs( player.GetAll() ) do
+	for k,v in ipairs( player.GetAll() ) do
 		nick = string.lower( v:Nick() )
 		if string.find( nick, newply, 1, true ) or nick == newply then
 			return v 
 		end
 	end
 	return ply
+end
+
+function exsto.GetPlayerByID( id )
+	for k,v in ipairs( player.GetAll() ) do
+		if v:SteamID() == id then return v end
+	end
+	return nil
 end
 
 timer.Create( "Exsto_TagCheck", 1, 0, function()

@@ -62,8 +62,8 @@ PLUGIN:AddCommand( "stripweps", {
 	Call = PLUGIN.Strip,
 	Desc = "Strips weapons from a player.",
 	FlagDesc = "Allows users to strip players of weapons.",
-	Console = { "stripweapons" },
-	Chat = { "!stripweps" },
+	Console = { "stripweapons", "strip" },
+	Chat = { "!stripweps", "!strip" },
 	ReturnOrder = "Victim",
 	Args = { Victim = "PLAYER" },
 	Optional = { }

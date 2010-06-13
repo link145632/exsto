@@ -482,10 +482,18 @@ if SERVER then
      ----------------------------------- ]]
 	function FEL.SaveBanInfo( ply, len, reason, banned_by, time )
 
-		local nick = ply:Nick()
+		local nick
+		local steam
+		
+		if type( ply ) == "table" then
+			nick = ply.Nick
+			steam = ply.SteamID
+		else
+			nick = ply:Nick()
+			steam = ply:SteamID()
+		end
+		
 		local banned_by = banned_by:Nick()
-		local steam = ply:SteamID()
-		local reason = reason
 
 		FEL.AddData( "exsto_data_bans", {
 			Look = {
@@ -504,7 +512,7 @@ if SERVER then
 				Update = true,
 			}
 		} )
-		exsto.Print( exsto_CONSOLE_DEBUG, "Saving data for " .. ply:Nick() .. "!" )
+		exsto.Print( exsto_CONSOLE_DEBUG, "Saving data for " .. nick .. "!" )
 		
 	end
 
@@ -696,7 +704,7 @@ function FEL.NiceEncode( data )
 			data[3] = oldData.r
 	end
 
-	if !type( data ) == "table" then exsto.Error( "Unknown data format!" ) return end
+	if !type( data ) == "table" then exsto.ErrorNoHalt( "Unknown data format!" ) return end
 	
 	local index = 0
 	local stringIndex = false
@@ -728,18 +736,17 @@ function FEL.NiceDecode( str )
 		return
 	end
 	
-	if !form then exsto.Error( "Couldn't locate decoding form!" ) return end
-	if !stringIndex then exsto.Error( "Couldn't tell if decoding a stringed index!" ) return end
-	if !count then exsto.Error( "Couldn't count the amount of data in the encoded string!" ) return end
+	if !form then exsto.ErrorNoHalt( "Couldn't locate decoding form!" ) return end
+	if !stringIndex then exsto.ErrorNoHalt( "Couldn't tell if decoding a stringed index!" ) return end
+	if !count then exsto.ErrorNoHalt( "Couldn't count the amount of data in the encoded string!" ) return end
 	
 	count = tonumber( count )
 	stringIndex = tobool( stringIndex )
 
 	local sub = string.sub( str, endPos + 1, endStart - 1 )
-	local capture = string.gmatch( sub, "%[([%d%%.]+)%]([%a%d-%.]+)" )
 	local data = {}
 	
-	for k,v in capture do
+	for k,v in string.gmatch( sub, "%[([%d%%.]+)%]([%a%d-%._]+)" ) do
 		if !stringIndex then
 			data[tonumber(k)] = v
 		else

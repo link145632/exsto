@@ -71,10 +71,8 @@ end
 local queuedPlugins = {}
 
 hook.Add( "exsto_RecievedSettings", "exsto_CheckOnSettings", function()
-	if table.Count( queuedPlugins ) >= 1 then
-		
-		for k,v in pairs( queuedPlugins ) do v:Register() end
-		
+	if table.Count( queuedPlugins ) >= 1 then	
+		for k,v in pairs( queuedPlugins ) do v:Register() end	
 	end
 end )
 
