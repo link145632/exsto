@@ -98,7 +98,7 @@ if SERVER then
 		
 		print( " He has " .. timeleft )
 		
-		if os.time() > len + at then FEL.RemoveData( "exsto_data_bans", "SteamID", steam ) PLUGIN.ResendToAll() return true end
+		if os.time() >= len + at then FEL.RemoveData( "exsto_data_bans", "SteamID", steam ) PLUGIN.ResendToAll() return true end
 		
 		if bandata then return {false, "You are banned from this server!  Time left -- " .. timeleft} end
 		
