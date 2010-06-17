@@ -68,6 +68,7 @@ function exsto.FindPlayer( ply )
 	
 	for k,v in ipairs( player.GetAll() ) do
 		nick = string.lower( v:Nick() )
+		if v:UserID() == tonumber( ply  )then return v end
 		if string.find( nick, newply, 1, true ) or nick == newply then
 			return v 
 		end

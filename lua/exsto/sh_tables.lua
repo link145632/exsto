@@ -19,7 +19,7 @@
 --[[ -----------------------------------
 		Version
      ----------------------------------- ]]
-exsto.VERSION = 38
+exsto.VERSION = 39
 
 --[[ -----------------------------------
 		UMSG Table Info
@@ -179,6 +179,25 @@ function exsto.TableToNumbers( tbl )
 	return newtbl, tbl
 end
 
+--[[ -----------------------------------
+	Function: exsto.GetAddonFolder
+	Description: Returns the name of the Exsto addon folder.
+     ----------------------------------- ]]
+local folder
+function exsto.GetAddonFolder()
+
+	if !folder then
+		-- Create a fake debug so we can grab where we are running from.
+		local runningLoc = debug.getinfo( 1, "S" ).short_src
+		
+		runningLoc = string.Explode( "\\", runningLoc )
+		folder = runningLoc[2]
+	end
+	
+	return folder
+	
+end
+concommand.Add( "GetAddonFolder", exsto.GetAddonFolder )
 --[[ -----------------------------------
 	Function: exsto.MultiplePlayers
 	Description: Returns the number of players, and in a table.
