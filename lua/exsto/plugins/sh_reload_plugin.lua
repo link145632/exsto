@@ -12,7 +12,7 @@ PLUGIN:SetInfo({
 
 if SERVER then
 
-	function PLUGIN.ReloadPlug( ply, plugname )
+	function PLUGIN:ReloadPlug( ply, plugname )
 		local plug = exsto.Plugins[plugname]
 		if !plug then return { ply, COLOR.NORM, "Could not find plugin ", COLOR.NAME, plugname, COLOR.NORM, ".  It doesn't exist!" } end
 		

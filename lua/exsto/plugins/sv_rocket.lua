@@ -10,7 +10,7 @@ PLUGIN:SetInfo({
 	Owner = "Prefanatic",
 } )
 
-function PLUGIN.Ignite( owner, ply, duration, radius )
+function PLUGIN:Ignite( owner, ply, duration, radius )
 	ply:Ignite( duration, radius )
 	
 	return {
@@ -30,22 +30,22 @@ PLUGIN:AddCommand( "ignite", {
 	Optional = {Duration = 10, Radius = 50}
 })
 
-function PLUGIN.RocketMan( owner, ply, speed ) -- Function, args Caller, Player, and Speed
-
-	local function Explode()
-		local explode = ents.Create( "env_explosion" )
-			explode:SetPos( ply:GetPos() )
-			explode:SetOwner( ply )
-			explode:Spawn()
-			explode:Fire( "Explode", 0, 0 )
-			
-		ply:StopParticles()
-		ply:Kill() -- I want to do a ragdoll version of this too, its funnier.
-		--ply:SetHealth( ply:Health() - speed / 6 ) -- Sets the health to the current, minus the speed / 6
+local function Explode( ply )
+	local explode = ents.Create( "env_explosion" )
+		explode:SetPos( ply:GetPos() )
+		explode:SetOwner( ply )
+		explode:Spawn()
+		explode:Fire( "Explode", 0, 0 )
 		
-		--if ply:Health() <= 0 then ply:Kill() end -- If the player has no health, kill him.
-	end
+	ply:StopParticles()
+	ply:Kill() -- I want to do a ragdoll version of this too, its funnier.
+	--ply:SetHealth( ply:Health() - speed / 6 ) -- Sets the health to the current, minus the speed / 6
 	
+	--if ply:Health() <= 0 then ply:Kill() end -- If the player has no health, kill him.
+end
+	
+function PLUGIN:RocketMan( owner, ply, speed ) -- Function, args Caller, Player, and Speed	
+
 	ply:SetMoveType( MOVETYPE_WALK )
 	
 	-- Randoms to make it look cooler.
@@ -54,7 +54,7 @@ function PLUGIN.RocketMan( owner, ply, speed ) -- Function, args Caller, Player,
 	ply:SetVelocity( Vector( x, y, speed ) ) -- Set the velocity of the player to the up of the speed
 	ParticleEffectAttach( "rockettrail", PATTACH_ABSORIGIN_FOLLOW, ply, 0 )
 	
-	timer.Simple( 2, Explode )
+	timer.Simple( 2, Explode, ply )
 	
 	return {
 		Activator = owner,

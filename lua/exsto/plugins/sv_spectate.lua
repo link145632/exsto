@@ -10,7 +10,7 @@ PLUGIN:SetInfo({
 	Owner = "Prefanatic",
 } )
 
-function PLUGIN.Spectate( owner, ply )
+function PLUGIN:Spectate( owner, ply )
 
 	if ply.Spectating then return end
 	if owner.Spectating then return end
@@ -41,7 +41,7 @@ PLUGIN:AddCommand( "spectate", {
 	Args = {Victim = "PLAYER"},
 })
 
-function PLUGIN.UnSpectate( owner )
+function PLUGIN:UnSpectate( owner )
 
 	if not owner.Spectating then return end
 	if not owner.Weapons then return end

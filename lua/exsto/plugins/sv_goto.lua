@@ -12,7 +12,7 @@ PLUGIN:SetInfo({
 	Owner = "Prefanatic",
 } )
 
-function PLUGIN.SendPlayer( ply, victim, force )
+function PLUGIN:SendPlayer( ply, victim, force )
 	if !victim:IsInWorld() and !force then return false end
 	if !ply:IsInWorld() and !force then return false end
 	
@@ -24,12 +24,11 @@ function PLUGIN.SendPlayer( ply, victim, force )
 
 end
 
-function PLUGIN.Send( owner, victim, to )
+function PLUGIN:Send( owner, victim, to, force )
 	
-	local force = false
 	if owner:GetMoveType() == MOVETYPE_NOCLIP then force = true end
 	
-	local pos = PLUGIN.SendPlayer( victim, to, force )
+	local pos = self:SendPlayer( victim, to, force )
 	
 	if !pos then exsto.Print( exsto_CHAT, owner, COLOR.NORM, "Not enough room to goto ", COLOR.NAME, to:Nick(), COLOR.NORM, "!" ) return end
 	
@@ -46,16 +45,16 @@ PLUGIN:AddCommand( "send", {
 	FlagDesc = "Allows users to send other players to places.",
 	Console = { "send" },
 	Chat = { "!send" },
-	ReturnOrder = "Victim-To",
-	Args = {Victim = "PLAYER", To = "PLAYER"},
+	ReturnOrder = "Victim-To-Force",
+	Args = { Victim = "PLAYER", To = "PLAYER", Force = "BOOLEAN" },
+	Optional = { Force = false },
 })
 
-function PLUGIN.Goto( owner, ply )
+function PLUGIN:Goto( owner, ply, force )
 	
-	local force = false
 	if owner:GetMoveType() == MOVETYPE_NOCLIP then force = true end
 	
-	local pos = PLUGIN.SendPlayer( ply, owner, force )
+	local pos = self:SendPlayer( ply, owner, force )
 	
 	if !pos then exsto.Print( exsto_CHAT, owner, COLOR.NORM, "Not enough room to goto ", COLOR.NAME, ply:Nick(), COLOR.NORM, "!" ) return end
 	
@@ -74,16 +73,16 @@ PLUGIN:AddCommand( "goto", {
 	FlagDesc = "Allows users to teleport to a player.",
 	Console = { "goto" },
 	Chat = { "!goto" },
-	ReturnOrder = "Victim",
-	Args = {Victim = "PLAYER"},
+	ReturnOrder = "Victim-Force",
+	Args = {Victim = "PLAYER", Force = "BOOLEAN"},
+	Optional = { Force = false },
 })
 
-function PLUGIN.Bring( owner, ply )
+function PLUGIN:Bring( owner, ply, force )
 		
-	local force = false
 	if owner:GetMoveType() == MOVETYPE_NOCLIP then force = true end
 	
-	local pos = PLUGIN.SendPlayer( owner, ply, force )
+	local pos = self:SendPlayer( owner, ply, force )
 
 	if !pos then return { owner, COLOR.NORM, "Not enough space to bring ", COLOR.NAME, ply:Nick() } end
 	
@@ -102,8 +101,9 @@ PLUGIN:AddCommand( "bring", {
 	FlagDesc = "Allows users to bring other players.",
 	Console = { "bring" },
 	Chat = { "!bring" },
-	ReturnOrder = "Victim",
-	Args = {Victim = "PLAYER"},
+	ReturnOrder = "Victim-Force",
+	Args = {Victim = "PLAYER", Force = "BOOLEAN"},
+	Optional = { Force = false },
 })
 
 PLUGIN:Register()

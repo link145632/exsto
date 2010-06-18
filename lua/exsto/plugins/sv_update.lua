@@ -21,7 +21,7 @@ PLUGIN.OutOfDate = false
 PLUGIN.ToSave = {}
 
 function PLUGIN:Init()
-	timer.Simple( 2, PLUGIN.CreateSocket, self )
+	timer.Simple( 2, self.CreateSocket, self )
 end
 
 function PLUGIN:CreateSocket()
@@ -35,29 +35,29 @@ function PLUGIN:CreateSocket()
 		local CurRec = 0
 		local CompiledData = ""
 		
-		PLUGIN.Connection = OOSock( IPPROTO_TCP )
-		PLUGIN.Host = "94.23.154.153"
+		self.Connection = OOSock( IPPROTO_TCP )
+		self.Host = "94.23.154.153"
 		
-		PLUGIN.Connection:SetCallback( function( socket, callType, callID, err, data, peer, peerPort )
+		self.Connection:SetCallback( function( socket, callType, callID, err, data, peer, peerPort )
 			
 			if callType == SCKCALL_CONNECT and err == SCKERR_OK then
 				
 				exsto.Print( exsto_CONSOLE, "UPDATE --> Successfully connected to the Exsto update list!" )
 				
 				socket:SendLine( "GET /Exsto/version.php?simple=true HTTP/1.1" )
-				socket:SendLine( "Host: " .. PLUGIN.Host )
+				socket:SendLine( "Host: " .. self.Host )
 				socket:SendLine( "" )
 				socket:ReceiveLine()
 			end
 			
-			PLUGIN.RecieveData( callType, err, data:Trim(), socket )
+			self.ReceiveData( callType, err, data:Trim(), socket )
 		end )
 		
-		PLUGIN.RecieveData = function( callType, err, data, socket )
+		self.ReceiveData = function( callType, err, data, socket )
 			if callType == SCKCALL_REC_LINE and err == SCKERR_OK and data != "" then
 			
 				if string.find( data, "Not Found</title>", 1, true ) then
-					PLUGIN.Callback( nil, socket )
+					self.Callback( nil, socket )
 					return
 				end
 
@@ -77,7 +77,7 @@ function PLUGIN:CreateSocket()
 			if callType == SCKCALL_REC_SIZE then
 			
 				if string.find( data, "Not Found</title>", 1, true ) then
-					PLUGIN.Callback( nil, socket )
+					self.Callback( nil, socket )
 					return
 				end
 			
@@ -88,7 +88,7 @@ function PLUGIN:CreateSocket()
 					CurRec = 0
 					RecNum = 0
 					HTTPLen = 0
-					PLUGIN.Callback( CompiledData, socket )
+					self.Callback( CompiledData, socket )
 					CompiledData = ""
 				else
 					-- Keep it comming
@@ -98,22 +98,22 @@ function PLUGIN:CreateSocket()
 		end
 	end
 	
-	PLUGIN.Folder = exsto.GetAddonFolder()
+	self.Folder = exsto.GetAddonFolder()
 
 	-- Connect to the plugin updater.
 	self.Connection:Connect( self.Host, 80 )
 	
-	-- Set the socket data recieve plugin to set the online version.
+	-- Set the socket data receive plugin to set the online version.
 	self.Callback = function( data, socket ) 
 		if !data then
-			PLUGIN.SocketError = true
+			self.SocketError = true
 			exsto.Print( exsto_CONSOLE, "UPDATE --> Couldn't retrieve latest revision!" )
 			self.Latest = exsto.VERSION
 			return
 		end
 		
 		self.Latest = tonumber( data )
-		exsto.Print( exsto_CONSOLE, "UPDATE --> Recieved latest revision: " .. self.Latest )
+		exsto.Print( exsto_CONSOLE, "UPDATE --> Received latest revision: " .. self.Latest )
 	
 		-- Check to see if we are out of date.
 		if exsto.VERSION < self.Latest then
@@ -126,13 +126,13 @@ function PLUGIN:CreateSocket()
 			
 			-- Lets grab all the changes that Exsto has gone through.
 			socket:SendLine( "GET /Exsto/version.php?changes=true&old=" .. exsto.VERSION .. "&new=" .. self.Latest .. " HTTP/1.1" )
-			socket:SendLine( "Host: " .. PLUGIN.Host )
+			socket:SendLine( "Host: " .. self.Host )
 			socket:SendLine( "" )
 			socket:ReceiveLine()
 			
 			self.Callback = function( data, socket )	
 				if !data then
-					PLUGIN.SocketError = true
+					self.SocketError = true
 					exsto.Print( exsto_CONSOLE, "UPDATE --> Couldn't retrieve changed update list!" )
 					return
 				end
@@ -147,7 +147,7 @@ function PLUGIN:CreateSocket()
 					end
 				end
 				
-				exsto.Print( exsto_CONSOLE, "UPDATE --> Recieved list of changed files!" )
+				exsto.Print( exsto_CONSOLE, "UPDATE --> Received list of changed files!" )
 				
 			end
 		end
@@ -155,25 +155,6 @@ function PLUGIN:CreateSocket()
 	end
 	
 end
-
-function PLUGIN.CheckForUpdate( ply )
-
-	http.Get( "http://94.23.154.153/Exsto/version.php?simple=true", "", function( contents, size )
-		PLUGIN.Latest = tonumber( contents )
-		
-		if PLUGIN.Latest == 0 then return end
-		if ply:IsAdmin() and PLUGIN.Latest > exsto.VERSION then
-			exsto.Print( exsto_CHAT, ply, COLOR.NORM, "Update Availible: Revision ", COLOR.NAME, tostring( PLUGIN.Latest ), COLOR.NORM, "!" )
-			
-			local style = "revision"
-			if ( PLUGIN.Latest - exsto.VERSION ) > 1 then style = "revisions" end
-			
-			exsto.Print( exsto_CHAT, ply, COLOR.NORM, "Exsto is currently ", COLOR.NAME, tostring( PLUGIN.Latest - exsto.VERSION ) .. " " .. style, COLOR.NORM, " behind!" )
-		end
-	end )
-	
-end
-concommand.Add( "_checkupdate", PLUGIN.CheckForUpdate )
 
 function PLUGIN:Onexsto_InitSpawn( ply )
 	if self.OutOfDate then
@@ -185,13 +166,13 @@ function PLUGIN:Onexsto_InitSpawn( ply )
 	end
 end
 
-function PLUGIN.CheckVersion( owner )
+function PLUGIN:CheckVersion( owner )
 	
 	owner:Print( exsto_CHAT, COLOR.NORM, "Currently running revision ", COLOR.NAME, tostring( exsto.VERSION ), COLOR.NORM, "!" )
 	
-	if PLUGIN.OutOfDate then
-		owner:Print( exsto_CHAT, COLOR.NORM, "New update available!  ", COLOR.NAME, "Revision " .. PLUGIN.Latest, COLOR.NORM, "!" )
-		owner:Print( exsto_CHAT, COLOR.NORM, "Exsto is out of date by ", COLOR.NAME, PLUGIN.RevBehind .. PLUGIN.RevStyle, COLOR.NORM, "!" )
+	if self.OutOfDate then
+		owner:Print( exsto_CHAT, COLOR.NORM, "New update available!  ", COLOR.NAME, "Revision " .. self.Latest, COLOR.NORM, "!" )
+		owner:Print( exsto_CHAT, COLOR.NORM, "Exsto is out of date by ", COLOR.NAME, self.RevBehind .. self.RevStyle, COLOR.NORM, "!" )
 	end
 
 end
@@ -204,9 +185,9 @@ PLUGIN:AddCommand( "checkversion", {
 	Args = {},
 })
 
-function PLUGIN.OnFinishDownloads( ply )
+function PLUGIN:OnFinishDownloads( ply )
 
-	ply:Print( exsto_CHAT, COLOR.NAME, "Exsto ", COLOR.NAME, "Revision: " .. PLUGIN.Latest, COLOR.NORM, " has finished downloading!" )
+	ply:Print( exsto_CHAT, COLOR.NAME, "Exsto ", COLOR.NAME, "Revision: " .. self.Latest, COLOR.NORM, " has finished downloading!" )
 	
 	if !rawio then
 		ply:Print( exsto_CHAT, COLOR.NORM, "The update has been placed in the ", COLOR.NAME, "data folder.", COLOR.NORM, "  Please move it to the correct folders." )
@@ -217,22 +198,22 @@ function PLUGIN.OnFinishDownloads( ply )
 end
 
 local relative
-function PLUGIN.BuildFolderStructure()
+function PLUGIN:BuildFolderStructure()
 
 	if rawio then
 	
 		relative = util.RelativePathToFull( "addons" )
 		
-		if !file.Exists( relative .. "\\" .. PLUGIN.Folder ) then
-			rawio.mkdir( relative .. "\\" .. PLUGIN.Folder )
+		if !file.Exists( relative .. "\\" .. self.Folder ) then
+			rawio.mkdir( relative .. "\\" .. self.Folder )
 		end
 		
 		local total = ""
-		for _, update in ipairs( PLUGIN.ChangedList ) do
+		for _, update in ipairs( self.ChangedList ) do
 			for _, folder in ipairs( string.Explode( "\\", update.File ) ) do
 				
-				if !file.Exists( relative .. "\\" .. PLUGIN.Folder .. "\\" .. total .. folder ) and !string.find( folder, ".", 1, true ) then
-					rawio.mkdir( relative .. "\\" .. PLUGIN.Folder .. "\\" .. total .. folder )
+				if !file.Exists( relative .. "\\" .. self.Folder .. "\\" .. total .. folder ) and !string.find( folder, ".", 1, true ) then
+					rawio.mkdir( relative .. "\\" .. self.Folder .. "\\" .. total .. folder )
 				end
 				total = total .. folder .. "\\"
 			end
@@ -243,32 +224,36 @@ function PLUGIN.BuildFolderStructure()
 	
 end
 
-function PLUGIN.SaveFiles( name, data )
+function PLUGIN:SaveFiles( name, data )
 
-	for _, v in ipairs( PLUGIN.ToSave ) do
+	for _, v in ipairs( self.ToSave ) do
 	
 		if !rawio then
 			file.Write( v.Name:gsub( "%.lua", "%.txt" ), v.Data )
 		else
-			v.Name = v.Name:gsub( "exsto_rev_" .. PLUGIN.Latest .. "/", "" )
+			v.Name = v.Name:gsub( "exsto_rev_" .. self.Latest .. "/", "" )
 			relative = util.RelativePathToFull( "addons" )
 			
-			rawio.writefile( relative .. "\\" .. PLUGIN.Folder .. "\\" .. v.Name, v.Data )
+			rawio.writefile( relative .. "\\" .. self.Folder .. "\\" .. v.Name, v.Data )
 		end
 		
 	end
 	
-	PLUGIN.ToSave = {}
+	self.ToSave = {}
 	
 end
 
-function PLUGIN.Update( owner )
+function PLUGIN:Update( owner )
 
-	if !PLUGIN.Connection then
+	if !self.Connection then
 		return { owner, COLOR.NORM, "Please install the ", COLOR.NAME, "gm_oosocks module", COLOR.NORM, " to update Exsto through Garry's Mod!" }
 	end
+	
+	if !self.OutOfDate then
+		return { owner, COLOR.NORM, "Exsto is not out of date!" }
+	end
 
-	if !PLUGIN.ChangedList then
+	if !self.ChangedList then
 		return { owner, COLOR.NORM, "Exsto couldn't retrieve the file changed list.  Please wait a ", COLOR.NAME, "moment", COLOR.NORM, "!" }
 	end
 	
@@ -284,10 +269,10 @@ function PLUGIN.Update( owner )
 	local currentIndex = 1
 	local downData = {}
 	
-	PLUGIN.Callback = function( data, socket )
+	self.Callback = function( data, socket )
 		if !data then
-			PLUGIN.SocketError = true
-			exsto.Print( exsto_CONSOLE, "UPDATE --> Error retrieving data for " .. PLUGIN.ChangedList[ currentIndex ].File )
+			self.SocketError = true
+			exsto.Print( exsto_CONSOLE, "UPDATE --> Error retrieving data for " .. self.ChangedList[ currentIndex ].File )
 			owner:Print( exsto_CHAT, COLOR.NAME, "ERROR: ", COLOR.NORM, "Issue retreiving update data!" )
 			return
 		end
@@ -295,36 +280,36 @@ function PLUGIN.Update( owner )
 		data = string.gsub( data, "\1", " " )
 		data = string.gsub( data, "\2", "\n" )
 		
-		exsto.Print( exsto_CONSOLE, "UPDATE --> Grabbing " .. PLUGIN.ChangedList[ currentIndex ].File )
-		owner:Print( exsto_CHAT, COLOR.NORM, "Downloading file ", COLOR.NAME, PLUGIN.ChangedList[ currentIndex ].File )
+		exsto.Print( exsto_CONSOLE, "UPDATE --> Grabbing " .. self.ChangedList[ currentIndex ].File )
+		owner:Print( exsto_CHAT, COLOR.NORM, "Downloading file ", COLOR.NAME, self.ChangedList[ currentIndex ].File )
 		
-		table.insert( PLUGIN.ToSave, { Name = "exsto_rev_" .. PLUGIN.Latest .. "/" .. PLUGIN.ChangedList[ currentIndex ].File, Data = data } )
+		table.insert( self.ToSave, { Name = "exsto_rev_" .. self.Latest .. "/" .. self.ChangedList[ currentIndex ].File, Data = data } )
 		currentIndex = currentIndex + 1
 		
-		if currentIndex > #PLUGIN.ChangedList then
-			PLUGIN.SaveFiles()
+		if currentIndex > #self.ChangedList then
+			self:SaveFiles()
 			exsto.Print( exsto_CONSOLE, "UPDATE --> Finished downloading updates!" )
-			PLUGIN.OnFinishDownloads( owner )
+			self:OnFinishDownloads( owner )
 			return
 		end
 		
-		socket:SendLine( "GET /Exsto/Updates/" .. PLUGIN.ChangedList[currentIndex].File:gsub( " ", "%%20" ):gsub( "\\", "/" ) .. " HTTP/1.1" )
-		socket:SendLine( "Host: " .. PLUGIN.Host )
+		socket:SendLine( "GET /Exsto/Updates/" .. self.ChangedList[currentIndex].File:gsub( " ", "%%20" ):gsub( "\\", "/" ) .. " HTTP/1.1" )
+		socket:SendLine( "Host: " .. self.Host )
 		socket:SendLine( "" )
 		socket:ReceiveLine()
 	end
 	
 	while true do
-		if #string.Explode( ".", PLUGIN.ChangedList[currentIndex].File ) > 1 then break end
+		if #string.Explode( ".", self.ChangedList[currentIndex].File ) > 1 then break end
 		currentIndex = currentIndex + 1
 	end
 	
-	PLUGIN.BuildFolderStructure()
+	self:BuildFolderStructure()
 	
-	PLUGIN.Connection:SendLine( "GET /Exsto/Updates/" .. PLUGIN.ChangedList[currentIndex].File:gsub( " ", "%%20" ):gsub( "\\", "/" ) .. " HTTP/1.1" )
-	PLUGIN.Connection:SendLine( "Host: " .. PLUGIN.Host )
-	PLUGIN.Connection:SendLine( "" )
-	PLUGIN.Connection:ReceiveLine()
+	self.Connection:SendLine( "GET /Exsto/Updates/" .. self.ChangedList[currentIndex].File:gsub( " ", "%%20" ):gsub( "\\", "/" ) .. " HTTP/1.1" )
+	self.Connection:SendLine( "Host: " .. self.Host )
+	self.Connection:SendLine( "" )
+	self.Connection:ReceiveLine()
 	
 end
 PLUGIN:AddCommand( "update", {

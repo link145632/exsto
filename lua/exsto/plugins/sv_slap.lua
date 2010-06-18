@@ -10,30 +10,30 @@ PLUGIN:SetInfo({
 	Owner = "Prefanatic and Schuyler",
 } )
 
-function PLUGIN.Slap( owner, ply, damage, duration, delay )
+local function Slap( ply, damage )
+	if !ply:Alive() then timer.Create( "exsto_WhipDelay"..ply:Nick(), 0.1, 1, function() end ) return end
+	local xspeed = math.random( -500, 500 )
+	local yspeed = math.random( -500, 500 ) 
+	local zspeed = math.random( -500, 500 )
+	ply:SetVelocity( Vector( xspeed, yspeed, zspeed ) )
+	ply:SetHealth( ply:Health() - damage )
 
-	local function Slap()
-		if !ply:Alive() then timer.Create( "exsto_WhipDelay"..ply:Nick(), 0.1, 1, function() end ) return end
-		local xspeed = math.random( -500, 500 )
-		local yspeed = math.random( -500, 500 ) 
-		local zspeed = math.random( -500, 500 )
-		ply:SetVelocity( Vector( xspeed, yspeed, zspeed ) )
-		ply:SetHealth( ply:Health() - damage )
+	if ply:InVehicle() then ply:ExitVehicle() end 
+	if ply:Health() <= 0 then ply:Kill() end
+	ply:EmitSound( "player/pl_fallpain3.wav", 100, 100 )
+end
 
-		if ply:InVehicle() then ply:ExitVehicle() end 
-		if ply:Health() <= 0 then ply:Kill() end
-		ply:EmitSound( "player/pl_fallpain3.wav", 100, 100 )
-	end
+function PLUGIN:Slap( owner, ply, damage, duration, delay )
 	
 	if duration == 1 then
-		Slap()
+		Slap( ply, damage )
 		return {
 			Activator = owner,
 			Player = ply,
 			Wording = " has slapped ",
 		}
 	elseif duration > 1 then	
-		timer.Create( "exsto_WhipDelay"..ply:Nick(), delay, duration, Slap )
+		timer.Create( "exsto_WhipDelay"..ply:Nick(), delay, duration, Slap, ply, damage )
 		return {
 			Activator = owner,
 			Player = ply,

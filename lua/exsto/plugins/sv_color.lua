@@ -10,7 +10,7 @@ PLUGIN:SetInfo({
 	Owner = "Prefanatic",
 } )
 
-function PLUGIN.Color( self, ply, r, g, b, a )
+function PLUGIN:Color( self, ply, r, g, b, a )
 
 	ply:SetColor( r, g, b, a )
 	

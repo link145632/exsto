@@ -10,7 +10,7 @@ PLUGIN:SetInfo({
 	Owner = "Prefanatic",
 } )
 
-function PLUGIN.Return( self, victim )
+function PLUGIN:Return( self, victim )
 	
 	if !victim.OldWeapons then
 		return {
@@ -42,7 +42,23 @@ PLUGIN:AddCommand( "returnweps", {
 	Optional = { }
 })
 
-function PLUGIN.Strip( self, victim )
+function PLUGIN:Give( self, victim, weapon )
+	victim:Give( weapon )
+	
+	return { COLOR.NAME, self, COLOR.NORM, " has gave ", COLOR.NAME, victim, COLOR.NORM, " a " .. weapon }
+end
+PLUGIN:AddCommand( "give", {
+	Call = PLUGIN.Give,
+	Desc = "Gives a weapon to a player.",
+	FlagDesc = "Allows users to give weapons.",
+	Console = { "give" },
+	Chat = { "!give" },
+	ReturnOrder = "Victim-Weapon",
+	Args = { Victim = "PLAYER", Weapon = "STRING" },
+	Optional = { }
+})
+
+function PLUGIN:Strip( self, victim )
 	victim.OldWeapons = {}
 	
 	for k,v in pairs( victim:GetWeapons() ) do

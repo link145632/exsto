@@ -10,7 +10,7 @@ PLUGIN:SetInfo({
 	Owner = "Prefanatic",
 } )
 
-function PLUGIN.LuaRun( owner, lua )
+function PLUGIN:LuaRun( owner, lua )
 	RunString( lua )
 	
 	return {
@@ -27,7 +27,7 @@ PLUGIN:AddCommand( "luarun", {
 	Args = {Command = "STRING"}
 } )
 
-function PLUGIN.CExec( owner, ply, command )
+function PLUGIN:CExec( owner, ply, command )
 	ply:ConCommand( command )
 	
 	return {
@@ -46,7 +46,7 @@ PLUGIN:AddCommand( "cexec", {
 	Args = {Player = "PLAYER", Command = "STRING"}
 } )
 
-function PLUGIN.RunCommand( owner, command )
+function PLUGIN:RunCommand( owner, command )
 	
 	game.ConsoleCommand( command .. "\n" )
 	

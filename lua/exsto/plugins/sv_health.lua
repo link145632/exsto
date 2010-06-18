@@ -12,7 +12,7 @@ PLUGIN:SetInfo({
 	Owner = "Prefanatic",
 } )
 
-function PLUGIN.SetArmor( self, victim, armor )
+function PLUGIN:SetArmor( self, victim, armor )
 
 	victim:SetArmor( math.Clamp( armor, 1, 99998 ) )
 	
@@ -35,7 +35,7 @@ PLUGIN:AddCommand( "setarmor", {
 	Optional = { Armor = 100 }
 })
 
-function PLUGIN.SetHealth( self, victim, health )
+function PLUGIN:SetHealth( self, victim, health )
 
 	victim:SetHealth( math.Clamp( health, 1, 99998 ) )
 	
@@ -58,11 +58,18 @@ PLUGIN:AddCommand( "sethealth", {
 	Optional = { Health = 100 }
 })
 
-function PLUGIN.God( self, victim )
+function PLUGIN:OnPlayerSpawn( ply )
+	if ply.God and ply.ForceGod then
+		ply:GodEnable()
+	end
+end
+
+function PLUGIN:God( self, victim, force )
 
 	if victim.God then
 		victim:GodDisable()
 		victim.God = false
+		victim.ForceGod = false
 		
 		return {
 			Activator = self,
@@ -72,11 +79,12 @@ function PLUGIN.God( self, victim )
 	else
 		victim:GodEnable()
 		victim.God = true
+		victim.ForceGod = force
 			
 		return {
 			Activator = self,
 			Player = victim,
-			Wording = " has godded ",
+			Wording = force and " has perm-godded " or " has godded ",
 		}
 		
 	end
@@ -88,9 +96,9 @@ PLUGIN:AddCommand( "godmode", {
 	FlagDesc = "Allows users to set godmode on players.",
 	Console = { "god", "ungod" },
 	Chat = { "!god", "ungod" },
-	ReturnOrder = "Victim",
-	Args = { Victim = "PLAYER" },
-	Optional = { }
+	ReturnOrder = "Victim-Force",
+	Args = { Victim = "PLAYER", Force = "BOOLEAN" },
+	Optional = { Force = false, }
 })
 
 PLUGIN:Register()

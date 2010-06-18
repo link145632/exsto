@@ -322,6 +322,7 @@ exsto.DefaultRanks = {
 			"spectate",
 			"unspectate",
 			"update",
+			"give",
 			"banlist",
 			"isadmin",
 			"sethealth",

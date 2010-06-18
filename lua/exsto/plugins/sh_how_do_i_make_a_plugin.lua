@@ -69,7 +69,7 @@ if SERVER then
 	If no optional is set, and an argument isnt provded, Exsto automatically manages the responce of a missing argument.
 	]]
 	
-	function PLUGIN.Skeleton( owner, number, extra ) -- Our function name, please keep it in PLUGIN for development purposes.
+	function PLUGIN:Skeleton( owner, number, extra ) -- Our function name, please keep it in PLUGIN for development purposes.
 		
 		-- Lets perform some actions.
 		--[[ exsto.Print allows a wide range of printing commands to a number of different people, and styles.

@@ -38,10 +38,8 @@ if SERVER then
 	
 	local Anims = true
 	
-	function PLUGIN.ToggleAnims( owner )
-	
+	function PLUGIN:ToggleAnims( owner )
 		exsto.UMStart( "PLUGIN_toggleanims", owner )
-		
 	end	
 	PLUGIN:AddCommand( "togglechatanim", {
 		Call = PLUGIN.ToggleAnims,

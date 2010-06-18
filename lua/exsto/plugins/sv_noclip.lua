@@ -18,7 +18,7 @@ PLUGIN:AddVariable({
 	Possible = { true, false }
 })
 
-function PLUGIN.NoClip( ply, victim )
+function PLUGIN:NoClip( ply, victim )
 
 	local movetype = victim:GetMoveType()
 	local changeto = MOVETYPE_NOCLIP
