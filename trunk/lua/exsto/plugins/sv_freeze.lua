@@ -12,7 +12,7 @@ function PLUGIN:OnCanPlayerSuicide( ply )
 	if ply.NoSuicide then return false end
 end
 
-function PLUGIN.Freeze( self, ply )
+function PLUGIN:Freeze( self, ply )
 
 	if ply:IsFrozen() then
 		ply.NoSuicide = false

@@ -66,7 +66,7 @@ if SERVER then
 					Sweps = {},
 				}
 				
-				PLUGIN.SaveData( "all", v.Short )
+				self:SaveData( "all", v.Short )
 			end
 
 			self:LoadFileRestrictions()
@@ -100,16 +100,16 @@ if SERVER then
 						table.insert( self.Restrictions[ short ][format], v )
 					end				
 					
-					self.SaveData( style, short )
+					self:SaveData( style, short )
 					file.Delete( "exsto_restrictions/exsto_" .. style .. "_restrict_" .. short .. ".txt" )
 				end
 			end
 		end
 	end
 	
-	function PLUGIN.SaveData( type, rank )
+	function PLUGIN:SaveData( type, rank )
 	
-		local data = PLUGIN.Restrictions[ rank ]
+		local data = self.Restrictions[ rank ]
 		local saveData = {}
 		
 		if type == "all" then
@@ -186,14 +186,14 @@ if SERVER then
 		end
 	end
 	
-	function PLUGIN.AllowObject( owner, rank, object, data )
+	function PLUGIN:AllowObject( owner, rank, object, data )
 		
-		if !PLUGIN.Restrictions[ rank ] then
+		if !self.Restrictions[ rank ] then
 			local closeRank = exsto.GetClosestString( rank, exsto.Levels, "Short", owner, "Unknown rank" )
 			return
 		end
 
-		local tbl = PLUGIN.Restrictions[ rank ]
+		local tbl = self.Restrictions[ rank ]
 		local style = ""
 		
 		if object == "stools" then 
@@ -225,20 +225,20 @@ if SERVER then
 		end
 		
 		table.remove( tbl, id )
-		PLUGIN.SaveData( object, rank )
+		self:SaveData( object, rank )
 		
 		return { owner, COLOR.NORM, "Removing " .. style .. " ", COLOR.NAME, data, COLOR.NORM, " from ", COLOR.NAME, rank, COLOR.NORM, " restrictions!" }
 	
 	end
 	
-	function PLUGIN.DenyObject( owner, rank, object, data )
+	function PLUGIN:DenyObject( owner, rank, object, data )
 	
-		if !PLUGIN.Restrictions[ rank ] then
+		if !self.Restrictions[ rank ] then
 			local closeRank = exsto.GetClosestString( rank, exsto.Levels, "Short", owner, "Unknown rank" )
 			return
 		end
 		
-		local tbl = PLUGIN.Restrictions[ rank ]
+		local tbl = self.Restrictions[ rank ]
 		local style = ""
 		
 		if object == "stools" then 
@@ -260,7 +260,7 @@ if SERVER then
 		end
 		
 		table.insert( tbl, data )
-		PLUGIN.SaveData( object, rank )
+		self:SaveData( object, rank )
 	
 		return { owner, COLOR.NORM, "Inserting " .. style .. " ", COLOR.NAME, data, COLOR.NORM, " into ", COLOR.NAME, rank, COLOR.NORM, " restrictions!" }
 		
@@ -269,8 +269,8 @@ if SERVER then
 --[[ -----------------------------------
 		ENTITIES
      ----------------------------------- ]]
-	function PLUGIN.AllowEntity( owner, rank, entity )
-		return PLUGIN.AllowObject( owner, rank, "entities", entity )
+	function PLUGIN:AllowEntity( owner, rank, entity )
+		return self:AllowObject( owner, rank, "entities", entity )
 	end
 	PLUGIN:AddCommand( "allowentity", {
 		Call = PLUGIN.AllowEntity,
@@ -282,8 +282,8 @@ if SERVER then
 		Args = { Rank = "STRING", Entity = "STRING" },
 	})
 	
-	function PLUGIN.DenyEntity( owner, rank, entity )
-		return PLUGIN.DenyObject( owner, rank, "entities", entity )
+	function PLUGIN:DenyEntity( owner, rank, entity )
+		return self:DenyObject( owner, rank, "entities", entity )
 	end
 	PLUGIN:AddCommand( "denyentity", {
 		Call = PLUGIN.DenyEntity,
@@ -298,9 +298,9 @@ if SERVER then
 --[[ -----------------------------------
 		PROPS
      ----------------------------------- ]]
-	function PLUGIN.AllowProp( owner, rank, prop )
+	function PLUGIN:AllowProp( owner, rank, prop )
 		if !string.Right( prop, 4 ) == ".mdl" then prop = prop .. ".mdl" end
-		return PLUGIN.AllowObject( owner, rank, "props", prop )
+		return self:AllowObject( owner, rank, "props", prop )
 	end
 	PLUGIN:AddCommand( "allowprop", {
 		Call = PLUGIN.AllowProp,
@@ -312,9 +312,9 @@ if SERVER then
 		Args = { Rank = "STRING", Prop = "STRING" },
 	})
 	
-	function PLUGIN.DenyProp( owner, rank, prop )
+	function PLUGIN:DenyProp( owner, rank, prop )
 		if !string.Right( prop, 4 ) == ".mdl" then prop = prop .. ".mdl" end
-		return PLUGIN.DenyObject( owner, rank, "props", prop )
+		return self:DenyObject( owner, rank, "props", prop )
 	end
 	PLUGIN:AddCommand( "denyprop", {
 		Call = PLUGIN.DenyProp,
@@ -329,8 +329,8 @@ if SERVER then
 --[[ -----------------------------------
 		SWEPS
      ----------------------------------- ]]
-	function PLUGIN.AllowSwep( owner, rank, swep )
-		return PLUGIN.AllowObject( owner, rank, "sweps", swep )
+	function PLUGIN:AllowSwep( owner, rank, swep )
+		return self:AllowObject( owner, rank, "sweps", swep )
 	end
 	PLUGIN:AddCommand( "allowswep", {
 		Call = PLUGIN.AllowSwep,
@@ -342,8 +342,8 @@ if SERVER then
 		Args = { Rank = "STRING", Swep = "STRING" },
 	})
 	
-	function PLUGIN.DenySwep( owner, rank, swep )
-		return PLUGIN.DenyObject( owner, rank, "sweps", swep )
+	function PLUGIN:DenySwep( owner, rank, swep )
+		return self:DenyObject( owner, rank, "sweps", swep )
 	end
 	PLUGIN:AddCommand( "denyswep", {
 		Call = PLUGIN.DenySwep,
@@ -358,8 +358,8 @@ if SERVER then
 --[[ -----------------------------------
 		STOOLS
      ----------------------------------- ]]
-	function PLUGIN.AllowStool( owner, rank, stool )
-		return PLUGIN.AllowObject( owner, rank, "stools", stool )
+	function PLUGIN:AllowStool( owner, rank, stool )
+		return self:AllowObject( owner, rank, "stools", stool )
 	end
 	PLUGIN:AddCommand( "allowstool", {
 		Call = PLUGIN.AllowStool,
@@ -371,8 +371,8 @@ if SERVER then
 		Args = { Rank = "STRING", Stool = "STRING" },
 	})
 	
-	function PLUGIN.DenyStool( owner, rank, stool )
-		return PLUGIN.DenyObject( owner, rank, "stools", stool )
+	function PLUGIN:DenyStool( owner, rank, stool )
+		return self:DenyObject( owner, rank, "stools", stool )
 	end
 	PLUGIN:AddCommand( "denystool", {
 		Call = PLUGIN.DenyStool,
@@ -384,11 +384,11 @@ if SERVER then
 		Args = { Rank = "STRING", Stool = "STRING" },
 	})
 	
-	function PLUGIN.PrintRestrictions( owner )
+	function PLUGIN:PrintRestrictions( owner )
 		
 		owner:Print( exsto_CLIENT, "--- Rank Restriction Data ---\n" )
 		
-		for k,v in pairs( PLUGIN.Restrictions ) do
+		for k,v in pairs( self.Restrictions ) do
 			owner:Print( exsto_CLIENT_NOLOGO, " Rank: " .. k )
 			
 			owner:Print( exsto_CLIENT_NOLOGO, "    ** Props: " )

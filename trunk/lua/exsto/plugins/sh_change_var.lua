@@ -12,7 +12,7 @@ PLUGIN:SetInfo({
 
 if SERVER then
 
-	function PLUGIN.ChangeVar( owner, var, value )
+	function PLUGIN:ChangeVar( owner, var, value )
 	
 		local variable = exsto.GetVar( var )
 		
@@ -39,7 +39,7 @@ if SERVER then
 		Args = {Variable = "STRING", Value = "STRING"},
 	})
 	
-	function PLUGIN.GetVar( owner, var )
+	function PLUGIN:GetVar( owner, var )
 	
 		local value = exsto.GetVar( var ).Value
 		

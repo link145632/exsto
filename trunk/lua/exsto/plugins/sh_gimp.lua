@@ -39,11 +39,11 @@ PLUGIN.Sayings = {
 	"Garry is my hero!",
 }
 
-function PLUGIN.Gimp( owner, ply )
+function PLUGIN:Gimp( owner, ply )
 
 	local style = " has gimmped "
 	
-	if PLUGIN.IsGimmped( ply ) then
+	if self:IsGimmped( ply ) then
 		ply.Gimmped = false
 		style = " has un-gimmped "
 	else
@@ -67,7 +67,7 @@ PLUGIN:AddCommand( "gimp", {
 	Args = {Victim = "PLAYER"},
 })
 
-function PLUGIN.Mute( owner, ply )
+function PLUGIN:Mute( owner, ply )
 
 	local style = " has muted "
 	
@@ -97,14 +97,13 @@ PLUGIN:AddCommand( "mute", {
 
 local mutedList = {}
 
-function PLUGIN.MuteOnJoin( ply )
+function PLUGIN:Onexsto_InitSpawn( ply )
 	for k,v in pairs( mutedList ) do
 		exsto.UMStart( "exsto_GagPlayer", ply, v )
 	end
 end
-PLUGIN:AddHook( "exsto_InitSpawn", PLUGIN.MuteOnJoin )
 
-function PLUGIN.Gag( owner, ply )
+function PLUGIN:Gag( owner, ply )
 
 	local style = " has gagged "
 	local ungag = false
@@ -138,26 +137,26 @@ PLUGIN:AddCommand( "gag", {
 	Args = {Victim = "PLAYER"},
 })
 
-function PLUGIN.IsGimmped( ply )
+function PLUGIN:IsGimmped( ply )
 	if ply.Gimmped then
 		return true
 	else return false end
 end
 
-function PLUGIN.IsMuted( ply )
+function PLUGIN:IsMuted( ply )
 	if ply.Muted then return true end
 	return false
 end
 
 function PLUGIN:OnPlayerSay( ply, text )
 
-	if self.IsGimmped( ply ) then
+	if self:IsGimmped( ply ) then
 
 		return self.Sayings[ math.random( 1, #PLUGIN.Sayings ) ]
 		
 	end
 	
-	if self.IsMuted( ply ) then return "" end
+	if self:IsMuted( ply ) then return "" end
 	
 end
 

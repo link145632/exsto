@@ -18,9 +18,9 @@ if SERVER then
 	
 	PLUGIN.Teams = {}
 	
-	function PLUGIN.OnPlayerSpawn( ply )
+	function PLUGIN:OnPlayerSpawn( ply )
 		local rank = ply:GetRank()
-		local info = PLUGIN.Teams[rank]
+		local info = self.Teams[rank]
 		
 		if !info then ply:SetTeam( 1 ) return end
 		
@@ -30,16 +30,16 @@ if SERVER then
 	function PLUGIN.SendTeamInfo( ply )
 		if type( ply ) != "Player" then
 			-- We are apparently called by the resend rank hook
-			PLUGIN.BuildTeams() -- They need to be updated again with new ranks.
+			PLUGIN:BuildTeams() -- They need to be updated again with new ranks.
 			
 			for k, ply in pairs( player.GetAll() ) do
-				PLUGIN.OnPlayerSpawn( ply )
+				PLUGIN:OnPlayerSpawn( ply )
 				for k,v in pairs( PLUGIN.Teams ) do
 					exsto.UMStart( "teamToRankSend", ply, v.Team, v.Name, v.Color )
 				end
 			end
 		else
-			PLUGIN.OnPlayerSpawn( ply )
+			PLUGIN:OnPlayerSpawn( ply )
 			for k,v in pairs( PLUGIN.Teams ) do
 				exsto.UMStart( "teamToRankSend", ply, v.Team, v.Name, v.Color )
 			end
@@ -48,12 +48,12 @@ if SERVER then
 	hook.Add( "exsto_InitSpawn", "teamToRankPluginSend", PLUGIN.SendTeamInfo )
 	hook.Add( "exsto_ResendRanks", "teamToRankPluginRefresh", PLUGIN.SendTeamInfo )
 
-	function PLUGIN.BuildTeams()
+	function PLUGIN:BuildTeams()
 		local ranks = exsto.Levels
 		local index = 1
 		
 		for k,v in pairs( ranks ) do
-			PLUGIN.Teams[k] = {
+			self.Teams[k] = {
 				Name = v.Name,
 				Short = v.Short,
 				Color = v.Color,
@@ -65,7 +65,7 @@ if SERVER then
 		end
 
 	end
-	PLUGIN.BuildTeams()
+	PLUGIN:BuildTeams()
 	
 elseif CLIENT then
 

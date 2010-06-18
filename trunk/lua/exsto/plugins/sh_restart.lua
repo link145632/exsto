@@ -31,16 +31,16 @@ if SERVER then
 		return d[#d]
 	end
 
-	function PLUGIN.ChangeLevel( owner, map, delay )
+	function PLUGIN:ChangeLevel( owner, map, delay )
 		
 		if string.Right( map, 4 ) != ".bsp" then map = map .. ".bsp" end
 	
-		local mapData = PLUGIN.MapList[map]
+		local mapData = self.MapList[map]
 		local data = { Max = 100, Map = "" }
 		local dist
 		
 		if !mapData then
-			for k,v in pairs( PLUGIN.MapList ) do
+			for k,v in pairs( self.MapList ) do
 				k = k:gsub( "%.bsp", "" )
 				dist = StringDist( map, k )
 				if dist < data.Max then data.Max = dist data.Map = k end
@@ -75,7 +75,7 @@ if SERVER then
 		Optional = { Map = "gm_flatgrass", Delay = 0 },
 	})
 
-	function PLUGIN.ReloadMap( owner )
+	function PLUGIN:ReloadMap( owner )
 
 		game.ConsoleCommand( "changelevel " .. string.gsub( game.GetMap(), ".bsp", "" ) .. "\n" )
 		
@@ -217,8 +217,6 @@ if SERVER then
 	
 	function PLUGIN.ChangeMap( ply, _, args )
 		local key = tonumber( args[1] )
-		
-		print( key, ply.MenuAuthKey )
 		
 		if key != ply.MenuAuthKey then return end
 		

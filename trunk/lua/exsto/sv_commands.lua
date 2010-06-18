@@ -29,6 +29,7 @@ local function AddArg( style, type, func ) table.insert( exsto.Arguments, {Style
 AddArg( "PLAYER", "Player", function( nick ) if nick == "" then return -1 else return exsto.FindPlayer( nick ) end end )
 AddArg( "NUMBER", "number", function( num ) return tonumber( num ) end )
 AddArg( "STRING", "string", function( string ) return tostring( string ) end )
+AddArg( "BOOLEAN", "boolean", function( bool ) return tobool( bool ) end )
 AddArg( "NIL", "nil", function( object ) return "" end )
 
 exsto.AddVariable({
@@ -100,6 +101,7 @@ function exsto.AddChatCommand( ID, info )
 		ReturnOrder = returnOrder,
 		Args = info.Args,
 		Optional = info.Optional or {},
+		Plugin = info.Plugin or nil,
 	}
 	
 	exsto.Commands[ID].Chat = {}
@@ -379,6 +381,10 @@ local function ExstoParseCommand( ply, command, args, style )
 				end
 			end
 			
+			if Found.Plugin then
+				table.insert( args, 1, Found.Plugin )
+			end
+			
 			if !allowed then exsto.Print( exsto_CHAT, ply, COLOR.NORM, "You are not allowed to run ", COLOR.NAME, command, COLOR.NORM, "!" ) return "" end
 			
 			local status, data = pcall( Found.Call, unpack( args ) )
@@ -393,7 +399,7 @@ local function ExstoParseCommand( ply, command, args, style )
 			local style = { exsto_CHAT_ALL }
 			if type( data ) == "table" and ( type( data[1] ) == "Player" or type( data[1] ) == "Entity" ) and data[1]:CanPrint() then style = { exsto_CHAT, data[1] } end
 		
-			if type( data ) == "table" and (data.Activator and data.Wording) then
+			if type( data ) == "table" and ( ( data.Activator and data.Activator:IsValid() ) and data.Wording) then
 			
 				local activator = data.Activator
 				local ply = nil
@@ -407,6 +413,7 @@ local function ExstoParseCommand( ply, command, args, style )
 				end
 				
 				-- Lets pull some patterns into this, shall we?
+				if !data.Activator or !data.Activator:IsValid() then return "" end
 				data.Wording = string.gsub( data.Wording, "%[self%]%", data.Activator:Nick() )
 				
 				if data.Secondary and data.Player then

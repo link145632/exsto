@@ -523,12 +523,12 @@ if SERVER then
 	Function: exsto.SetAccess
 	Description: Sets a player's rank.
 	----------------------------------- ]]
-	function exsto.SetAccess( ply, user, rank )
+	function exsto.SetAccess( ply, user, short )
 		
-		local rank = exsto.Levels[rank]
+		local rank = exsto.Levels[short]
 		
 		if !rank then
-			local closeRank = exsto.GetClosestString( rank, exsto.Levels, "Short", ply, "Unknown rank" )
+			local closeRank = exsto.GetClosestString( short, exsto.Levels, "Short", ply, "Unknown rank" )
 			return
 		end
 		

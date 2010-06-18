@@ -10,7 +10,7 @@ PLUGIN:SetInfo({
 	Owner = "Prefanatic",
 } )
 
-function PLUGIN.ChatNotify( ply, text )
+function PLUGIN:ChatNotify( ply, text )
 	for k,v in pairs( player.GetAll() ) do
 		exsto.Print( exsto_CHAT_NOLOGO, v, text )
 	end
@@ -26,7 +26,7 @@ PLUGIN:AddCommand( "chatnotify", {
 	Optional = { }
 })
 
-function PLUGIN.AdminSay( ply, text )
+function PLUGIN:AdminSay( ply, text )
 	for k,v in pairs( player.GetAll() ) do
 		if v:IsAdmin() or v:IsSuperAdmin() then
 			print( v:Nick() )

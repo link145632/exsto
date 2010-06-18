@@ -10,7 +10,7 @@ PLUGIN:SetInfo({
 	Owner = "Prefanatic",
 } )
 
-function PLUGIN.Search( ply, command )
+function PLUGIN:Search( ply, command )
 	
 	if !ply.LastSearch then ply.LastSearch = CurTime() end
 	if CurTime() < ply.LastSearch then return { ply, COLOR.NORM, "Please wait, you are trying to search for commands too ", COLOR.NAME, "fast", COLOR.NORM, "!" } end

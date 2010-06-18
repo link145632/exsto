@@ -211,6 +211,10 @@ end
 --[[ -----------------------------------
 		Plugin Helper Functions
      ----------------------------------- ]]
+function plugin:Print( enum, ... )
+	exsto.Print( enum, ... )
+end
+
 function plugin:AddVariable( tbl )
 	table.insert( self.Variables, tbl )
 end
@@ -224,6 +228,7 @@ function plugin:AddData( id, tbl )
 end
 
 function plugin:AddCommand( id, tbl )
+	tbl.Plugin = self
 	self.Commands[id] = tbl
 end
 

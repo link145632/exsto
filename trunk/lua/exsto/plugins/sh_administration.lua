@@ -13,11 +13,12 @@ PLUGIN:SetInfo({
 
 if SERVER then
 
-	if !gatekeeper then require( "gatekeeper" ) end
+	//if !gatekeeper then require( "gatekeeper" ) end
+	gatekeeper = nil
 	
-	function PLUGIN.KickID( owner, id, reason )
+	function PLUGIN:KickID( owner, id, reason )
 		if type( id ) == "Player" then
-			return PLUGIN.Kick( owner, id, reason )
+			return self:Kick( owner, id, reason )
 		end
 	
 		if string.Left( id, 6 ) != "STEAM_" then
@@ -30,7 +31,7 @@ if SERVER then
 			return { owner, COLOR.NORM, "Couldn't find a player under SteamID ", COLOR.NAME, id, COLOR.NORM, "!" }
 		end
 		
-		return PLUGIN.Kick( owner, ply, reason )
+		return self:Kick( owner, ply, reason )
 	end
 	PLUGIN:AddCommand( "kickid", {
 		Call = PLUGIN.KickID,
@@ -43,7 +44,7 @@ if SERVER then
 		Optional = {SteamID = "", Reason = "Kicked by [self]"}
 	})
 
-	function PLUGIN.Kick( owner, ply, reason )
+	function PLUGIN:Kick( owner, ply, reason )
 		
 		--if reason == "nil" then reason = "Kicked by " .. owner:Nick() end
 		local nick = ply:Nick()
@@ -75,37 +76,25 @@ if SERVER then
 
 	function PLUGIN:OnPlayerPasswordAuth( user, pass, steam, ipd )
 		
-		local data = FEL.Query( "SELECT BannedAt, Length FROM exsto_data_bans WHERE SteamID = " .. FEL.Escape( steam ) .. ";" )
-		print( "Loading ban data ..." )
+		local data = FEL.Query( "SELECT BannedAt, Length, Reason FROM exsto_data_bans WHERE SteamID = " .. FEL.Escape( steam ) .. ";" )
 
 		if not data or not data[1] then return true end
 		data = data[1]
 		
-		PrintTable( data )
-		
-		print( "ban data found!" )
-		
 		local len = tonumber( data.Length )
 		local at = tonumber( data.BannedAt )
+		local reason = tostring( data.Reason )
 		
-		print( len )
-		
-		if len == 0 then print( "HES PERMAD" ) return {false, "You are perma-banned!"} end
-		
-		print( "Hes not permad, so continue." )
+		if len == 0 then return {false, "You are perma-banned!"} end
+		len = len * 100
 		
 		local timeleft = string.ToMinutesSeconds( ( len + at ) - os.time() )
-		
-		print( " He has " .. timeleft )
-		
-		if os.time() >= len + at then FEL.RemoveData( "exsto_data_bans", "SteamID", steam ) PLUGIN.ResendToAll() return true end
-		
-		if bandata then return {false, "You are banned from this server!  Time left -- " .. timeleft} end
-		
-		print( "Not banned, continue" )
-			
+
+		if len + at <= os.time() then FEL.RemoveData( "exsto_data_bans", "SteamID", steam ) self:ResendToAll() return true end
+		if data then return {false, "You are banned from this server!  Time left -- " .. timeleft .. "\nReason: " .. reason} end
+
 		return true
-		
+	
 	end
 	
 	PLUGIN.OldPlayers = {}
@@ -114,12 +103,12 @@ if SERVER then
 		table.insert( self.OldPlayers, {
 			SteamID = ply:SteamID(),
 			Nick = ply:Nick(),
-			} )
+		} )
 	end
 	
-	function PLUGIN.BanID( owner, id, len, reason )
+	function PLUGIN:BanID( owner, id, len, reason )
 		if type( id ) == "Player" then
-			return PLUGIN.Ban( owner, id, len, reason )
+			return self:Ban( owner, id, len, reason )
 		end
 	
 		if string.Left( id, 6 ) != "STEAM_" then
@@ -129,7 +118,7 @@ if SERVER then
 		local ply = exsto.GetPlayerByID( id )
 		
 		if !ply then
-			for k,v in ipairs( PLUGIN.OldPlayers ) do
+			for k,v in ipairs( self.OldPlayers ) do
 				if v.SteamID == id then ply = v end
 			end
 		end
@@ -138,7 +127,7 @@ if SERVER then
 			return { owner, COLOR.NORM, "Couldn't find a player under SteamID ", COLOR.NAME, id, COLOR.NORM, "!" }
 		end
 		
-		return PLUGIN.Ban( owner, ply, len, reason )
+		return self:Ban( owner, ply, len, reason )
 	end
 	PLUGIN:AddCommand( "banid", {
 		Call = PLUGIN.BanID,
@@ -151,7 +140,7 @@ if SERVER then
 		Optional = {SteamID = "", Length = 0, Reason = "Banned by [self]"}
 	})
 
-	function PLUGIN.Ban( owner, ply, len, reason )
+	function PLUGIN:Ban( owner, ply, len, reason )
 
 		local nick
 		local userID
@@ -175,7 +164,7 @@ if SERVER then
 			end
 		end
 		
-		PLUGIN.ResendToAll()
+		self:ResendToAll()
 		
 		return {
 			Activator = owner,
@@ -196,13 +185,13 @@ if SERVER then
 		Optional = {Victim = nil, Length = 0, Reason = "Banned by [self]"}
 	})
 
-	function PLUGIN.UnBan( owner, steamid )
+	function PLUGIN:UnBan( owner, steamid )
 		steamid = string.upper( steamid ):gsub( " ", "" )
 
 		if !gatekeeper then game.ConsoleCommand( "removeid " .. steamid .. ";writeid\n" ) end
 		FEL.RemoveData( "exsto_data_bans", "SteamID", steamid )
 		
-		PLUGIN.ResendToAll()
+		self:ResendToAll()
 
 		return {
 			Activator = owner,
@@ -221,7 +210,7 @@ if SERVER then
 		Args = {SteamID = "STRING"},
 	})
 	
-	function PLUGIN.ResendToAll()
+	function PLUGIN:ResendToAll()
 	
 		local bans = FEL.LoadTable( "exsto_data_bans" )
 		
@@ -255,7 +244,7 @@ if SERVER then
 	end
 	concommand.Add( "_ResendBans", PLUGIN.RequestBans )
 	
-	function PLUGIN.CreateRagdoll( ply )
+	function PLUGIN:CreateRagdoll( ply )
 		
 		ply.Ragdolled = true
 	
@@ -279,7 +268,7 @@ if SERVER then
 		
 	end
 	
-	function PLUGIN.BanTrain( ply, callback )
+	function PLUGIN:BanTrain( ply, callback )
 	
 		exsto.Print( exsto_CHAT_ALL, COLOR.NORM, "The Heavy Ban Train is coming to pick up ", COLOR.NAME, ply:Nick(), COLOR.NORM, "!  Say your goodbyes!" )
 		
@@ -304,7 +293,7 @@ if SERVER then
 				local dist = v:GetPos():Distance( train:GetPos() )
 				
 				if dist < 300 and !v.Ragdolled then
-					local ragdoll = PLUGIN.CreateRagdoll( v )
+					local ragdoll = self:CreateRagdoll( v )
 					for i=1, 14 do
 						ragdoll:GetPhysicsObjectNum( i ):SetVelocity( train:GetForward() * 1900 + ( VectorRand() * 90 ) + Vector( 0, 0, 900 ) )
 					end
@@ -321,7 +310,6 @@ if SERVER then
 			phys:SetVelocity( Vector( -x, 0, 0 ) )
 			
 		end
-		hook.Add( "Think", "BanTrain_" .. ply:Nick(), entThink )
 		
 	end
 		

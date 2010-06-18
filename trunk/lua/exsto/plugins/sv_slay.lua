@@ -10,7 +10,7 @@ PLUGIN:SetInfo({
 	Owner = "Prefanatic",
 } )
 
-function PLUGIN.Slay( owner, ply )
+function PLUGIN:Slay( owner, ply )
 	
 	ply:Kill()
 	

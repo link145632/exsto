@@ -93,8 +93,6 @@ if SERVER then
 	end
 	exsto.MenuCall( "_UpdateRankInfo", PLUGIN.UpdateKey )
 	
-	concommand.Add( "_PrintEdits", function() PrintTable( PLUGIN.Editing ) end )
-	
 	function PLUGIN.CommitChanges( ply, _, args )
 		local short = args[1]
 		local realShort = args[2]
