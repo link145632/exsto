@@ -95,7 +95,7 @@ PLUGIN:AddCommand( "godmode", {
 	Desc = "Sets godmode on a player",
 	FlagDesc = "Allows users to set godmode on players.",
 	Console = { "god", "ungod" },
-	Chat = { "!god", "ungod" },
+	Chat = { "!god", "!ungod" },
 	ReturnOrder = "Victim-Force",
 	Args = { Victim = "PLAYER", Force = "BOOLEAN" },
 	Optional = { Force = false, }
