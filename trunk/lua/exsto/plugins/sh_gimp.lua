@@ -97,7 +97,7 @@ PLUGIN:AddCommand( "mute", {
 
 local mutedList = {}
 
-function PLUGIN:Onexsto_InitSpawn( ply )
+function PLUGIN:exsto_InitSpawn( ply )
 	for k,v in pairs( mutedList ) do
 		exsto.UMStart( "exsto_GagPlayer", ply, v )
 	end
@@ -148,7 +148,7 @@ function PLUGIN:IsMuted( ply )
 	return false
 end
 
-function PLUGIN:OnPlayerSay( ply, text )
+function PLUGIN:PlayerSay( ply, text )
 
 	if self:IsGimmped( ply ) then
 

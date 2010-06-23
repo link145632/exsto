@@ -19,8 +19,6 @@
 
 -- Clientside Menu, with adding functions
 
-exsto.MenuTitle = exsto.Info.Version
-
 Menu = {}
 	Menu.Dialog = {}
 	Menu.List = {}

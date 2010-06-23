@@ -98,6 +98,8 @@ function PLUGIN:CreateSocket()
 		end
 	end
 	
+	if !self.Connection then return end
+	
 	self.Folder = exsto.GetAddonFolder()
 
 	-- Connect to the plugin updater.
@@ -156,7 +158,7 @@ function PLUGIN:CreateSocket()
 	
 end
 
-function PLUGIN:Onexsto_InitSpawn( ply )
+function PLUGIN:exsto_InitSpawn( ply )
 	if self.OutOfDate then
 		-- Notify the server admins on their join.
 		if ply:IsAdmin() then

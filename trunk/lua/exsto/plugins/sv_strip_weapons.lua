@@ -45,7 +45,7 @@ PLUGIN:AddCommand( "returnweps", {
 function PLUGIN:Give( self, victim, weapon )
 	victim:Give( weapon )
 	
-	return { COLOR.NAME, self, COLOR.NORM, " has gave ", COLOR.NAME, victim, COLOR.NORM, " a " .. weapon }
+	return { COLOR.NAME, self, COLOR.NORM, " has given ", COLOR.NAME, victim, COLOR.NORM, " a " .. weapon }
 end
 PLUGIN:AddCommand( "give", {
 	Call = PLUGIN.Give,

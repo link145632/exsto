@@ -20,7 +20,7 @@ if SERVER then
 		}
 	)
 	
-	function PLUGIN:Onexsto_InitSpawn( ply, sid, uid )
+	function PLUGIN:exsto_InitSpawn( ply, sid, uid )
 
 		local nick = ply:Nick()
 		
@@ -65,7 +65,7 @@ if SERVER then
 		
 	end
 	
-	function PLUGIN:OnPlayerDisconneced( ply )
+	function PLUGIN:PlayerDisconneced( ply )
 	
 		local sid = ply:SteamID()
 		
@@ -91,7 +91,7 @@ if SERVER then
 	
 		for k,v in pairs( player.GetAll() ) do
 			
-			PLUGIN.OnPlayerDisconneced( PLUGIN, v )
+			PLUGIN.PlayerDisconneced( PLUGIN, v )
 			
 		end
 		

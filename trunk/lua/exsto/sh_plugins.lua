@@ -59,37 +59,32 @@ elseif CLIENT then
 end
 
 --[[ -----------------------------------
-	Function: exsto.RegisterPlugin
-	Description: DEPRICATED: Registers a plugin into Exsto.
+	Function: exsto.HookCall
+	Description: Calls hooks for plugins.
      ----------------------------------- ]]
-function exsto.RegisterPlugin( plugin )
-	if !plugin then exsto.ErrorNoHalt( "Trying to register nil plugin!" ) return end
-	if !plugin.Enabled then exsto.Print( exsto_CONSOLE, "PLUGIN --> " .. plugin.Name .. " is not enabled!  Skipping!" ) return end
-	
-	plugin.Hooks = plugin.Hooks or {}
-	
-	exsto.Plugins[plugin.ID] = {
-		ID = plugin.ID,
-		Name = plugin.Name,
-		Desc = plugin.Desc or plugin.Disc or "No Description",
-		Owner = plugin.Owner,
-		Experimental = plugin.Experimental or false,
-		Enabled = plugin.Enabled or false,
-		RunningLoc = runningLocation,
-		Hooks = plugin.Hooks,
-	}
+local data = {}
+function exsto.HookCall( name, gm, ... )
+	for _, plug in pairs( exsto.Plugins ) do
+		if type( plug.Object[ name ] ) == "function" and !plug.Disabled then
 
-	exsto.Print( exsto_CONSOLE, "PLUGIN --> Loading " .. plugin.Name .. " by " .. plugin.Owner .. "!" )
-	
-	for k,v in pairs( plugin.Hooks ) do
-		exsto.AddHook( k, v, plugin )
+			data = { pcall( plug.Object[ name ], plug.Object, ... ) }
+			
+			-- data[1] == Status
+			-- data[2] == Error or First Return
+			-- data[3+] == Returns
+			
+			if data[1] and data[2] != nil then
+				table.remove( data, 1 )
+				return unpack( data )
+			elseif !data[1] then -- It returned an error, catch it.
+				exsto.ErrorNoHalt( "Hook '" .. name .. "' failed in plugin '" .. plug.ID .. "' error: " )
+				exsto.ErrorNoHalt( data[2] )
+				exsto.Plugins[ _ ].Disabled = true
+			end
+		end
 	end
 	
-	-- Call the main!
-	if plugin.Main then
-		plugin:Main()
-	end
-	
+	return exsto_HOOKCALL( name, gm, ... )
 end
 
 --[[ -----------------------------------
@@ -157,23 +152,6 @@ function exsto.UnloadAllPlugins()
 			exsto.ErrorNoHalt( "PLUGIN --> " .. v.ID .. " --> This plugin is not up to date with the new plugin system!" )
 		end
 	end
-end
-
---[[ -----------------------------------
-	Function: exsto.AddHook
-	Description: DEPRICATED: Adds a hook to a plugin.
-     ----------------------------------- ]]
-function exsto.AddHook( name, func, module )
-
-	-- Construct the unique name.
-	local id = module.ID .. "-" .. name
-	
-	exsto.Hooks[module.ID] = {}
-	exsto.Hooks[module.ID]["Name"] = name
-	exsto.Hooks[module.ID]["ID"] = id
-	
-	hook.Add( name, id, func )
-	exsto.Print( exsto_CONSOLE_DEBUG, "PLUGIN --> " .. module.ID .. " --> Adding " .. name .. " hook!" )
 end
 
 --[[ -----------------------------------
