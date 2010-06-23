@@ -30,8 +30,8 @@ function exsto.CreatePlugin()
 	
 	obj.Info = {}
 	obj.Commands = {}
-	obj.Hooks = {}
-	obj.HookID = {}
+	--obj.Hooks = {}
+	--obj.HookID = {}
 	obj.FEL = {}
 	obj.FEL.CreateTable = {}
 	obj.FEL.AddData = {}
@@ -102,14 +102,6 @@ function plugin:Register()
 		if exsto.PluginDisabled( self ) or self.Info.Disabled or clientEnd then
 			exsto.Print( exsto_CONSOLE, "PLUGIN --> Skipping loading plugin " .. self.Info.ID .. ".  Not Enabled." )
 			
-			-- Remove all of our hooks
-			for k,v in pairs( self.Hooks ) do
-				hook.Remove( k, self.HookID[k] )
-			end
-
-			self.Hooks = {}
-			self.HookID = {}
-			
 			-- We need to tell Exsto hes atleast disabled.
 			exsto.Plugins[self.Info.ID] = {
 				Name = self.Info.Name,
@@ -126,7 +118,7 @@ function plugin:Register()
 		
 	end
 	
-	self:CreateGamemodeHooks()
+	--self:CreateGamemodeHooks()
 	
 	-- Tell Exsto we exist!
 	exsto.Plugins[self.Info.ID] = {
@@ -136,6 +128,7 @@ function plugin:Register()
 		Owner = self.Info.Owner,
 		Experimental = self.Info.Experimental or false,
 		Object = self,
+		Disabled = false,
 	}
 	
 	-- Construct the commands we requested.
@@ -179,14 +172,6 @@ end
 function plugin:Unload()
 
 	exsto.Print( exsto_CONSOLE, "PLUGIN --> Unloading " .. self.Info.Name .. "!" )
-
-	-- Remove all of our hooks
-	for k,v in pairs( self.Hooks ) do
-		hook.Remove( k, self.HookID[k] )
-	end
-	
-	self.Hooks = {}
-	self.HookID = {}
 	
 	-- Remove the over-rides
 	for k,v in pairs( self.Overrides ) do
@@ -197,6 +182,11 @@ function plugin:Unload()
 	for k,v in pairs( self.Commands ) do
 		exsto.RemoveChatCommand( k )
 	end
+	
+	local info = self.Info
+	info.Disabled = true
+	
+	self:SetInfo( info )
 end
 
 --[[ -----------------------------------
@@ -257,19 +247,16 @@ end
 	Description: Creates a collection of pre-determined hooks for the plugin based on gamemode hooks.
      ----------------------------------- ]]
 function plugin:CreateGamemodeHooks()
-	for k,v in pairs( exsto.GMHooks ) do
-		local function plugHook( ... )
-			if !self["On"..v] then
-				self["On"..v] = function( ... ) end
-			end
-			if !self.Info.Disabled then 
-				return self["On"..v]( self, ... )
-			end
+	local funcName = ""
+	for k,v in pairs( self ) do
+		if type( v ) == "function" and string.Left( k, 2 ) == "On" then
+			-- Hopefully it is a hook.  He has that On prefix.
+			funcName = string.sub( k, 3 )
+			self.Hooks[ funcName ] = v
+			self.HookID[ funcName ] = "ExPlug_" .. tostring( exsto.NumberHooks )
+			hook.Add( funcName, self.HookID[ funcName ], self.Hooks[ funcName ] )
+			exsto.NumberHooks = exsto.NumberHooks + 1
 		end
-		self.Hooks[v] = plugHook
-		self.HookID[v] = "ExPlug_" .. tostring( exsto.NumberHooks )
-		hook.Add( v, self.HookID[v], self.Hooks[v] )
-		exsto.NumberHooks = exsto.NumberHooks + 1
 	end
 end
 

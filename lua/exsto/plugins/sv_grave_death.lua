@@ -71,7 +71,7 @@ local function Fade( ent )
 	
 end
 
-function PLUGIN:OnPlayerDeath( victim, _, killer )
+function PLUGIN:PlayerDeath( victim, _, killer )
 	
 	local opos = victim:GetPos()
 	local trace = {}

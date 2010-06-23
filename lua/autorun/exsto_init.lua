@@ -22,8 +22,8 @@ local function PrintLoading()
 
 	print( "-----------------------------" )
 	print( "Exsto Loading" )
-	print( "Created by " .. exsto.Info.Author )
-	print( "Version " .. exsto.Info.Version )
+	print( "Created by Prefanatic" )
+	print( "Revision " .. tostring( exsto.VERSION ) )
 	print( "-----------------------------" )
 
 end
@@ -31,107 +31,63 @@ end
 local function LoadVariables()
 
 	exsto = {}
-	exsto.Info = {}
-		exsto.Info.Author = "Prefanatic"
-		exsto.Info.Version = "Release"
 	exsto.DebugEnabled = true
 	
+	exsto.VERSION = 44
 end
 
 function exstoInit()
-
 	if exsto then
-	
 		if exsto.Print then
 			exsto.Print( exsto_CHAT_ALL, COLOR.NORM, "Exsto is reloading the core!" )
 		end
-		
 		if exsto.Plugins and exsto.RemoveChatCommand then
 			exsto.UnloadAllPlugins()
 		end
-		
 	end			
-
-	resource.AddFile("materials/exstoLogo.vmt")
-	resource.AddFile("materials/exstoGradient.vmt" )
-	resource.AddFile("materials/exstoGenericAnim.vmt" )
-	resource.AddFile("materials/exstoErrorAnim.vmt" )
 
 	LoadVariables()
 	PrintLoading()
 	
-	include( "exsto/sh_tables.lua" )
-	include( "exsto/sh_umsg.lua" )
-	include( "exsto/sh_print.lua" )
-	include( "exsto/sh_data.lua" )
-	include( "exsto/sh_variables.lua" )
-	
 	if SERVER then
-	
 		include( "exsto/sv_init.lua" )
-		include( "exsto/sv_commands.lua" )
-		
-		AddCSLuaFile( "exsto/sh_tables.lua" )
-		AddCSLuaFile( "exsto/cl_derma.lua" )
-		AddCSLuaFile( "exsto/sh_data.lua" )
-		AddCSLuaFile( "exsto/sh_variables.lua" )
-		AddCSLuaFile( "exsto/sh_umsg.lua" )
-		AddCSLuaFile( "exsto/cl_menu.lua" )
-		AddCSLuaFile( "exsto/sh_access.lua" )
-		AddCSLuaFile( "exsto/sh_print.lua" )
-		AddCSLuaFile( "exsto/sh_plugins.lua" )
-		
+		AddCSLuaFile( "exsto/cl_init.lua" )
 	elseif CLIENT then
-	
-		include( "exsto/cl_derma.lua" )
-		include( "exsto/cl_menu.lua" )
-		
+		include( "exsto/cl_init.lua" )
+	end
+end
+
+exsto_HOOKCALL = exsto_HOOKCALL or hook.Call
+hook.Call = function( name, gm, ... )
+	if !exsto or !exsto.Plugins or !exsto.HookCall then
+		return exsto_HOOKCALL( name, gm, ... )
 	end
 	
-	include( "exsto/sh_access.lua" )
-	include( "exsto/sh_plugins.lua" )
-	
-	exsto.LoadPlugins()
-	exsto.InitPlugins()
-	if SERVER then
-		exsto.LoadFlags()
-		exsto.CreateFlagIndex()
-	end
-	
-	
+	return exsto.HookCall( name, gm, ... )
 end
 
 if SERVER then
-
 	exstoInit()
 	
 	concommand.Add( "exsto_cl_load", function( ply, _, args )
 		umsg.Start( "clexsto_load", ply )
-		
 		umsg.End()
 	end )
 	
 elseif CLIENT then
 
 	local function init( UM )
-		
 		exstoInit()
 		hook.Call( "ExInitialized" )
-		
 	end
 	usermessage.Hook( "clexsto_load", init )
 
-	local function ClientPreLoad()
-
+	function onEntCreated( ent )
 		if LocalPlayer():IsValid() then
-		
 			LocalPlayer():ConCommand( "exsto_cl_load\n" )
-			hook.Remove( "Think", "EXSTOCLIENTTHINK" )
-			
+			hook.Remove( "OnEntityCreated", "ExSystemLoad" )
 		end
-		
 	end
-	hook.Add( "Think", "EXSTOCLIENTTHINK", ClientPreLoad )
-
+	hook.Add( "OnEntityCreated", "ExSystemLoad", onEntCreated )
 end
 

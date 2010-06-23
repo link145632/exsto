@@ -18,7 +18,7 @@ if SERVER then
 	
 	PLUGIN.Teams = {}
 	
-	function PLUGIN:OnPlayerSpawn( ply )
+	function PLUGIN:PlayerSpawn( ply )
 		local rank = ply:GetRank()
 		local info = self.Teams[rank]
 		
@@ -33,13 +33,13 @@ if SERVER then
 			PLUGIN:BuildTeams() -- They need to be updated again with new ranks.
 			
 			for k, ply in pairs( player.GetAll() ) do
-				PLUGIN:OnPlayerSpawn( ply )
+				PLUGIN:PlayerSpawn( ply )
 				for k,v in pairs( PLUGIN.Teams ) do
 					exsto.UMStart( "teamToRankSend", ply, v.Team, v.Name, v.Color )
 				end
 			end
 		else
-			PLUGIN:OnPlayerSpawn( ply )
+			PLUGIN:PlayerSpawn( ply )
 			for k,v in pairs( PLUGIN.Teams ) do
 				exsto.UMStart( "teamToRankSend", ply, v.Team, v.Name, v.Color )
 			end

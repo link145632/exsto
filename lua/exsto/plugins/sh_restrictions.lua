@@ -154,7 +154,7 @@ if SERVER then
 		} )
 	end
 	
-	function PLUGIN:OnCanTool( ply, trace, tool )
+	function PLUGIN:CanTool( ply, trace, tool )
 		if table.HasValue( self.Restrictions[ ply:GetRank() ].Stools, tool ) then
 			if ply:HasNoRestrict() then return true end
 			ply:Print( exsto_CHAT, COLOR.NORM, "The tool ", COLOR.NAME, tool, COLOR.NORM, " is disabled for your rank!" )
@@ -162,7 +162,7 @@ if SERVER then
 		end
 	end
 	
-	function PLUGIN:OnPlayerGiveSWEP( ply, class, wep )
+	function PLUGIN:PlayerGiveSWEP( ply, class, wep )
 		if table.HasValue( self.Restrictions[ ply:GetRank() ].Sweps, class ) then
 			if ply:HasNoRestrict() then return true end
 			ply:Print( exsto_CHAT, COLOR.NORM, "The weapon ", COLOR.NAME, class, COLOR.NORM, " is disabled for your rank!" )
@@ -170,7 +170,7 @@ if SERVER then
 		end
 	end
 	
-	function PLUGIN:OnPlayerSpawnProp( ply, prop )
+	function PLUGIN:PlayerSpawnProp( ply, prop )
 		if table.HasValue( self.Restrictions[ ply:GetRank() ].Props, prop ) then
 			if ply:HasNoRestrict() then return true end
 			ply:Print( exsto_CHAT, COLOR.NORM, "The prop ", COLOR.NAME, prop, COLOR.NORM, " is disabled for your rank!" )
@@ -178,7 +178,7 @@ if SERVER then
 		end
 	end
 	
-	function PLUGIN:OnPlayerSpawnSENT( ply, class )
+	function PLUGIN:PlayerSpawnSENT( ply, class )
 		if table.HasValue( self.Restrictions[ ply:GetRank() ].Entities, class ) then
 			if ply:HasNoRestrict() then return true end
 			ply:Print( exsto_CHAT, COLOR.NORM, "The entity ", COLOR.NAME, class, COLOR.NORM, " is disabled for your rank!" )

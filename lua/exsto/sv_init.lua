@@ -16,9 +16,31 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
+--[[ -----------------------------------
+	Category:  Script Loading/Resources
+     ----------------------------------- ]]
+	resource.AddFile("materials/exstoLogo.vmt")
+	resource.AddFile("materials/exstoGradient.vmt" )
+	resource.AddFile("materials/exstoGenericAnim.vmt" )
+	resource.AddFile("materials/exstoErrorAnim.vmt" )
 
--- Server Access
--- Pretty much Misc.
+	include( "exsto/sh_tables.lua" )
+	include( "exsto/sh_umsg.lua" )
+	include( "exsto/sh_print.lua" )
+	include( "exsto/sh_data.lua" )
+	include( "exsto/sv_variables.lua" )
+	include( "exsto/sv_commands.lua" )
+	include( "exsto/sh_access.lua" )
+	include( "exsto/sh_plugins.lua" )
+	
+	AddCSLuaFile( "exsto/sh_tables.lua" )
+	AddCSLuaFile( "exsto/cl_derma.lua" )
+	AddCSLuaFile( "exsto/sh_data.lua" )
+	AddCSLuaFile( "exsto/sh_umsg.lua" )
+	AddCSLuaFile( "exsto/cl_menu.lua" )
+	AddCSLuaFile( "exsto/sh_access.lua" )
+	AddCSLuaFile( "exsto/sh_print.lua" )
+	AddCSLuaFile( "exsto/sh_plugins.lua" )
 
 --[[ -----------------------------------
 	Category:  Player Utils
@@ -88,3 +110,10 @@ timer.Create( "Exsto_TagCheck", 1, 0, function()
 		RunConsoleCommand( "sv_tags", GetConVar( "sv_tags" ):GetString() .. ",Exsto" )
 	end
 end )
+
+-- Init some items.
+	exsto.LoadPlugins()
+	exsto.InitPlugins()
+
+	exsto.LoadFlags()
+	exsto.CreateFlagIndex()

@@ -50,7 +50,7 @@ PLUGIN:AddCommand( "noclip", {
 	Optional = { Victim = nil }
 })
 
-function PLUGIN:OnPlayerNoClip( ply )
+function PLUGIN:PlayerNoClip( ply )
 
 	if exsto.GetVar( "admin_noclip" ).Value then
 		if ply:IsAdmin() then return true end -- If hes admin, then tell him he can go

@@ -84,7 +84,7 @@ exsto_ERROR = AddPrint(
 			end
 		end
 		
-		debug.Trace()
+		--debug.Trace()
 		Error( send )
 	end
 )
@@ -99,7 +99,7 @@ exsto_ERRORNOHALT = AddPrint(
 			end
 		end
 		
-		debug.Trace()
+		--debug.Trace()
 		ErrorNoHalt( send )
 	end
 )

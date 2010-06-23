@@ -8,7 +8,7 @@ PLUGIN:SetInfo({
 	Owner = "Prefanatic",
 } )
 
-function PLUGIN:OnCanPlayerSuicide( ply )
+function PLUGIN:CanPlayerSuicide( ply )
 	if ply.NoSuicide then return false end
 end
 

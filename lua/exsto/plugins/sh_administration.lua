@@ -74,7 +74,7 @@ if SERVER then
 		Optional = {Victim = nil, Reason = "Kicked by [self]"}
 	})
 
-	function PLUGIN:OnPlayerPasswordAuth( user, pass, steam, ipd )
+	function PLUGIN:PlayerPasswordAuth( user, pass, steam, ipd )
 		
 		local data = FEL.Query( "SELECT BannedAt, Length, Reason FROM exsto_data_bans WHERE SteamID = " .. FEL.Escape( steam ) .. ";" )
 
@@ -99,7 +99,7 @@ if SERVER then
 	
 	PLUGIN.OldPlayers = {}
 	
-	function PLUGIN:OnPlayerDisconnected( ply )
+	function PLUGIN:PlayerDisconnected( ply )
 		table.insert( self.OldPlayers, {
 			SteamID = ply:SteamID(),
 			Nick = ply:Nick(),

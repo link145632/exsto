@@ -58,7 +58,7 @@ PLUGIN:AddCommand( "sethealth", {
 	Optional = { Health = 100 }
 })
 
-function PLUGIN:OnPlayerSpawn( ply )
+function PLUGIN:PlayerSpawn( ply )
 	if ply.God and ply.ForceGod then
 		ply:GodEnable()
 	end

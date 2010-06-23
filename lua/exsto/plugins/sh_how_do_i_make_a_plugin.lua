@@ -145,10 +145,9 @@ if SERVER then
 	--[[
 		With the new Exsto Plugin Library, you can now have plugins that hook into gamemode functions, with no need for extra work!
 		For example, if we want to hook into PlayerJoin, we would just do this. ]]
-	function PLUGIN:OnPlayerJoin( ply )
+	function PLUGIN:PlayerJoin( ply )
 		print( "Hello " .. ply:Nick() .. "!" )
 	end
-	-- All you need to do is add On infront of the hook name, and then just call it like above.  All the arguments sort themselves automatically!
 	
 elseif CLIENT then
 

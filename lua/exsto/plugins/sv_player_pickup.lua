@@ -12,7 +12,7 @@ PLUGIN:SetInfo({
 
 exsto.CreateFlag( "playerpickup", "Allows users to pick up other players with the phys gun." )
 
-function PLUGIN:OnPhysgunPickup( ply, ent )
+function PLUGIN:PhysgunPickup( ply, ent )
 
 	if ent == ply then return false end
 	
@@ -27,7 +27,7 @@ function PLUGIN:OnPhysgunPickup( ply, ent )
 		
 end
 
-function PLUGIN:OnPhysgunDrop( ply, ent )
+function PLUGIN:PhysgunDrop( ply, ent )
 	if ent:IsPlayer() then
 		ent:SetMoveType(MOVETYPE_WALK)
 		--ent:Freeze(false)

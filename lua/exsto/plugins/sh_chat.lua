@@ -1,5 +1,4 @@
--- Chat Messings!
--- chat.AddText() Override to work with this chat engine :(
+-- Clientside Chat v2
 
 local PLUGIN = exsto.CreatePlugin()
 
@@ -8,786 +7,798 @@ PLUGIN:SetInfo({
 	ID = "cl-chat",
 	Desc = "A cool custom chat with supporting animations.",
 	Owner = "Prefanatic",
-} )
+})
 
 if SERVER then
 
-	-- Can we do this a different way? :(
-	local function OnVarChange( val )
-		for k,v in pairs( player.GetAll() ) do
-			PLUGIN.SetExstoColors( v, val )
-		end
-		return true
+	function PLUGIN:Init()
+		resource.AddFile( "sound/name_said.wav" )
 	end
-	PLUGIN:AddVariable({
-		Pretty = "Override Team Colors with Exsto Colors",
-		Dirty = "native_exsto_colors",
-		Default = false,
-		Description = "Enable to have Exsto over-ride team colors with rank colors.",
-		OnChange = OnVarChange,
-		Possible = { true, false }
-	})
-
-	resource.AddFile( "sound/name_said.wav" )
-
-	local meta = FindMetaTable( "Player" )
-	
-	hook.Add( "exsto_InitSpawn", "exsto_SendComTable", function( ply )
-		PLUGIN.SetExstoColors( ply, exsto.GetVar( "native_exsto_colors" ).Value )
-	end)
-	
-	local Anims = true
 	
 	function PLUGIN:ToggleAnims( owner )
-		exsto.UMStart( "PLUGIN_toggleanims", owner )
-	end	
+		exsto.UMStart( "CHAT_ToggleAnims", owner )
+	end
 	PLUGIN:AddCommand( "togglechatanim", {
 		Call = PLUGIN.ToggleAnims,
-		Desc = "Toggles chat animations",
+		Desc = "Toggles chat animations.",
 		FlagDesc = "Allows users to toggle chat animations on or off.",
 		Console = { "togglechatanims" },
 		Chat = { "!chatanim" },
-		Args = {},
-	})
+		Args = { },
+	} )
 	
-	function PLUGIN.SetExstoColors( person, value )
-		exsto.UMStart( "PLUGIN_setcolors", person, value )
+	function PLUGIN:PlayerInitialSpawn( ply )
+		for _, v in ipairs( player.GetAll() ) do
+			exsto.Print( exsto_CHAT_NOLOGO, v, COLOR.NAME, ply:Nick(), COLOR.NORM, " has joined the server!" )
+		end
+	end
+	
+	function PLUGIN:PlayerDisconnected( ply )
+		for _, v in ipairs( player.GetAll() ) do
+			exsto.Print( exsto_CHAT_NOLOGO, v, COLOR.NAME, ply:Nick(), COLOR.NORM, " has left the server!" )
+		end
 	end
 	
 elseif CLIENT then
-
+	
 	surface.CreateFont( "coolvetica", 20, 400, true, false, "ChatText" )
+	
+	function PLUGIN:Init()
+	
+		-- Create variables.
+		self.GlobalX = CreateClientConVar( "ExChat_PosX", 35, true )
+		self.GlobalYOffset = CreateClientConVar( "ExChat_OffsetY", 310, true )
+		
+		self.Font = "ChatText"
+		
+		self.ChatLabelDefault = "Chat"
+		self.ChatLabel = self.ChatLabelDefault
+		
+		self.MaxLines = 5
+		self.OutlineColor = Color( 0, 0, 0, 0 )
+		
+		self.Colors = {}
+		self.Colors.White = Color( 255, 255, 255, 200 )
+		self.Colors.Outline = self.OutlineColor
+		self.Colors.Twitter = Color( 103, 207, 255, 200 )
+		self.Colors.Friend = Color( 255, 203, 124, 200 )
+		self.Colors.Scroll = Color( 255, 203, 124, 200 )
+		
+		self.Lines = {}
+		self.LineLivingTime = 8
+		
+		self.ScrollSelection = 0
+		
+		self.Fade = 0
+		
+		self.X = self.GlobalX:GetInt()
+		self.Y = ScrH() - self.GlobalYOffset:GetInt()
+		--self.X = 35
+		--self.Y = ScrH() - 310
+	
+		-- ******
+		-- Create the panel.
+		-- ******
+		self.Panel = vgui.Create( "ExChatBox" )
+		
+		self.Panel:SetPos( self.X, self.Y )
+		self.Panel:SetSize( self.Panel.W + 20, self.Panel.H )
 
-	PLUGIN.Lines = {}
-	PLUGIN.Open = false
+	end
 	
-	PLUGIN.Entry = nil
-	PLUGIN.Panel = nil
-	PLUGIN.CurrentText = ""
+	function PLUGIN:Toggle( bool, team )
 	
-	PLUGIN.W = ScrW()
-	PLUGIN.H = ScrH()
-	PLUGIN.X = 35
-	PLUGIN.Y = PLUGIN.H - 210
-	
-	PLUGIN.G_W = 0
-	PLUGIN.G_Text = "Chat"
-	
-	PLUGIN.Font = "ChatText"
-	PLUGIN.StayTime = 10
-	
-	PLUGIN.NextInterval = 0
-	PLUGIN.CursorInterval = 1
-	PLUGIN.Blink = false
-	
-	PLUGIN.OutlineCol = Color( 0, 0, 0, 100 )
-	PLUGIN.Box_Alpha = 0
-	
-	PLUGIN.UseAnims = true
-	
-	PLUGIN.LastSound = 0
+		if self.Open == bool then return end
 		
-	function PLUGIN.ToggleChatAnims()
-	
-		PLUGIN.UseAnims = !PLUGIN.UseAnims
+		self.Open = bool
+		self.TeamMode = team
 		
-		local Status = "ENABLED"
-		if !PLUGIN.UseAnims then
-			Status = "DISABLED"
+		self.Panel:SetKeyboardInputEnabled( bool )
+		self.Panel:SetMouseInputEnabled( bool )
+		
+		self.ScrollSelection = 0
+		
+		if bool then
+			self:OnChatChange( "" )
+			
+			self.Panel:MakePopup()
+			self.Panel:SetFocusTopLevel( true )
+			self.Panel.Entry:RequestFocus()
+		else
+			self.Panel.Entry:SetText( "" )
+		end
+	end
+
+	--[[-- And this is why I failed.
+	function PLUGIN:StartChat()
+		print( "I OPEN CHAT LOLOL ")
+		if !exsto.Plugins[ PLUGIN.Info.ID ].Disabled then 
+			//PLUGIN:Toggle( true )
+			return true
+		end
+	end
+
+	function PLUGIN:FinishChat()
+		print( "I FINISH CHAT" )
+		if !exsto.Plugins[ PLUGIN.Info.ID ].Disabled then 
+			PLUGIN:Toggle( false )
+			return true
+		end
+	end]]
+	
+	function PLUGIN:OnPlayerChat( ply, text, team, dead )
+		if ply:EntIndex() == 0 then
+			chat.AddText( COLOR.NAME, "Console", COLOR.NORM, ": " .. text )
+			return true
+		end
+	end
+
+	function PLUGIN:ChatText( index, nick, msg, type )	
+		print( index, nick, msg, type )
+		if type == "none" then
+			chat.AddText( msg )
+		end
+		return true
+	end
+
+	function PLUGIN:PlayerBindPress( ply, bind, pressed )
+		if string.find( bind, "messagemode" ) then
+			self:Toggle( true, bind == "messagemode2" )
+			return true
+		elseif string.find( bind, "cancelselect" ) then
+			self:Toggle( false )
+			return true
+		end
+	end
+	
+	function PLUGIN.UpdatePosition( var, prev, new )
+		PLUGIN.X = PLUGIN.GlobalX:GetInt()
+		PLUGIN.Y = ScrH() - PLUGIN.GlobalYOffset:GetInt()
+		PLUGIN.Panel:SetPos( PLUGIN.X, PLUGIN.Y )
+	end
+	cvars.AddChangeCallback( "ExChat_PosX", PLUGIN.UpdatePosition )
+	cvars.AddChangeCallback( "ExChat_OffsetY", PLUGIN.UpdatePosition )
+	
+	function PLUGIN:GetLinePos( line )
+		return line.Anims.LastX, line.Anims.LastY
+	end
+	
+	function PLUGIN:SetLinePos( line, x, y )
+		line.Anims.CurX = x
+		line.Anims.CurY = y
+	end
+	
+	function PLUGIN:GetLineWidth( line )
+		return line.Width
+	end
+	
+	local split, selected
+	function PLUGIN:OnChatTab( text )
+	
+		for _, ply in ipairs( player.GetAll() ) do
+			split = string.Explode( " ", text )
+			if string.find( ply:Nick():lower(), split[#split]:lower() ) then
+				return ply:Nick()
+			end
+		end
+	
+		if self.Panel:AutoCompleteBuilt() then
+		
+			split = string.Explode( " ", text )
+			selected = self.Panel:AutoCompleteSelected()
+			
+			if selected and #split == 1 then
+				return selected.Name .. " "
+			end
+			
 		end
 		
-		chat.AddText( COLOR.NORM, "Chat animations have been ", COLOR.NAME, Status )
-		
-	end
-	exsto.UMHook( "PLUGIN_toggleanims", PLUGIN.ToggleChatAnims )
-	
-	function PLUGIN.SetColors( val )
-		PLUGIN.UseExstoColors = val
-	end
-	exsto.UMHook( "PLUGIN_setcolors", PLUGIN.SetColors )
-		
-	function PLUGIN.Init()
-
-		PLUGIN.Entry = vgui.Create( "DTextEntry" )
-		PLUGIN.Entry:SetPos( 35, PLUGIN.H - 310 )
-		PLUGIN.Entry:SetSize( 0, 0 )
-		PLUGIN.Entry:SetVisible( false )
-		PLUGIN.Entry:SetEditable( false )
-		
-		PLUGIN.Open = false
-		
-	end
-
-	function PLUGIN:OnStartChat( )
-
-		PLUGIN.Open = true
-		PLUGIN.Entry:SetVisible( true )
-		gui.EnableScreenClicker( true )
-		
-		PLUGIN.G_Text = "Chat"
-		PLUGIN.UpdateGlobalW( PLUGIN.G_Text )
-		
-		return true
-		
-	end
-
-	function PLUGIN:OnFinishChat()
-
-		PLUGIN.Open = false
-		PLUGIN.Entry:SetVisible( false )
-		gui.EnableScreenClicker( false )
-		
-		return true
-		
-	end
-
-	function string.FindStart( norm, find )
-
-		local find_len = string.len( find )
-		local look = string.sub( norm, 1, find_len )
-		
-		if look:find( find, 1, true ) then return true end
-		return false
+		return text
 		
 	end
 	
-	function string.First( txt )
-		return string.sub( txt, 0, 1 )
-	end
-	
-	local Find_List = {}
-	
-	hook.Add( "ExRecCommands", "exstoWaitForCommands", function()
-		PLUGIN.CommandsRecieved = true
-	end )
-
-	function PLUGIN:OnChatTextChanged( text )
-	
-		surface.SetFont( PLUGIN.Font )
-
-		-- TODO: Arguments inside the find table
+	-- Commonly used variables for chatchange
+	local split
+	function PLUGIN:OnChatChange( text )
+		split = string.Explode( " ", text )
 		
-		-- CPU Intensive? test.
-		local first = string.Explode( " ", text )
-		if self.CommandsRecieved and first[1] != "" and first[1]:First() == "!" then
+		if self.Panel:AutoCompleteBuilt() and split[1]:sub( 1, 1 ) != "!" then
+			self.Panel:ClearAutoComplete()
+		end
 		
-			Find_List = {}
+		-- If we are going to PM somebody.
+		if split[1]:sub( 1, 1 ) == "@" then 
+			self.ChatLabel = "PM"
+			self.Panel:Resize()
+		
+		-- If we are going to run an Exsto command.
+		elseif split[1]:sub( 1, 1 ) == "!" then
+			self.ChatLabel = "Exsto"
+			self.Panel:Resize()
 			
-			PLUGIN.G_Text = "Exsto"
-			PLUGIN.UpdateGlobalW( "Exsto" )
+			if !exsto.Commands then return end
 			
-			local look = string.sub( first[1], 1 )
-		
-			for k, data in pairs( exsto.Commands ) do
-			
-				if data.Chat then
-			
-					for k,v in pairs( data.Chat ) do
+			self.Panel:ClearAutoComplete()
+			for _, command in pairs( exsto.Commands ) do
+				if command.Chat then
+					for _, chat in ipairs( command.Chat ) do
 					
-						local command = string.sub( v, 1 )
-					
-						if string.FindStart( command:lower():Trim(), look:lower():Trim() ) then
-						
-							local width, height = surface.GetTextSize( v )
-						
-							table.insert( Find_List, { Name = v, Width = width, Height = height, ReturnOrder = data.ReturnOrder, Args = data.Args, Optional = data.Optional } )
-							
+						if string.find( chat:lower():Trim(), split[1]:lower():Trim() ) then
+							self.Panel:AddAutoComplete( chat, command )
 						end
-						
 					end
-					
 				end
+			end
+			self.Panel:BuildAutoComplete()
+			
+		else
+			
+			if self.ChatLabel != self.ChatLabelDefault then
+				self.ChatLabel = self.ChatLabelDefault
+				self.Panel:Resize()
+			end
+		end
+	end
+	
+	-- Commonly used variables for animate
+	local dist, speed
+	function PLUGIN:AnimateLine( line, mul )
+	
+		-- Monitor his values.  If he is closed and gets to the point where he can be disabled draw wise, do it.
+		if line.BeginClose then
+			if line.Anims.LastX <= line.Anims.CurX then
+				line.Closed = true
+			end
+		end
+		
+		mul = ( math.floor( 1 / FrameTime() ) / 3 ) * mul
+	
+		-- Set our multiples on our framerate.
+
+		if math.Round( line.Anims.LastX ) != line.Anims.CurX then
+			dist = line.Anims.CurX - line.Anims.LastX
+			speed = dist / mul
+			
+			line.Anims.LastX = math.Approach( line.Anims.LastX, line.Anims.CurX, speed )
+		end
+	
+		if math.Round( line.Anims.LastY ) != line.Anims.CurY then
+			dist = line.Anims.CurY - line.Anims.LastY
+			speed = dist / mul
+			
+			line.Anims.LastY = math.Approach( line.Anims.LastY, line.Anims.CurY, speed )	
+		end
+		
+	end
+	
+	-- Commonly used variables for drawline
+	local x, y, len, w, col, text
+	function PLUGIN:DrawLine( line )
+	
+		if line.Closed then return end
+	
+		x = line.Anims.LastX
+		y = line.Anims.LastY
+		len = table.Count( line.Blocks )
+		
+		for I = 1, len do
+			
+			w = line.Blocks[I]["Width"]
+			col = line.Blocks[I]["Color"]
+			text = line.Blocks[I]["Text"]
+			
+			draw.SimpleTextOutlined( text, self.Font, x, y, self:ColorAlpha( col, 255 ), 0, 0, 1, self:ColorAlpha( self.OutlineColor, 255 ) )
+			
+			if w then x = x + w or x end
+			
+		end
+		
+	end
+	
+	function PLUGIN:HUDShouldDraw( name )
+		if name == "CHudChat" then return false end
+	end
+	
+	-- Commonly used variables for paint
+	local line, x, y, lineHeight, _
+	function PLUGIN:HUDPaint()
+	
+		surface.SetFont( self.Font )
+		_, lineHeight = surface.GetTextSize( "H" )
+		
+		x = self.X + 35
+		y = self.Y - 30
+		
+		-- Loop through the last max.
+		for I = 0, self.MaxLines do
+			line = self.Lines[ #self.Lines - I - self.ScrollSelection ]
+			
+			if line then
+				if !line.BeginClose then self:SetLinePos( line, x, y ) end
+				//self:AnimateLine( line )
+				self:DrawLine( line )
+				
+				y = y - lineHeight - 2	
+			end
+		end
+	end
+	
+	-- Commonly used variables in think
+	local x, y, w, h
+	function PLUGIN:Think()
+		
+		-- Monitor fading stuff here.
+		if self.Open then
+			if self.Fade != 255 then
+				self.Fade = math.Approach( self.Fade, 255, 10 )
+			end
+		else
+			if self.Fade != 0 then
+				self.Fade = math.Approach( self.Fade, 0, 5 )
+			end
+		end
+		
+		-- Animate the lines!
+		for I = 0, self.MaxLines do
+			line = self.Lines[ #self.Lines - I - self.ScrollSelection ]
+			
+			if line then
+				self:AnimateLine( line, self.Open and .5 or 1 )
+			end
+		end
+		
+		-- Send the lines to heaven when they are up.
+		for _, line in ipairs( self.Lines ) do
+			if line.EndTime <= CurTime() then
+			
+				x, y = self:GetLinePos( line )
+				w = self:GetLineWidth( line )
+				self:SetLinePos( line, ( w * -1 ) - 10, y )
+				
+				line.BeginClose = true
 				
 			end
-			
-		elseif first[1]:First() != "!" and Find_List then
-			PLUGIN.G_Text = "Chat"
-			PLUGIN.UpdateGlobalW( "Chat" )
-			Find_List = {}
 		end
-
-		PLUGIN.CurrentText = text
 		
-	end
-
-	function PLUGIN:OnOnPlayerChat( ply, msg, team, dead )
-	end
-
-	function PLUGIN:OnChatText( ply, nick, msg, type )
-		chat.AddText( COLOR.NORM, msg )	
-		return true
-	end
-	
-	// Stolen from lua-users.org
-	local function StringDist( s, t )
-		local d, sn, tn = {}, #s, #t
-		local byte, min = string.byte, math.min
-			for i = 0, sn do d[i * tn] = i end
-			for j = 0, tn do d[j] = j end
-			for i = 1, sn do
-				local si = byte(s, i)
-				for j = 1, tn do
-					d[i*tn+j] = min(d[(i-1)*tn+j]+1, d[i*tn+j-1]+1, d[(i-1)*tn+j-1]+(si == byte(t,j) and 0 or 1))
-				end
+		-- Bring back all those who lost their lives in the close if we re-open.
+		if self.Open then
+			for _, line in ipairs( self.Lines ) do
+				line.BeginClose = false
+				line.Closed = false
+				
+				x, y = self:GetLinePos( line )
+				self:SetLinePos( line, self.X + 35, y )
+				
+				line.EndTime = CurTime() + self.LineLivingTime - 1
 			end
-		return d[#d]
-	end
-	
-	function string.smartFind( text, find )
-	
-		local text = text:lower()
-		local find = find:lower()
-		local split = string.Explode( " ", text )
-
-		if string.find( text, find, 1, true ) then return true end
-		
-		for k,v in pairs( split ) do
-			
-			local found = string.find( v, find, 1, true )
-			if found then return found end
-			
 		end
 		
-		return false
+		-- Clean the chatbox when it gets too big.
+		if table.Count( self.Lines ) > 30 then
+			table.remove( self.Lines, 1 )
+		end
 		
 	end
+	
+	function PLUGIN:FormatColorString( col )
+		return "[c=" .. col.r .. "," .. col.g .. "," .. col.b .. "," .. col.a .. "]"
+	end
+	
+	function PLUGIN:ColorAlpha( col, alpha )
+		col.a = alpha
+		return col
+	end
+	
+	-- Commonly used variables for chat.AddText
+	exsto_PLUGINADDTEXT = exsto_PLUGINADDTEXT or chat.AddText
+	local data, colOpen, col
+	function chat.AddText( ... )
+		data = ""
+		colOpen = false
+	
+		for _, obj in ipairs( {...} ) do
+			if type( obj ) == "table" and obj.r then
+				-- We are a color!
+				if colOpen then
+					data = data .. "[/c]"
+					colOpen = false
+				end
+				
+				data = data .. PLUGIN:FormatColorString( obj )
+				colOpen = true
+			elseif type( obj ) == "Player" then
+				data = data .. PLUGIN:FormatColorString( exsto.GetRankColor( obj:GetRank() ) )
+				data = data .. obj:Nick()
+				data = data .. "[/c]"
+			elseif type( obj ) == "string" then
+				data = data .. obj
+			end
+		end
+		
+		PLUGIN:ParseLine( nil, data )
+		exsto_PLUGINADDTEXT( ... )
+	end
+	
+	-- Frequently used variables for ParseLine
+	local data = {}
+		data.Blocks = {}
+	local clStart, clEnd, clTag, r, g, b, a, clEndStart, clEndEnd, text, w, h, tmpData, sound
+	local id = 1
+	local lastSound, totalWidth = 0, 0
+	function PLUGIN:ParseLine( ply, line )
+	
+		surface.SetFont( self.Font )
 
-	function PLUGIN.ParseLine( ply, line )
-
-		surface.SetFont( PLUGIN.Font )
-
-		local data = {}
-			data.Type = {}
-			data.Value = {}
-			data.Text = {}
-			data.Width = {}
-			data.Length = {}
+		while line != "" do
+		
+			-- Search the string for a color.
+			clStart, clEnd, clTag, r, g, b, a = string.find( line, "(%[c=(%d+),(%d+),(%d+),(%d+)%])" )
 			
-		local toParse = line
-		local id = 1
-		local total_w = 0
-		local fulltext = toParse
-		
-		while toParse != "" do
-		
-			local clStart, clEnd, clTag, clR, clG, clB, clA = string.find( toParse, "(%[c=(%d+),(%d+),(%d+),(%d+)%])" )
-
+			-- If we found him.
 			if clStart then
-				
+				-- If he is at the begining.
 				if clStart == 1 then
 				
-					local colEndStart, colEndEnd, colEnd = string.find( toParse, "(%[/c%])" )
-					if colEndStart then colEndStart = colEndStart - 1 else colEndStart = string.len( toParse ) end
-					colEndEnd = colEndEnd or string.len( toParse )
+					clEndStart, clEndEnd = string.find( line, "(%[/c%])" )
+					-- If we found an ending, snip ourselves to the region we can work in
+					if clEndStart then clEndStart = clEndStart - 1 else clEndStart = string.len( line ) end
+					-- Obviously, if we haven't found an ending just set it's ending as the end snip
+					clEndEnd = clEndEnd or string.len( line )
 					
-					local text = string.sub( toParse, clEnd + 1, colEndStart )
-					local w, h = surface.GetTextSize( text )
+					-- Snip out what we can work with.
+					text = string.sub( line, clEnd + 1, clEndStart )
+					w, h = surface.GetTextSize( text )
 					
-					table.insert( data.Type, id, 2 )
-					table.insert( data.Text, id, text )
-					table.insert( data.Width, id, w )
+					-- Insert our data.
+					tmpData = {}
 					
-					if ply then -- If its player said
-
-						if text == ply:Nick() then -- if we are parsing his name.
-							table.insert( data.Value, id, Color( clR, clG, clB, clA ) )
-						else -- if we are parsing someone else.
+					tmpData["Text"] = text
+					tmpData["Width"] = w
+					totalWidth = totalWidth + w
+					
+					-- Check if our speaker is a player.
+					if ply then
+					
+						-- Are we parsing his own name?
+						if text == ply:Nick() then
+							tmpData["Color"] = Color( r, g, b, a )
+						else
 						
-							local sound = ""
-							if string.sub( text, 3, 3 ) == "@" and string.smartFind( LocalPlayer():Nick(), string.Explode( " ", text )[2]:Replace( "@", "" ) ) then -- If we are doing a twitter style
-		
-								table.insert( data.Value, id, Color( 103, 207, 255, 200 ) )
-								data.Blink = true
+							-- Check for "twitter" style messages.
+							if string.sub( text, 3, 3 ) == "@" and string.find( LocalPlayer():Nick(), string.Explode( " ", text )[2]:gsub( "@", "" ), 1, true ) then
+								tmpData["Color"] = self.Colors.Twitter
+								tmpData["Blink"] = true
+								
 								sound = "name_said.wav"
-		
-							elseif ply:GetFriendStatus() == "friend" then -- If hes a friend
-								
-								table.insert( data.Value, id, Color( 255, 203, 124, 200 ) )
-								
-							else -- Hes just some guy.
-								table.insert( data.Value, id, Color( clR, clG, clB, clA ) )
+							-- Check if he is a friend.
+							elseif ply:GetFriendStatus() == "friend" then
+								tmpData["Color"] = self.Colors.Friend
+							-- He isn't anyone important.
+							else
+								tmpData["Color"] = Color( r, g, b, a )
 							end
 							
-							-- Check for his name
-							if string.smartFind( text, LocalPlayer():Nick() ) then -- If they said our name (IRC)
-							
-								data.Blink = true
+							-- Check if he said our name
+							if string.find( text, LocalPlayer():Nick(), 1, true ) then
+								tmpData["Blink"] = true
 								sound = "name_said.wav"
-								
 							end
 							
-							if PLUGIN.LastSound < CurTime() and sound then
+							-- Play our sound if it exists
+							if lastSound < CurTime() and sound then
 								LocalPlayer():EmitSound( sound, 100, math.random( 70, 130 ) )
-								PLUGIN.LastSound = CurTime() + 1
+								lastSound = CurTime() + 1
+								sound = nil
 							end
 							
 						end
 						
 					else
-						table.insert( data.Value, id, Color( clR, clG, clB, clA ) )
+						-- Insert whatever color value exists.
+						tmpData["Color"] = Color( r, g, b, a )
 					end
-
-					total_w = total_w + w
 					
-					if colEndEnd then toParse = string.sub( toParse, colEndEnd + 1 ) else toParse = "" end
+					if clEndEnd then line = string.sub( line, clEndEnd + 1 ) else line = "" end
 					
+				-- If he exists after the begining slot.
 				elseif clStart > 1 then
 				
-					local text = string.sub( toParse, 1, clStart - 1 )
-					local w, h = surface.GetTextSize( text )
+					text = string.sub( line, 1, clStart - 1 )
+					w, h = surface.GetTextSize( text )
 					
-					table.insert( data.Width, id, w )
-					table.insert( data.Text, id, text )
-					table.insert( data.Type, id, 1 )
+					tmpData = {}
 					
-					total_w = total_w + w
+					tmpData["Text"] = text
+					tmpData["Color"] = self.Colors.White
+					tmpData["Width"] = w
+					totalWidth = totalWidth + w
 					
-					toParse = string.sub( toParse, clStart, string.len( toParse ) )
+					line = string.sub( line, clStart, string.len( line ) )
 					
 				end
 				
+				-- Increment our ID for the table.
 				id = id + 1
 				
+			-- If we didn't find any colors...
 			else
+				
+				w, h = surface.GetTextSize( line )
+				
+				tmpData = {}
+				
+				tmpData["Text"] = line
+				tmpData["Color"] = self.Colors.White
+				tmpData["Width"] = w
+				totalWidth = totalWidth + w
+				
+				line = ""
+				
+			end
 			
-				local w, h = surface.GetTextSize( toParse )
-				
-				table.insert( data.Type, id, 1 )
-				table.insert( data.Text, id, toParse )
-				table.insert( data.Width, id, w )
-				
-				toParse = ""
-				id = id + 1
-				
-				total_w = total_w + w
-				
+			-- Save our data if we created the tmpData
+			if tmpData then
+				table.insert( data.Blocks, tmpData )
+				id = 1
+				tmpData = nil
 			end
 			
 		end
 		
-		data.Length = id
-		data.Time = CurTime() + PLUGIN.StayTime
-		data.Alpha = 255
-		data.Last_Y = PLUGIN.Y + 10
-		data.Last_X = 70
-		data.Total_W = total_w
-		data.Text_Full = fulltext
-		table.insert( PLUGIN.Lines, data )			
+		-- Insert what we found into the plugin lines table
+		data.Anims = {
+			LastX = self.X + 35,
+			LastY = self.Y + 20,
+			CurX = self.X + 35,
+			CurY = self.Y + 20,
+		}
+		
+		data.EndTime = CurTime() + self.LineLivingTime
+		data.Width = totalWidth
+			
+		table.insert( self.Lines, data )
+		data = {}
+		data.Blocks = {}
 		
 	end
-	
-	function PLUGIN.AddText( ... )
-		local data = ""
-		local cprint = ""
-		local numColors = 0
-		local ply = nil
-		local arg = {...}
-		
-		if type( arg[1] ) == "Player" then ply = arg[1] end
-		
-		for k,v in pairs( arg ) do
 
-			if type( v ) == "table" then
-				
-				if numColors == 1 then
-					data = data .. "[/c]"
-					numColors = 0
-				end
+	-- Chatbox Panel
+	local PANEL = {}
+	
+	function PANEL:Init()
+		
+		self.X = 35
+		self.Y = ScrH() - 310
+		self.W = 480
+		self.H = 20
+		
+		self.AutoComplete = {
+			Slots = {},
+			Width = 0,
+			Height = 0,
+			Built = false,
+		}
+		
+		self:NoClipping( true )
+		
+		-- ******
+		-- Create the first label.
+		-- ******
+		self.Label = vgui.Create( "DLabel", self )
+		self.Label:SetPos( 5, 2 )
+		self.Label:SetFont( PLUGIN.Font )
+		self.Label:SetText( PLUGIN.ChatLabelDefault )
+		self.Label:SizeToContents()
+		self.Label:NoClipping( true )
+		
+		self.Label.Paint = function( self )
+			draw.SimpleTextOutlined( self:GetValue(), PLUGIN.Font, 0, 0, PLUGIN:ColorAlpha( PLUGIN.Colors.White, PLUGIN.Fade ), 0, 0, 1, PLUGIN:ColorAlpha( PLUGIN.Colors.Outline, PLUGIN.Fade ) )
+			return true
+		end
+
+		-- ******
+		-- Create the entry.
+		-- ******
+		self.Entry = vgui.Create( "DTextEntry", self )
+		
+		self.Entry:SetPos( self.Label:GetWide() + 10, 0 )
+		self.Entry:SetSize( self.W - self.Label:GetWide() - 10, self.H )
+		
+		local split
+		self.Entry.OnKeyCodeTyped = function( self, code )
+			local text = self:GetValue()
 			
-				data = data .. "[c=" .. v.r .. "," .. v.g .. "," .. v.b .. "," .. v.a .. "]"
-				
-				numColors = numColors + 1
-				
-			elseif type( v ) == "Player" then
-			
-				local rank = v:GetRank()
-				local col = team.GetColor( v:Team() )
-				if PLUGIN.UseExstoColors then	
-					col = exsto.GetRankColor( rank )
-				end
-				
-				if numColors == 1 then
-					data = data .. "[/c]"
-					numColors = 0
-				end
-				
-				data = data .."[c=" .. col.r .. "," .. col.g .. "," .. col.b .. "," .. col.a .. "]"
-				data = data .. v:Nick()
-				data = data .. "[/c]"
-				
-				cprint = cprint .. v:Nick()
-				
-			elseif type( v ) == "string" then
-			
-				data = data .. v
-				
-				cprint = cprint .. v
-				
+			if code == KEY_ENTER then
+				RunConsoleCommand( PLUGIN.TeamMode and "team_say" or "say", text )
+				PLUGIN:Toggle( false )
+			elseif code == KEY_BACKSPACE and text == "" then
+				PLUGIN:Toggle( false )
+			elseif code == KEY_ESCAPE then
+				PLUGIN:Toggle( false )
+			elseif code == KEY_TAB then
+				split = string.Explode( " ", text )
+				self:SetText( text:gsub( split[#split], PLUGIN:OnChatTab( text ) ) )
+				self:OnTextChanged()
 			end
-			
 		end
 		
-		print( cprint )
-		PLUGIN.ParseLine( ply, data )	
-	end
-	PLUGIN:AddOverride( "AddText", "AddText", chat )
-	
-	function PLUGIN.UpdateGlobalW( text )
+		self.Entry.OnTextChanged = function( self )
+			PLUGIN:OnChatChange( self:GetValue() )
+		end
+		
+		local think
+		if self.Entry.Think then think = self.Entry.Think end
+		self.Entry.Think = function( self )
+			if think then think( self ) end
+			
+			if !self:HasFocus() then
+				-- Reset our focus please.
+				self:RequestFocus()
+			end
+		end
+		
+		local oldScheme = self.Entry.ApplySchemeSettings
+		self.Entry.ApplySchemeSettings = function( self, ... )
+			oldScheme( self, ... )
+			
+			self:SetTextColor( Color( 255, 255, 255, 255 ) )
+			self:SetCursorColor( Color( 255, 255, 255, 255 ) )
+		end
+		
+		self.Entry:SetDrawBackground( false )
+		self.Entry:SetDrawBorder( false )
+		
+		self.Scrollup = exsto.CreateSysButton( self.Label:GetWide() + 10 + self.Entry:GetWide() + 2, 0, 15, 10, "up", self )
+		self.Scrolldown = exsto.CreateSysButton( self.Label:GetWide() + 10 + self.Entry:GetWide() + 2, 10, 15, 10, "down", self )
+		
+		self.Scrollup.DoClick = function( self )
+			if PLUGIN.ScrollSelection < PLUGIN.MaxLines + #PLUGIN.Lines then PLUGIN.ScrollSelection = PLUGIN.ScrollSelection + 1 end
+		end
+		
+		self.Scrolldown.DoClick = function( self )
+			if PLUGIN.ScrollSelection >= 1 then PLUGIN.ScrollSelection = PLUGIN.ScrollSelection - 1 end
+		end
+		
+		local function paintButton( self )
+			draw.RoundedBox( 4, 0, 0, self:GetWide(), self:GetTall(), PLUGIN:ColorAlpha( PLUGIN.Colors.Scroll, PLUGIN.Fade ) )
+			draw.SimpleText( self:GetValue(), "Marlett", self:GetWide() / 2, self:GetTall() / 2, PLUGIN:ColorAlpha( PLUGIN.Colors.White, PLUGIN.Fade ), 1, 1 )
+			return true
+		end
+		self.Scrollup.Paint = paintButton
+		self.Scrolldown.Paint = paintButton
 
+	end
+	
+	local build, arg, data
+	function PANEL:AddAutoComplete( name, command )
+	
 		surface.SetFont( PLUGIN.Font )
-
-		local w, h = surface.GetTextSize( text ) 
+		data = { }
+		data.Name = name
 		
-		PLUGIN.G_W = w + 10
+		build = ""
 		
-	end
-
-	local pw, curX, curY, num, blink, t, w, val, text
-	function PLUGIN.DrawLine( x, y, line )
-		
-		surface.SetFont( PLUGIN.Font ) 
-		
-		local outline = Color( PLUGIN.OutlineCol.r, PLUGIN.OutlineCol.g, PLUGIN.OutlineCol.b, line.Alpha / 2 )
-
-		pw = 0
-
-		curX = x
-		curY = y																																						
-		num = line.Length
-		blink = line.Blink
-
-		for I = 1, line.Length do
-		
-			t = line.Type[I]
-			w = line.Width[I]
-			val = line.Value[I]
-			text = line.Text[I]
-			
-			if t == 1 then
-			
-				draw.SimpleTextOutlined( text, PLUGIN.Font, curX, curY, Color( 255, 255, 255, line.Alpha ), 0, 0, 1, outline )
+		-- Build the function requirements
+		if type( command.ReturnOrder ) == "table" then
+			for I = 1, #command.ReturnOrder do
+				arg = command.ReturnOrder[ I ]
 				
-			elseif t == 2 then
-			
-				if blink then
-					val = Color( math.Clamp( val.r + ( math.sin( CurTime() * 7 ) * 90  ), 0, 255 ),
-								math.Clamp( val.g + ( math.sin( CurTime() * 7 ) * 90  ), 0, 255 ),
-								math.Clamp( val.b + ( math.sin( CurTime() * 7 ) * 90  ), 0, 255 ),
-								val.a )
+				if arg then
+					if command.Optional[ arg ] then arg = "[" .. arg .. "]" end
+					build = build .. arg:lower():Trim() .. " "
 				end
-			
-				draw.SimpleTextOutlined( text, PLUGIN.Font, curX, curY, Color( val.r, val.g, val.b, line.Alpha ), 0, 0, 1, outline )
-				
 			end
 			
-			if w then curX = curX + w or curX end
-			
+			data.Arguments = build
 		end
 
-	end
-
-	function PLUGIN.DrawKeyBlinker( x, alpha )
-
-		local col
-		
-		if PLUGIN.NextInterval < CurTime() then
-
-			PLUGIN.Blink = !PLUGIN.Blink
-		
-			PLUGIN.NextInterval = CurTime() + PLUGIN.CursorInterval
-			
-		end
-		
-		if PLUGIN.Blink then
-		
-			col = Color( 0, 0, 0, 0 )
-			
-		else
-		
-			col = Color( 200, 200, 200, alpha )
-
-		end
-		
-		surface.SetDrawColor( col.r, col.g, col.b, col.a )
-		surface.DrawRect( x, PLUGIN.Y + 2, 1, 16 )
+		table.insert( self.AutoComplete.Slots, data )
 		
 	end
-
-	local dist, speed
-	function PLUGIN.AnimateInputBox( olda, newa, mul )
-
-		if !PLUGIN.UseAnims then
-			return newa
-		end
-
-		if olda != newa then
-		
-			dist = newa - olda
-			speed = dist / mul
-			
-			olda = math.Approach( olda, newa, speed )
-			
-		end
-		
-		return olda
-		
-	end
-
-	function PLUGIN.DrawCautionChars( w )
-
+	
+	local w, h, slot, nw, nh
+	function PANEL:BuildAutoComplete()
 		surface.SetFont( PLUGIN.Font )
 		
-		local outlinecol = Color( PLUGIN.OutlineCol.r, PLUGIN.OutlineCol.g, PLUGIN.OutlineCol.b, PLUGIN.Box_Alpha )
+		for I = 1, 7 do
+			slot = self.AutoComplete.Slots[I]
+			
+			if slot then
+				-- Do the name.
+				nw, nh = surface.GetTextSize( slot.Name )
+				w, h = surface.GetTextSize( slot.Arguments )
+				
+				self.AutoComplete.Slots[ I ].NameWidth = nw
+				self.AutoComplete.Slots[ I ].ArgWidth = w
+				
+				w = w + nw
+				if w >= self.AutoComplete.Width then self.AutoComplete.Width = w + 15 end
+				
+				self.AutoComplete.Height = self.AutoComplete.Height + h + 5
+				self.AutoComplete.Slots[ I ].Place = self.AutoComplete.Height - h - 3
+			end
+			
+		end
 		
-		draw.SimpleTextOutlined( "You are getting close to the max char limit!", PLUGIN.Font, PLUGIN.X + PLUGIN.G_W - 20 + w, PLUGIN.Y + 30, Color( 255, 255, 255, PLUGIN.Box_Alpha ), 0, 0, 1, outlinecol )
-		draw.SimpleTextOutlined( "You currently have " .. string.len( PLUGIN.CurrentText ) .. " characters!", PLUGIN.Font, PLUGIN.X + PLUGIN.G_W - 20 + w, PLUGIN.Y + 50, Color( 255, 255, 255, PLUGIN.Box_Alpha ), 0, 0, 1, outlinecol )
-		draw.SimpleTextOutlined( "The limit is 127!", PLUGIN.Font, PLUGIN.X + PLUGIN.G_W - 20 + w, PLUGIN.Y + 70, Color( 255, 255, 255, PLUGIN.Box_Alpha ), 0, 0, 1, outlinecol )
+		-- Clean those who didn't make the cut.
+		for _, slot in ipairs( self.AutoComplete.Slots ) do
+			if !slot.Place then table.remove( self.AutoComplete.Slots, _ ) end
+		end
+		
+		self.AutoComplete.Built = true
 
 	end
-
-	local w, h, alpha, mul, add_w, comWidth, height, width, place, ToDraw, name, returnOrder, args, optional, argument, dataType, newOptional, format, commandColor
-	function PLUGIN.DrawInputBox()
-
-		surface.SetFont( PLUGIN.Font )
-
-		w, h = surface.GetTextSize( PLUGIN.CurrentText )
+	
+	function PANEL:AutoCompleteBuilt()
+		return self.AutoComplete.Built
+	end
+	
+	function PANEL:AutoCompleteSelected()
+		return self.AutoComplete.Slots[1]
+	end
+	
+	function PANEL:ClearAutoComplete()
+		self.AutoComplete = { 
+			Slots = {},
+			Width = 0,
+			Height = 0,
+			Built = false,
+		}
+	end
+	
+	function PANEL:Paint()
+	
+		-- Draw green fill on the nice label
+		surface.SetDrawColor( 119, 255, 91, PLUGIN.Fade / 2 )
+		surface.DrawRect( 0, 0, self.Label:GetWide() + 10, self.Label:GetTall() )
 		
-		alpha = 255
-		mul = 10
-		add_w = 510
+		-- Draw text box stuff
+		surface.SetDrawColor( 50, 50, 50, PLUGIN.Fade / 2 )
+		surface.DrawRect( self.Label:GetWide() + 10, 0, self.W - self.Label:GetWide() - 10, self.H )
+	
+		-- Create the white outline.
+		surface.SetDrawColor( 255, 255, 255, PLUGIN.Fade )
+		surface.DrawOutlinedRect( 0, 0, self.Label:GetWide() + 10 + self.Entry:GetWide(), self:GetTall() )
 		
-		if not PLUGIN.Open then
+		-- Draw white seperator line
+		surface.DrawLine( self.Label:GetWide() + 10, 0, self.Label:GetWide() + 10, self.H )
 		
-			alpha = 0
-			mul = 40
+		-- Draw autocomplete if availible.
+		if self.AutoComplete.Built then
 			
-		end
-		
-		if w > add_w then
-			add_w = w + 10
-		end
-		
-		if string.len( PLUGIN.CurrentText ) >= 110 then
-		
-			PLUGIN.DrawCautionChars( w )
+			surface.SetDrawColor( 119, 255, 91, PLUGIN.Fade / 2 )
+			surface.DrawRect( PLUGIN.X, 25, self.AutoComplete.Width, self.AutoComplete.Height )
 			
-		end
-		
-		PLUGIN.Box_Alpha = PLUGIN.AnimateInputBox( PLUGIN.Box_Alpha, alpha, mul )
-		
-		local outlinecol = Color( PLUGIN.OutlineCol.r, PLUGIN.OutlineCol.g, PLUGIN.OutlineCol.b, PLUGIN.Box_Alpha )
-
-		draw.SimpleTextOutlined( PLUGIN.CurrentText, PLUGIN.Font, PLUGIN.X + PLUGIN.G_W + 5, PLUGIN.Y, Color( 255, 255, 255, PLUGIN.Box_Alpha ), 0, 0, 1, outlinecol )
-		
-		surface.SetDrawColor( 50, 50, 50, PLUGIN.Box_Alpha / 2 )
-		surface.DrawRect( PLUGIN.X + PLUGIN.G_W, PLUGIN.Y, add_w, 20 )
-		
-		surface.SetDrawColor( 119, 255, 91, PLUGIN.Box_Alpha / 2 )
-		surface.DrawRect( PLUGIN.X, PLUGIN.Y, PLUGIN.G_W, 20 )
-		
-		surface.SetDrawColor( 255, 255, 255, PLUGIN.Box_Alpha / 2 )
-		surface.DrawOutlinedRect( PLUGIN.X + PLUGIN.G_W, PLUGIN.Y, add_w, 20 )
-		surface.DrawOutlinedRect( PLUGIN.X, PLUGIN.Y, PLUGIN.G_W, 20 )
-		
-		draw.SimpleTextOutlined( PLUGIN.G_Text, PLUGIN.Font, PLUGIN.X + 5, PLUGIN.Y, Color( 255, 255, 255, PLUGIN.Box_Alpha ), 0, 0, 1, outlinecol )
-		
-		PLUGIN.DrawKeyBlinker( w + 6 + PLUGIN.X + PLUGIN.G_W, PLUGIN.Box_Alpha )
-		
-		-- Find Commands
-		if #Find_List >= 1 then
-			height = 20
-			width = 50
-			place = PLUGIN.Y + 25
-			ToDraw = {}
-
-			for I = 1, 4 do -- Processing lines ONLY!
+			surface.SetDrawColor( 255, 255, 255, PLUGIN.Fade )
+			surface.DrawOutlinedRect( PLUGIN.X, 25, self.AutoComplete.Width, self.AutoComplete.Height )
 			
-				local command = Find_List[I]
-				
-				if command then
-				
-					w = command.Width
-					h = command.Height - 4
-					name = command.Name
-					returnOrder = command.ReturnOrder
-					args = command.Args
-					optional = command.Optional
-					
-					-- We need to increase width depending on the list of argumentals.
-					local comInfo = ""
-					if type( returnOrder ) == "table" then
-						for I = 1, #returnOrder do
-							
-							-- We need to build the argument text for this command
-							argument = returnOrder[I]
-							dataType = args[argument]
-							
-							if optional then newOptional = optional[argument] end
-							
-							if argument then
-								argument = argument:Trim():lower()
-								
-								format = argument
-								if newOptional then format = "[" .. argument .. "]" end
-								
-								comInfo = comInfo .. format .. " "
-							end
-							
-						end
-						
-						comWidth, h = surface.GetTextSize( comInfo )
-						
-						if ( w + comWidth + 10 ) >= width then width = w + comWidth + 10 end
-						
-						table.insert( ToDraw, { Name = name, Place = place, Args = comInfo } )
-						
-						place = place + h
-						height = height + h
-						
-					end
-					
+			for _, slot in ipairs( self.AutoComplete.Slots ) do
+				if slot.Place then
+					draw.SimpleTextOutlined( slot.Name, PLUGIN.Font, PLUGIN.X + 5, slot.Place + 25, PLUGIN:ColorAlpha( COLOR.NAME, PLUGIN.Fade ), 0, 0, 1, PLUGIN:ColorAlpha( PLUGIN.Colors.Outline, PLUGIN.Fade ) )
+					draw.SimpleTextOutlined( slot.Arguments, PLUGIN.Font, PLUGIN.X + 10 + slot.NameWidth, slot.Place + 25, PLUGIN:ColorAlpha( COLOR.NORM, PLUGIN.Fade ), 0, 0, 1, PLUGIN:ColorAlpha( PLUGIN.Colors.Outline, PLUGIN.Fade ) )
 				end
-				
-			end
-			
-			surface.SetDrawColor( 119, 255, 91, PLUGIN.Box_Alpha / 2 )
-			surface.DrawRect( PLUGIN.X, PLUGIN.Y + 20, width, height )
-			
-			surface.SetDrawColor( 255, 255, 255, PLUGIN.Box_Alpha / 2 )
-			surface.DrawOutlinedRect( PLUGIN.X, PLUGIN.Y + 20, width, height )
-			
-			for k,v in ipairs( ToDraw ) do
-			
-				commandColor = Color( COLOR.NAME.r, COLOR.NAME.g, COLOR.NAME.b, PLUGIN.Box_Alpha )
-				w, h = surface.GetTextSize( v.Name )
-				
-				draw.SimpleTextOutlined( v.Name, PLUGIN.Font, PLUGIN.X + 5, v.Place, commandColor, 0, 0, 1, outlinecol )
-				draw.SimpleTextOutlined( v.Args, PLUGIN.Font, PLUGIN.X + 10 + w, v.Place, COLOR.NORM, 0, 0, 1, outlinecol )
-				
-			end
-			
-		end
-	end
-	
-	local split, command
-	function PLUGIN:OnOnChatTab( text )
-	
-		if Find_List then
-		
-			split = string.Explode( " ", text )
-			command = Find_List[1]
-			
-			if command and #split == 1 then
-				return command.Name .. " "
 			end
 			
 		end
 		
 	end
 	
-	function PLUGIN.Animate( line, curX, curY, mulX, mulY )
+	function PANEL:Resize()
+		if PLUGIN.ChatLabel == self.OldLabel then return end
+		
+		self.OldLabel = PLUGIN.ChatLabel
+		self.Label:SetText( PLUGIN.ChatLabel )
+		self.Label:SizeToContents()
+		self.Entry:SetPos( self.Label:GetWide() + 10, 0 )
+		self.Entry:SetWide( self.W - self.Label:GetWide() - 10 )
 
-		if !PLUGIN.UseAnims then
-			line.Last_X = curX
-			line.Last_Y = curY
-			return
-		end
-		
-		mulX = math.floor( 1 / FrameTime() ) / 3
-		mulY = math.floor( 1 / FrameTime() ) / 3
-
-		if line.Last_X != curX then
-				
-			dist = curX - line.Last_X
-			speed = dist / mulX
-			
-			line.Last_X = math.Approach( line.Last_X, curX, speed )
-			
-		end
-		
-		if line.Last_Y != curY then
-				
-			dist = curY - line.Last_Y
-			speed = dist / mulY
-			
-			line.Last_Y = math.Approach( line.Last_Y, curY, speed )
-			
-		end
-		
+		self.Scrollup:SetPos( self.Label:GetWide() + 10 + self.Entry:GetWide() + 2, 0 )
+		self.Scrolldown:SetPos( self.Label:GetWide() + 10 + self.Entry:GetWide() + 2, 10 )
 	end
 	
-	local lineHeight, curX, curY, mulX, mulY, k, line, _
-	function PLUGIN:OnHUDPaint()
-
-		surface.SetFont( PLUGIN.Font ) -- Set the font
-		
-		-- Set variables used.
-		_, lineHeight = surface.GetTextSize( "H" )
-		curX = 70
-		curY = PLUGIN.H - 248
-		
-		mulX = 40
-		mulY = 40
-		
-		--Draw input panenl
-		PLUGIN.DrawInputBox()
-
-		for I = 0, 7 do -- For the last 7 lines in the table
-		
-			k = #PLUGIN.Lines - I
-			
-			line = PLUGIN.Lines[ k ]
-			
-			if line then -- If the line exists
-			
-				if line and ( line.Time < CurTime() ) then  -- His time is up, remove and slide.				 																			
-				
-					curX = ( line.Total_W * -2 )
-					
-					if line.Last_X - 5 <= line.Total_W * -2 then
-						
-						--table.remove( PLUGIN.Lines, k )
-						
-					end
-					
-				end
-				
-				if PLUGIN.Open then -- If the chat is open, make the lines come back and give a new time.
-				
-					curX = 70
-					mulX = 6
-					
-					if line.Time < CurTime() then -- If he should be gone, give him some more time to live.
-					
-						line.Time = CurTime() + 2 + I
-						
-					end
-					
-				end
-				
-				PLUGIN.Animate( line, curX, curY, mulX, mulY ) -- Animate smoothing
-					
-				PLUGIN.DrawLine( line.Last_X, line.Last_Y, line ) -- Draw it
-				
-				curY = curY - lineHeight - 2 -- Incremental 
-				
-			end
-
-		end
-		
-	end
-
-	hook.Add( "Think", "exsto_ChatInit", function()
-
-		if LocalPlayer():IsValid() then
-		
-			PLUGIN.Init()
-			hook.Remove( "Think", "exsto_ChatInit" )
-			
-		end
-		
-	end) -- Stupid VGUI wont create when player isn't valid :(
-
+	vgui.Register( "ExChatBox", PANEL, "EditablePanel" )
+	
 end
 
 PLUGIN:Register()
+	
