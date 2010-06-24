@@ -163,6 +163,7 @@ function plugin:Register()
 	exsto.Print( exsto_CONSOLE, "PLUGIN --> Loading " .. self.Info.Name .. " by " .. self.Info.Owner .. "!" )
 	
 	self:Init()
+	self.Info.Initialized = true
 end
 
 --[[ -----------------------------------

@@ -65,7 +65,7 @@ end
 local data = {}
 function exsto.HookCall( name, gm, ... )
 	for _, plug in pairs( exsto.Plugins ) do
-		if type( plug.Object[ name ] ) == "function" and !plug.Disabled then
+		if type( plug.Object[ name ] ) == "function" and !plug.Disabled and plug.Object.Info.Initialized then
 
 			data = { pcall( plug.Object[ name ], plug.Object, ... ) }
 			
