@@ -609,7 +609,7 @@ elseif CLIENT then
 			local text = self:GetValue()
 			
 			if code == KEY_ENTER then
-				RunConsoleCommand( PLUGIN.TeamMode and "team_say" or "say", text )
+				RunConsoleCommand( PLUGIN.TeamMode and "say_team" or "say", text )
 				PLUGIN:Toggle( false )
 			elseif code == KEY_BACKSPACE and text == "" then
 				PLUGIN:Toggle( false )
