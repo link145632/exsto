@@ -103,7 +103,7 @@ if SERVER then
 		} )
 	end
 
-	local function mysqlQuery( run, threaded, callback )
+	local function mysqlQuery( run, threaded, callback, print )
 
 		if FEL.Database:status() != mysqloo.DATABASE_CONNECTED then 
 			-- Check if we actually are enabled first.
@@ -121,7 +121,7 @@ if SERVER then
 		FEL.QueryObj = FEL.Database:query( run )
 		FEL.QueryObj:start()
 		
-		FEL.QueryObj.OnFailure = onError
+		if print then FEL.QueryObj.OnFailure = onError end
 		
 		-- Check to make sure we are threaded, we don't want to halt up the server!
 		if threaded then
@@ -146,10 +146,10 @@ if SERVER then
 	Function: sqliteQuery
 	Description: Helper function to query into SQLite
      ----------------------------------- ]]
-	local function sqliteQuery( run )
+	local function sqliteQuery( run, print )
 		local result = sql.Query( run )
 			
-		if result == false then
+		if result == false and print then
 		
 			FEL.PrintError( {
 				SQLite = true,
@@ -165,18 +165,18 @@ if SERVER then
 	Function: FEL.Query
 	Description: Main query, returns data from SQL query
      ----------------------------------- ]]
-	function FEL.Query( run, threaded, callback )
+	function FEL.Query( run, threaded, callback, printerror )
 		if FEL.Settings["MySQL"] then
 			if !mysqloo then
 				exsto.Print( exsto_ERRORNOHALT, "FEL --> Couldn't locate MySQL library!  Falling back to SQL!" )
 				FEL.Settings["MySQL"] = false
 				
-				return sqliteQuery( run )
+				return sqliteQuery( run, printerror )
 			else	
-				return mysqlQuery( run, threaded, callback )
+				return mysqlQuery( run, threaded, callback, printerror )
 			end
 		else
-			return sqliteQuery( run )
+			return sqliteQuery( run, printerror )
 		end
 	end
 	
@@ -199,7 +199,7 @@ if SERVER then
 	Description: Prints an error recieved from the FEL.Query
      ----------------------------------- ]]
 	function FEL.PrintError( info )
-		ErrorNoHalt( "\n---- FEL SQL Error ----\n ** Running - \n ** Error Msg - " .. info.Error .. "\n" );
+		ErrorNoHalt( "\n---- FEL SQL Error ----\n ** Running - " .. info.Running .. " \n ** Error Msg - " .. info.Error .. "\n" );
 	end
 	
 --[[ -----------------------------------
@@ -221,7 +221,7 @@ if SERVER then
 	function FEL.CheckTable( name, data )
 	
 		-- First, lets check if the table exists.
-		local tbl = FEL.Query( "SELECT * FROM " .. name .. ";" )
+		local tbl = FEL.Query( "SELECT * FROM " .. name .. ";", nil, nil, false )
 		
 		if !tbl then return false end
 		
@@ -280,7 +280,7 @@ if SERVER then
 
 		local query = string.format( "CREATE TABLE IF NOT EXISTS %s (%s);", name, columns );
 		FEL.Query( query );
-		exsto.Print( exsto_CONSOLE_DEBUG, "SQL --> Creating table " .. name .. "!" )
+		exsto.Print( exsto_CONSOLE_DEBUG, "FEL --> Creating table " .. name .. "!" )
 		
 		-- Save the data if the table had to be broken down.
 		if savedInfo then 
@@ -341,8 +341,8 @@ if SERVER then
 	Function: FEL.Query
 	Description: Main query, returns data from SQL query
      ----------------------------------- ]]
-	function FEL.LoadTable( tab, mysql )
-		return FEL.Query( "SELECT * FROM " .. tab .. ";", mysql )
+	function FEL.LoadTable( tab, threaded, callback, printerr )
+		return FEL.Query( "SELECT * FROM " .. tab .. ";", threaded, callback, printerr )
 	end
 
 --[[ -----------------------------------
@@ -819,7 +819,7 @@ function FEL.LoadSettingsFile( id )
 		
 	else
 		
-		exsto.ErrorNoHalt( "FEL --> Couldn't find " .. id .. " setting!" )
+		exsto.ErrorNoHalt( "FEL --> Couldn't find '" .. id .. "' setting!" )
 		return {}
 	end
 	
@@ -856,15 +856,16 @@ function FEL.DumpErrorLog()
 		data = data .. "[" .. k .. "] " .. v .. "\n"
 	end
 	
+	file.Write( "exsto_error_dump.txt", data )
+	
 	if SERVER then
-		data = data .. "\n\n ******* SQL TABLES ****** \n\n"
 		-- Dump the SQL tables.
-		
 		for k,v in pairs( FEL.CreatedTables ) do
-			//local data = data .. " **** " .. k .. " ****\n\n" .. FEL.LoadTable( k ) .. "\n\n"
+			FEL.LoadTable( k, true, function( query )
+				file.Write( "dump_" .. k .. ".txt", query:getData() )
+			end )
 		end
 	end
 	
-	file.Write( "exsto_error_dump.txt", data )
 end
 concommand.Add( "FEL_DumpErrors", FEL.DumpErrorLog )

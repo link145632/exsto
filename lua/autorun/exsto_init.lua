@@ -24,6 +24,7 @@ local function PrintLoading()
 	print( "Exsto Loading" )
 	print( "Created by Prefanatic" )
 	print( "Revision " .. tostring( exsto.VERSION ) )
+	print( "Please ignore all errors about modules unless you have that module installed." )
 	print( "-----------------------------" )
 
 end
@@ -33,7 +34,7 @@ local function LoadVariables()
 	exsto = {}
 	exsto.DebugEnabled = true
 	
-	exsto.VERSION = 47
+	exsto.VERSION = 48
 end
 
 function exstoInit()

@@ -109,9 +109,7 @@ function exsto.InitPlugins()
 	
 		prefixFind = string.find( v, "_" )
 		
-		if !prefixFind then
-			//exsto.Print( exsto_ERRORNOHALT, "PLUGINS --> Plugin '" .. v .. "' is missing a run prefix!  Not loading!" )
-		else
+		if prefixFind then
 		
 			prefix = string.Left( v, prefixFind - 1 )
 			

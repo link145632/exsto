@@ -297,8 +297,9 @@ function exsto.ParseArguments( ply, text, data, alreadyString )
 				if curArg == "PLAYER" and I == 1 and ply:IsPlayer() then
 					table.insert( Return, ply )
 					exsto.Print( exsto_CONSOLE_DEBUG, "COMMANDS --> Adding in caller value for \"" .. argName .. "\'!" )
-				elseif curArg == "PLAYER" then
-					ply:Print( exsto_CHAT, COLOR.NORM, "Argument ", COLOR.NAME, argName .. " (" .. exsto.Arguments[argkey].Type .. ")", COLOR.NORM, " is needed!  You put ", COLOR.NAME, "nobody! (Couldn't find player!)" )
+				else
+				
+					ply:Print( exsto_CHAT, COLOR.NORM, "Argument ", COLOR.NAME, argName .. " (" .. exsto.Arguments[argkey].Type .. ")", COLOR.NORM, " is needed!" )
 					return nil
 				end
 			end
@@ -376,6 +377,7 @@ local function ExstoParseCommand( ply, command, args, style )
 			local onPlayer = false
 			for k,v in pairs( Found.ReturnOrder ) do
 				if Found.Args[v] == "PLAYER" then
+					print( "Checking on player." )
 					allowed = ply:IsAllowed( Found.ID, args[k] )
 					break
 				end

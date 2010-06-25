@@ -108,23 +108,6 @@ elseif CLIENT then
 			self.Panel.Entry:SetText( "" )
 		end
 	end
-
-	--[[-- And this is why I failed.
-	function PLUGIN:StartChat()
-		print( "I OPEN CHAT LOLOL ")
-		if !exsto.Plugins[ PLUGIN.Info.ID ].Disabled then 
-			//PLUGIN:Toggle( true )
-			return true
-		end
-	end
-
-	function PLUGIN:FinishChat()
-		print( "I FINISH CHAT" )
-		if !exsto.Plugins[ PLUGIN.Info.ID ].Disabled then 
-			PLUGIN:Toggle( false )
-			return true
-		end
-	end]]
 	
 	function PLUGIN:OnPlayerChat( ply, text, team, dead )
 		if ply:EntIndex() == 0 then
@@ -393,9 +376,11 @@ elseif CLIENT then
 	exsto_PLUGINADDTEXT = exsto_PLUGINADDTEXT or chat.AddText
 	local data, colOpen, col
 	function chat.AddText( ... )
+		if exsto.Plugins[ PLUGIN.Info.ID ].Disabled then return exsto_PLUGINADDTEXT( ... ) end
+		
 		data = ""
 		colOpen = false
-	
+
 		for _, obj in ipairs( {...} ) do
 			if type( obj ) == "table" and obj.r then
 				-- We are a color!
@@ -407,6 +392,11 @@ elseif CLIENT then
 				data = data .. PLUGIN:FormatColorString( obj )
 				colOpen = true
 			elseif type( obj ) == "Player" then
+				if colOpen then
+					data = data .. "[/c]"
+					colOpen = false
+				end
+				
 				data = data .. PLUGIN:FormatColorString( exsto.GetRankColor( obj:GetRank() ) )
 				data = data .. obj:Nick()
 				data = data .. "[/c]"
