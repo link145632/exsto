@@ -810,15 +810,12 @@ function _R.Player:IsAllowed( flag, victim )
 
 	local rank = exsto.GetRankData( self:GetRank() )
 	
-	local victimRank
-	
-	if victim then
-		victimRank = exsto.GetRankData( victim:GetRank() )
-	end
-	
 	if !rank then return false end
 	
 	if victim then
+	
+		local victimRank = exsto.GetRankData( victim:GetRank() )
+		print( rank.Immunity, victimRank.Immunity )
 		if !rank.Immunity or !victimRank.Immunity then -- Just ignore it if they don't exist, we don't want to break Exsto.
 			if table.HasValue( rank.Flags, flag ) then return true end
 		elseif rank.Immunity <= victimRank.Immunity then
