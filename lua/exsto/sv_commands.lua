@@ -377,8 +377,7 @@ local function ExstoParseCommand( ply, command, args, style )
 			local onPlayer = false
 			for k,v in pairs( Found.ReturnOrder ) do
 				if Found.Args[v] == "PLAYER" then
-					print( "Checking on player." )
-					allowed = ply:IsAllowed( Found.ID, args[k] )
+					allowed = ply:IsAllowed( Found.ID, args[ k + 1 ] )
 					break
 				end
 			end

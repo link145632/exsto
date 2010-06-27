@@ -26,6 +26,10 @@ if SERVER then
 		
 		ply:SetTeam( info.Team )
 	end
+	
+	function PLUGIN:ExSetRank( ply, rank )
+		ply:SetTeam( self.Teams[ rank ].Team )
+	end
 
 	function PLUGIN.SendTeamInfo( ply )
 		if type( ply ) != "Player" then

@@ -21,6 +21,17 @@
 
 if !glon then require( "glon" ) end
 
+local function split(str,d)
+	local t = {}
+	local len = str:len()
+	local i = 0
+	while i*d < len do
+			t[i+1] = str:sub(i*d+1,(i+1)*d)
+			i=i+1
+	end
+	return t
+end
+
 if SERVER then
 
 	function exsto.SendRankErrors( ply )
@@ -32,21 +43,9 @@ if SERVER then
 	Description: Sends the flags table down to a client.
      ----------------------------------- ]]
 	function exsto.SendFlags( ply )
-		-- Flag Index
-		exsto.UMStart( "ExStartFlag", ply, "index" )
-		for k,v in pairs( exsto.FlagIndex ) do
-			exsto.UMStart( "ExRecFlag", ply, k, v )
-		end
-		exsto.UMStart( "ExEndFlag", ply )
-		
-		-- Flags
-		exsto.UMStart( "ExStartFlag", ply, "flags" )
-		for k,v in pairs( exsto.Flags ) do
-			exsto.UMStart( "ExRecFlag", ply, k, v )
-		end
-		exsto.UMStart( "ExEndFlag", ply )
-
+		exsto.UMStart( "ExRecFlags", ply, exsto.Flags )
 	end
+	concommand.Add( "ll", exsto.SendFlags )
 
 --[[ -----------------------------------
 	Function: exsto.SendRank
@@ -57,8 +56,8 @@ if SERVER then
 		
 		//if !rank then exsto.ErrorNoHalt( "UMSG --> Failure to send rank '" .. rank .. "' To " .. ply:Nick() .. ".  No rank exists!" ) return end
 		
-		exsto.UMStart( "exsto_RecieveRanks", ply, rank.Name, rank.Short, rank.Desc, rank.Derive, rank.Immunity, rank.Color, rank.CanRemove )
-		exsto.UMStart( "exsto_RecieveRankNoDerive", ply, rank.Short, rank.Flags_NoDerive )
+		exsto.UMStart( "exsto_ReceiveRanks", ply, rank.Name, rank.Short, rank.Desc, rank.Derive, rank.Immunity, rank.Color, rank.CanRemove )
+		exsto.UMStart( "exsto_ReceiveRankNoDerive", ply, rank.Short, rank.Flags_NoDerive )
 	end
 	
 --[[ -----------------------------------
@@ -86,23 +85,12 @@ if SERVER then
 		-- Lets try this with glon now.
 		local encode = glon.encode( tbl )
 		
-		for k,v in pairs( string.split( encode, 128 ) ) do
+		for k,v in pairs( split( encode, 128 ) ) do
 			exsto.UMStart( "ExTblSend", ply, id, v )
 		end
 
 		exsto.UMStart( "ExTblEnd", ply, id )
 		currentHandles[id] = nil
-	end
-	
-	function string.split(str,d)
-		local t = {}
-		local len = str:len()
-		local i = 0
-		while i*d < len do
-				t[i+1] = str:sub(i*d+1,(i+1)*d)
-				i=i+1
-		end
-		return t
 	end
 	
 --[[ -----------------------------------
@@ -134,8 +122,6 @@ if SERVER then
 	function exsto.ParseUMType( ply, data )
 		local format = type( data )
 		local id, tblInfo
-		
-		//exsto.Print( exsto_CONSOLE_DEBUG, "UMSG --> Creating UMSG package for data type '" .. format .. "'" )
 		
 		if format == "string" then
 			umsg.Char( exsto.UMSG.STRING )
@@ -178,7 +164,7 @@ if SERVER then
 				umsg.Char( exsto.UMSG.TABLE_BEGIN )
 				id = exsto.CreateTableID()
 				umsg.Char( id )
-					tblInfo = { ply, data, id }
+				tblInfo = { ply, data, id }
 			end
 		elseif format == "nil" then
 			umsg.Char( exsto.UMSG.NIL )
@@ -188,6 +174,14 @@ if SERVER then
 		end
 		
 		if id then return tblInfo end
+	end
+
+--[[ -----------------------------------
+	Function: meta:Send
+	Description: Sends data to a player object.
+     ----------------------------------- ]]
+	function _R.Player:Send( name, ... )
+		exsto.UMStart( name, self, ... )
 	end
 	
 --[[ -----------------------------------
@@ -223,13 +217,69 @@ if SERVER then
 		end
 	end
 	
+	local dataProcess = {}
+	local dataHooks = {}
+	local id
+	
+	local noFunc = function() end
+	
+	function exsto.BeginClientReceive( _ply, _, args )
+		id = args[1]
+		if !dataHooks[ id ] then
+			dataHooks[ id ] = noFunc
+		end
+		dataProcess[id] = { ply = _ply, data = "" }
+	end
+	concommand.Add( "_ExBeginSend", exsto.BeginClientReceive )
+	
+	function exsto.ClientReceive( ply, _, args )
+		id = args[1]
+		dataProcess[id].data = dataProcess[id].data .. args[2]
+	end
+	concommand.Add( "_ExSend", exsto.ClientReceive )
+	
+	function exsto.EndClientReceive( ply, _, args )
+		id = args[1]
+		local decode = glon.decode( dataProcess[ id ].data )
+		dataHooks[ id ]( dataProcess[ id ].ply, decode )
+		dataProcess[ id ] = nil
+	end
+	concommand.Add( "_ExEndSend", exsto.EndClientReceive )
+	
+	function exsto.ClientHook( id, func )
+		dataHooks[ id ] = func
+	end
+	
+	exsto.ClientHook( "TestHook", function( data )
+		PrintTable( data )
+	end )
+	
 end
 
 if CLIENT then
 
 --[[ -----------------------------------
+	 Category: Client --> Server Sending.
+	----------------------------------- ]]
+	function exsto.SendToServer( hook, ... )
+		RunConsoleCommand( "_ExBeginSend", hook )
+		
+		local encode = glon.encode( {...} )
+		
+		for _, splice in ipairs( split( encode, 128 ) ) do
+			RunConsoleCommand( "_ExSend", hook, splice )
+		end
+		
+		RunConsoleCommand( "_ExEndSend", hook )
+	end
+	
+	concommand.Add( "testSend", function()
+		exsto.SendToServer( "TestHook", "Hello Everyone!", { "I am", 1, true } )
+	end )
+	
+--[[ -----------------------------------
 	Function: exsto.UMHook
-	Description: Hooks into a usermessage that recieves data.
+	Description: Hooks into a usermessage that Receives data.
      ----------------------------------- ]]
 	local function call( data, name, func )
 		func( unpack( data ) )
@@ -308,37 +358,40 @@ if CLIENT then
 		
 	end
 	
+--[[ -----------------------------------
+	 Category: Data Table Receiving
+     ----------------------------------- ]]
 	local dataProcess = {}
 	local dataHooks = {}
 	
 	local noFunc = function() end
 	
-	function exsto.BeginTableRecieve( id )
+	function exsto.BeginTableReceive( id )
 		if !dataHooks[ id ] then
 			dataHooks[ id ] = noFunc
 		end
 		dataProcess[id] = ""
 	end
-	exsto.UMHook( "ExTblBegin", exsto.BeginTableRecieve )
+	exsto.UMHook( "ExTblBegin", exsto.BeginTableReceive )
 	
-	function exsto.TableRecieve( id, encode )
+	function exsto.TableReceive( id, encode )
 		dataProcess[id] = dataProcess[id] .. encode
 	end
-	exsto.UMHook( "ExTblSend", exsto.TableRecieve )
+	exsto.UMHook( "ExTblSend", exsto.TableReceive )
 	
-	function exsto.EndTableRecieve( id )
+	function exsto.EndTableReceive( id )
 		local decode = glon.decode( dataProcess[ id ] )
 		dataHooks[ id ]( decode )
 		dataProcess[ id ] = ""
 	end
-	exsto.UMHook( "ExTblEnd", exsto.EndTableRecieve )
+	exsto.UMHook( "ExTblEnd", exsto.EndTableReceive )
 	
 	function exsto.TableHook( id, func )
 		dataHooks[ id ] = func
 	end
 	
 --[[ -----------------------------------
-		Rank Recieving UMSGS
+		Rank Receiving UMSGS
      ----------------------------------- ]]
 	function exsto.ReceiveRanks( name, short, desc, derive, immunity, color, remove )
 		exsto.LoadedLevels[short] = {
@@ -353,50 +406,20 @@ if CLIENT then
 			CanRemove = remove,
 		}
 	end
-	exsto.UMHook( "exsto_RecieveRanks", exsto.ReceiveRanks )
+	exsto.UMHook( "exsto_ReceiveRanks", exsto.ReceiveRanks )
 	
-	function exsto.RecieveRankNoDerive( short, noderive )
+	function exsto.ReceiveRankNoDerive( short, noderive )
 		local rank = exsto.LoadedLevels[short]
 		if !rank then print( "[EXSTO ERROR] UMSG --> Trying to insert flag data into unknown rank!" ) return end
 		
 		rank.Flags = noderive
 	end
-	exsto.UMHook( "exsto_RecieveRankNoDerive", exsto.RecieveRankNoDerive )
+	exsto.UMHook( "exsto_ReceiveRankNoDerive", exsto.ReceiveRankNoDerive )
 	
-	local recieveType = ""
-	local data = {}
-	
-	function exsto.StartFlagRecieve( type )
-		if type == "flags" then
-			exsto.Flags = {}
-		elseif type == "index" then
-			exsto.FlagIndex = {}
-		end
-		
-		recieveType = type
-	end
-	exsto.UMHook( "ExStartFlag", exsto.StartFlagRecieve )
-	
-	function exsto.RecieveFlag( id, desc )
-		data[ id ] = desc
-	end
-	exsto.UMHook( "ExRecFlag", exsto.RecieveFlag )
-	
-	function exsto.EndFlagRecieve()
-		if recieveType == "flags" then
-			exsto.Flags = data
-		elseif recieveType == "index" then
-			exsto.FlagIndex = data
-		end
-		
-		data = {}
-	end
-	exsto.UMHook( "ExEndFlag", exsto.EndFlagRecieve )
-	
-	function exsto.RecieveRankErrors( errs )
+	function exsto.ReceiveRankErrors( errs )
 		exsto.RankErrors = errs
 	end
-	exsto.UMHook( "ExRankErr", exsto.RecieveRankErrors )
+	exsto.UMHook( "ExRankErr", exsto.ReceiveRankErrors )
 	
 	local function AddLevel( data )
 		exsto.Levels[data.Short] = {
@@ -449,7 +472,7 @@ if CLIENT then
 		end
 	end
 	
-	// Builds the ranks after all data was recieved
+	// Builds the ranks after all data was Received
 	function exsto.BuildRanks()
 		
 		-- Loop through all ranks
@@ -484,16 +507,25 @@ if CLIENT then
 	exsto.UMHook( "ExClearRanks", exsto.ClearRanks )
 	
 --[[ -----------------------------------
-	Function: ReceiveCommands
-	Description: Recieves the command data from server.
+	Function: receive
+	Description: Receives flag data from the server.
      ----------------------------------- ]]
-	function exsto.RecieveCommands( commands )
+	local function receive( flags )
+		exsto.Flags = flags
+	end
+	exsto.UMHook( "ExRecFlags", receive )
+	
+--[[ -----------------------------------
+	Function: receive
+	Description: Receives the command data from server.
+     ----------------------------------- ]]
+	local function receive( commands )
 		exsto.Commands = commands
 		
 		-- Legacy
 		hook.Call( "exsto_ReceivedCommands" )
 	end
-	exsto.UMHook( "ExRecCommands", exsto.RecieveCommands )
+	exsto.UMHook( "ExRecCommands", receive )
 	
 end
 

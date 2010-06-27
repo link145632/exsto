@@ -41,6 +41,9 @@ if SERVER then
 	
 elseif CLIENT then
 	
+	local colName = table.Copy( COLOR.NAME )
+	local colNorm = table.Copy( COLOR.NORM )
+	
 	surface.CreateFont( "coolvetica", 20, 400, true, false, "ChatText" )
 	
 	function PLUGIN:Init()
@@ -111,7 +114,7 @@ elseif CLIENT then
 	
 	function PLUGIN:OnPlayerChat( ply, text, team, dead )
 		if ply:EntIndex() == 0 then
-			chat.AddText( COLOR.NAME, "Console", COLOR.NORM, ": " .. text )
+			chat.AddText( colName, "Console", colNorm, ": " .. text )
 			return true
 		end
 	end
@@ -764,8 +767,8 @@ elseif CLIENT then
 			
 			for _, slot in ipairs( self.AutoComplete.Slots ) do
 				if slot.Place then
-					draw.SimpleTextOutlined( slot.Name, PLUGIN.Font, PLUGIN.X + 5, slot.Place + 25, PLUGIN:ColorAlpha( COLOR.NAME, PLUGIN.Fade ), 0, 0, 1, PLUGIN:ColorAlpha( PLUGIN.Colors.Outline, PLUGIN.Fade ) )
-					draw.SimpleTextOutlined( slot.Arguments, PLUGIN.Font, PLUGIN.X + 10 + slot.NameWidth, slot.Place + 25, PLUGIN:ColorAlpha( COLOR.NORM, PLUGIN.Fade ), 0, 0, 1, PLUGIN:ColorAlpha( PLUGIN.Colors.Outline, PLUGIN.Fade ) )
+					draw.SimpleTextOutlined( slot.Name, PLUGIN.Font, PLUGIN.X + 5, slot.Place + 25, PLUGIN:ColorAlpha( colName, PLUGIN.Fade ), 0, 0, 1, PLUGIN:ColorAlpha( PLUGIN.Colors.Outline, PLUGIN.Fade ) )
+					draw.SimpleTextOutlined( slot.Arguments, PLUGIN.Font, PLUGIN.X + 10 + slot.NameWidth, slot.Place + 25, PLUGIN:ColorAlpha( colNorm, PLUGIN.Fade ), 0, 0, 1, PLUGIN:ColorAlpha( PLUGIN.Colors.Outline, PLUGIN.Fade ) )
 				end
 			end
 			
