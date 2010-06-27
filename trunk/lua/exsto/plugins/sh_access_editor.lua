@@ -50,70 +50,21 @@ if SERVER then
 	end
 	exsto.MenuCall( "_DeleteRank", PLUGIN.DeleteRank )
 	
-	function PLUGIN.UpdateKey( ply, _, args )
-		local rank = args[1]
-		local key = args[2]
-		local data = args[3]
 	
-		if !PLUGIN.Editing[rank] then
-			PLUGIN.Editing[ rank ] = PLUGIN.DefaultTable
-			
-			-- Check and see if we can copy the table over from the normal levels.
-			if exsto.Levels[ rank ] then PLUGIN.Editing[ rank ] = exsto.Levels[ rank ] end
-		end
-		
-		rank = PLUGIN.Editing[rank]
-		
-		if key == "name" then
-			rank.Name = data
-		elseif key == "short" then
-			rank.Short = data
-		elseif key == "desc" then
-			rank.Desc = data
-		elseif key == "derive" then
-			rank.Derive = data
-		elseif key == "immunity" then
-			rank.Immunity = data
-		elseif key == "col_red" then
-			rank.Color.r = data
-		elseif key == "col_green" then
-			rank.Color.g = data
-		elseif key == "col_blue" then
-			rank.Color.b = data
-		elseif key == "col_alpha" then
-			rank.Color.a = data
-		elseif key == "flag_add" then
-			table.insert( rank.Flags_NoDerive, data )
-		elseif key == "flag_remove" then
-			local id = exsto.GetTableID( rank.Flags_NoDerive, data )
-			table.remove( rank.Flags_NoDerive, id )
-		elseif key == "flag_remall" then
-			rank.Flags_NoDerive = {}
-		end
-	end
-	exsto.MenuCall( "_UpdateRankInfo", PLUGIN.UpdateKey )
-	
-	function PLUGIN.CommitChanges( ply, _, args )
-		local short = args[1]
-		local realShort = args[2]
-		local rank = PLUGIN.Editing[realShort]
-
-		if !rank then return end
+	function PLUGIN.CommitChanges( ply, rank )
 		PrintTable( rank )
 		
 		exsto.UMStart( "exsto_ReloadRankEditor", ply )
 		
-		PLUGIN.WriteAccess( rank.Name, rank.Desc, rank.Short, rank.Derive, rank.Immunity, rank.Color, rank.Flags_NoDerive )
+		PLUGIN.WriteAccess( rank[1], rank[2], rank[3], rank[4], rank[5], rank[6], rank[7] )
 		
 		-- Reload the access lib
 		ACCESS_PrepReload()
 		ACCESS_LoadFiles()
 		ACCESS_ResendRanks()
-		
-		-- Clean out our edit list
-		PLUGIN.Editing[ "Create New" ] = PLUGIN.DefaultTable
+
 	end
-	exsto.MenuCall( "_CommitChanges", PLUGIN.CommitChanges )
+	exsto.ClientHook( "ExRecRankData", PLUGIN.CommitChanges )
 	
 	function PLUGIN.WriteAccess( Name, Desc, Short, Derive, Immunity, Color, Flags )				
 		FEL.AddData( "exsto_data_access", {
@@ -325,16 +276,12 @@ elseif CLIENT then
 		local NameEntry = exsto.CreateTextEntry( 10, 10, NamePanel:GetWide() - 20, 20, NamePanel )
 			NameEntry:SetText( Name )
 			NamePanel.Label:SetFont( "labeledPanelFont" )
-			
-			NameEntry.OnTextChanged = function( self ) Menu.CallServer( "_UpdateRankInfo", RealShort, "name", self:GetValue() ) end
 	
 		-- Desc Entry
 		local DescPanel = exsto.CreateLabeledPanel( (panel:GetWide() / 2), 10, (panel:GetWide() / 2) - 20, 40, "Description", Color( 232, 232, 232, 255 ), panel )
 		local DescEntry = exsto.CreateTextEntry( 10, 10, DescPanel:GetWide() - 20, 20, DescPanel )
 			DescEntry:SetText( Desc )
 			DescPanel.Label:SetFont( "labeledPanelFont" )
-			
-			DescEntry.OnTextChanged = function( self ) Menu.CallServer( "_UpdateRankInfo", RealShort, "desc", self:GetValue() ) end
 			
 		-- Short Entry
 		local ShortPanel = exsto.CreateLabeledPanel( 5, 60, (panel:GetWide() / 2) - 20, 40, "Unique ID", Color( 232, 232, 232, 255 ), panel )
@@ -343,8 +290,6 @@ elseif CLIENT then
 			ShortPanel.Label:SetFont( "labeledPanelFont" )
 			
 			if Short != ""	then ShortEntry:SetEditable( false ) end
-			
-			ShortEntry.OnTextChanged = function( self ) Menu.CallServer( "_UpdateRankInfo", RealShort, "short", self:GetValue() ) end
 			
 		-- Derive Entry
 		local DerivePanel = exsto.CreateLabeledPanel( panel:GetWide() / 2, 60, (panel:GetWide() / 2) - 20, 40, "Derive From", Color( 232, 232, 232, 255 ), panel )
@@ -372,20 +317,6 @@ elseif CLIENT then
 		local GreenSlider = exsto.CreateNumSlider( 10, 60, 100, "Green", 0, 255, 0, ColorPanel )
 		local BlueSlider = exsto.CreateNumSlider( 10, 110, 100, "Blue", 0, 255, 0, ColorPanel )
 		local AlphaSlider = exsto.CreateNumSlider( 10, 160, 100, "Alpha", 0, 255, 0, ColorPanel )
-		
-		local function onValChange( value, type )
-			Menu.CallServer( "_UpdateRankInfo", RealShort, type, value )
-		end
-		
-			RedSlider.OnValueChanged = function( self, val ) onValChange( val, "col_red" ) end
-			GreenSlider.OnValueChanged = function( self, val ) onValChange( val, "col_green" ) end
-			BlueSlider.OnValueChanged = function( self, val ) onValChange( val, "col_blue" ) end
-			AlphaSlider.OnValueChanged = function( self, val ) onValChange( val, "col_alpha" ) end
-			
-			RedSlider.OnEnter = function( self, val ) onValChange( val, "col_red" ) end
-			GreenSlider.OnEnter = function( self, val ) onValChange( val, "col_green" ) end
-			BlueSlider.OnEnter = function( self, val ) onValChange( val, "col_blue" ) end
-			AlphaSlider.OnEnter = function( self, val ) onValChange( val, "col_alpha" ) end
 		
 		-- Setting sliders to the correct number.
 			RedSlider:SetValue( Col.r )
@@ -425,8 +356,6 @@ elseif CLIENT then
 		DeriveEntry.OnSelect = function( index, value, data )
 			DeriveEntryText = data
 			
-			Menu.CallServer( "_UpdateRankInfo", RealShort, "derive", data )
-			
 			-- Emulate his derive moving.
 			if data != "NONE" and exsto.Levels[Short] then
 				exsto.Levels[Short].Derive = data
@@ -462,14 +391,12 @@ elseif CLIENT then
 		RemoveAllFromUsing.DepressedCol = Color( 255, 106, 106, 255 )
 		
 		RemoveAllFromUsing.DoClick = function()
-			Menu.CallServer( "_UpdateRankInfo", RealShort, "flag_remall", data )
 			NoDeriveFlags = {}
 			PLUGIN.UpdateFlagList( Flag_UsingList, Flag_PossibleList, NoDeriveFlags, FullFlags, Short )
 		end
 		
 		MoveAllToUsing.DoClick = function()
 			for k,v in pairs( Flag_PossibleList:GetLines() ) do
-				Menu.CallServer( "_UpdateRankInfo", RealShort, "flag_add", v:GetValue(1) )
 				table.insert( NoDeriveFlags, v:GetValue(1) )
 			end
 			PLUGIN.UpdateFlagList( Flag_UsingList, Flag_PossibleList, NoDeriveFlags, FullFlags, Short )
@@ -480,7 +407,6 @@ elseif CLIENT then
 			local line = Flag_UsingList:GetSelectedLine()	
 			if !line then return end
 
-			Menu.CallServer( "_UpdateRankInfo", RealShort, "flag_remove", line )
 			table.remove( NoDeriveFlags, line )
 			
 			PLUGIN.UpdateFlagList( Flag_UsingList, Flag_PossibleList, NoDeriveFlags, FullFlags, Short )
@@ -490,8 +416,7 @@ elseif CLIENT then
 		MoveToUsing.DoClick = function()
 			local line = Flag_PossibleList:GetSelected()[1]	
 			if !line then return end
-			
-			Menu.CallServer( "_UpdateRankInfo", RealShort, "flag_add", line:GetValue(1) )
+
 			table.insert( NoDeriveFlags, line:GetValue(1) )
 			
 			PLUGIN.UpdateFlagList( Flag_UsingList, Flag_PossibleList, NoDeriveFlags, FullFlags, Short )
@@ -501,14 +426,6 @@ elseif CLIENT then
 			ImmunityPanel.Label:SetFont( "labeledPanelFont" )
 		local ImmunityEntry = exsto.CreateNumSlider( 50, 2, 50, "", 0, 1000, 0, ImmunityPanel )
 			ImmunityEntry:SetValue( Immunity )
-			
-			ImmunityEntry.OnValueChanged = function( self, val )
-				Menu.CallServer( "_UpdateRankInfo", RealShort, "immunity", val )
-			end
-			
-			ImmunityEntry.OnEnter = function( self, val )
-				Menu.CallServer( "_UpdateRankInfo", RealShort, "immunity", val )
-			end
 
 		local UpdatePanel = exsto.CreateLabeledPanel( (panel:GetWide() / 2) + 60, 110, (panel:GetWide() / 2) - 80, 170, "Update / Create", Color( 232, 232, 232, 255 ), panel )
 			UpdatePanel.Label:SetFont( "labeledPanelFont" )
@@ -539,7 +456,7 @@ elseif CLIENT then
 			if Short == "" then Menu.PushError( "Error: Please input a short!" ) return end
 			if !Immunity then Menu.PushError( "Error: Please select an immunity level!" ) return end
 			
-			PLUGIN.FormulateUpdate( Short, RealShort )
+			PLUGIN.FormulateUpdate( Name, Short, Desc, Derive_Entry, FullCol, Immunity, Flags )
 		end
 		
 		local DeleteButton = exsto.CreateButton( "center", 50, 74, 27, "Delete Rank", UpdatePanel )
@@ -673,8 +590,8 @@ elseif CLIENT then
 		end
 	end				
 	
-	function PLUGIN.FormulateUpdate( dataShort, RealShort )
-		Menu.CallServer( "_CommitChanges", dataShort, RealShort )		
+	function PLUGIN.FormulateUpdate( name, short, desc, derive, col, immunity, flags )
+		exsto.SendToServer( "ExRecRankData", name, desc, short, derive, immunity, col, flags )
 	end
 	
 end

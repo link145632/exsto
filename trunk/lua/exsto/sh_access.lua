@@ -748,6 +748,7 @@ if SERVER then
 	function _R.Player:SetRank( rank )
 		self:SetNetworkedString( "rank", rank )
 		FEL.SaveUserInfo( self )
+		hook.Call( "ExSetRank", nil, self, rank )
 	end
 	
 --[[ -----------------------------------
@@ -761,11 +762,8 @@ if SERVER then
 elseif CLIENT then
 	
 	-- exsto_InitSpawn client call.  Instead of assuming when the client is active, we can use this to call the hook.  Allows for awesomeness.
-	hook.Add( "Think", "exsto_InitSpawnClient", function()
-		if LocalPlayer():IsValid() and LocalPlayer():IsPlayer() then
-			hook.Remove( "Think", "exsto_InitSpawnClient" )
-			RunConsoleCommand( "_exstoInitSpawn" )
-		end
+	hook.Add( "ExInitialized", "exsto_InitSpawnClient", function()
+		RunConsoleCommand( "_exstoInitSpawn" )
 	end )
 	
 end
@@ -815,7 +813,6 @@ function _R.Player:IsAllowed( flag, victim )
 	if victim then
 	
 		local victimRank = exsto.GetRankData( victim:GetRank() )
-		print( rank.Immunity, victimRank.Immunity )
 		if !rank.Immunity or !victimRank.Immunity then -- Just ignore it if they don't exist, we don't want to break Exsto.
 			if table.HasValue( rank.Flags, flag ) then return true end
 		elseif rank.Immunity <= victimRank.Immunity then

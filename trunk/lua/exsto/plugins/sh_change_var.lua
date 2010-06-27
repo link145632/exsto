@@ -79,21 +79,10 @@ if SERVER then
 	end
 	concommand.Add( "_RequestVars", SendVars )
 	
-	local function SetVar( ply, _, args )
-	
-		if !ply:IsAdmin() then return end
-		if !ply.VarChange then ply.VarChange = CurTime() end
-		//if CurTime() < ply.VarChange then return end
-		
-		ply.VarChange = CurTime() + 5
-		
-		local dirty = args[1]
-		local value = args[2]
-		
-		exsto.SetVar( dirty, value )
-		
+	local function SetVar( ply, data )
+		exsto.SetVar( data[1], data[2] )
 	end
-	concommand.Add( "_SetVar", SetVar )
+	exsto.ClientHook( "ExRecVarChange", SetVar )
 	
 elseif CLIENT then
 
@@ -179,13 +168,7 @@ elseif CLIENT then
 		local UpdateButton = exsto.CreateButton( 120, 525, 107, 27, "Update Vars", panel )
 		
 		RefreshButton.DoClick = function() Menu.PushLoad() RunConsoleCommand( "_RequestVars" ) end
-		UpdateButton.DoClick = function() 	
-			for k,v in pairs( list:GetLines() ) do
-				
-				RunConsoleCommand( "_SetVar", v:GetValue(2), v:GetValue(3) )
-				
-			end
-		end
+		UpdateButton.DoClick = function() exsto.SendToServer( "ExRecVarChange", list:GetSelected()[1]:GetValue( 2 ), list:GetSelected()[1]:GetValue( 3 ) ) end
 		
 		local oldClick = list.OnClickLine
 		list.OnClickLine = function( parent, line, selected )
