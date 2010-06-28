@@ -18,17 +18,18 @@ function PLUGIN:Spectate( owner, ply )
 	owner.Weapons = {}
 	
 	for k,v in pairs( owner:GetWeapons() ) do
-	
 		table.insert( owner.Weapons, v:GetClass() )
-		
 	end
 	
 	owner:StripWeapons()
-
+	
+	owner.Spectating = true
+	owner.StartSpectatePos = owner:GetPos()
+	
 	owner:Spectate( OBS_MODE_CHASE )
 	owner:SpectateEntity( ply )
 	
-	owner.Spectating = true
+	return { owner, COLOR.NORM, "You are now spectating ", COLOR.NAME, ply:Nick(), COLOR.NORM, "!" }
 	
 end
 PLUGIN:AddCommand( "spectate", {
@@ -46,12 +47,15 @@ function PLUGIN:UnSpectate( owner )
 	if not owner.Spectating then return end
 	if not owner.Weapons then return end
 	
+	owner:UnSpectate()
+	owner:KillSilent()
+	owner:Spawn()
+	owner:SetPos( owner.StartSpectatePos )
+	
 	for k,v in pairs( owner.Weapons ) do
 		owner:Give( tostring( v ) )
 	end		
 
-	owner:UnSpectate()
-	
 	owner.Spectating = false
 	
 end

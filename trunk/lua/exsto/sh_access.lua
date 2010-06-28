@@ -597,13 +597,13 @@ if SERVER then
 		else
 			-- We are running a dedicated server, and someone joined.  Lets check to see if there are any admins.
 			if !exsto.AnyAdmins() then
-				ply:Print( exsto_CHAT, COLOR.NORM, "Exsto has detected this is a ", COLOR.NAME, "dedicated server environment", COLOR.NORM, ", and is no superadmins set yet." )
+				ply:Print( exsto_CHAT, COLOR.NORM, "Exsto has detected this is a ", COLOR.NAME, "dedicated server environment", COLOR.NORM, ", and there are no superadmins set yet." )
 				ply:Print( exsto_CHAT, COLOR.NORM, "If you are the owner of this server, please rcon the following command:" )
 				ply:Print( exsto_CHAT, COLOR.NORM, "exsto rank " .. ply:Name() .. " superadmin" )
 			end
 		end
 		
-		if not plydata then FEL.SaveUserInfo( ply ) end
+		FEL.SaveUserInfo( ply )
 	
 	end
 	hook.Add( "exsto_InitSpawn", "exsto_AddUsersOnJoin", exsto.AddUsersOnJoin )
@@ -845,13 +845,9 @@ end
 	Description: Returns true if the player is an admin
 	----------------------------------- ]]
 function _R.Player:IsAdmin()
-
 	if self:EntIndex() == 0 then return true end -- If we are console :3
-	
 	if self:IsAllowed( "isadmin" ) then return true end
-	if self:GetRank() == "admin" or self:IsSuperAdmin() then return true end
-	if self:IsUserGroup( "admin" ) then return true end
-	
+	if self:IsSuperAdmin() then return true end
 	return false
 end
 
@@ -860,13 +856,8 @@ end
 	Description: Returns true if the player is a superadmin
 	----------------------------------- ]]
 function _R.Player:IsSuperAdmin()
-
 	if self:EntIndex() == 0 then return true end -- If we are console :3
-	
 	if self:IsAllowed( "issuperadmin" ) then return true end
-	if self:GetRank() == "superadmin" then return true end 
-	if self:IsUserGroup( "superadmin" ) then return true end
-	
 	return false
 end
 

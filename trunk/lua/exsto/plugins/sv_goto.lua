@@ -13,16 +13,62 @@ PLUGIN:SetInfo({
 } )
 
 function PLUGIN:SendPlayer( ply, victim, force )
-	if !victim:IsInWorld() and !force then return false end
-	if !ply:IsInWorld() and !force then return false end
-	
-	local pos = ply:GetPos() + Vector( 36, 0, 0 )
-	
-	if !util.IsInWorld( pos ) and !force then return false end
-	
-	return pos
 
+	local isvec = false
+	if type( victim ) == "Vector" then isvec = true end
+
+	if !isvec and !victim:IsInWorld() and !force then return false end
+	
+	local pos
+	local forward
+	if isvec then
+		forward = 0
+		pos = victim
+	else
+		forward = victim:EyeAngles().yaw
+		pos = victim:GetPos()
+	end
+	
+	local locations = {
+		math.NormalizeAngle( forward - 180 ),
+		math.NormalizeAngle( forward + 90 ),
+		math.NormalizeAngle( forward - 90 ),
+		forward,
+	}
+
+	local trace = {}
+	trace.start = pos + Vector( 0, 0, 32 )
+	trace.filter = { victim, ply }
+
+	local data
+	for I = 1, #locations do
+		trace.endpos = pos + Angle( 0, locations[ I ], 0 ):Forward() * 47
+		
+		data = util.TraceEntity( trace, ply )
+		if !data.Hit then return data.HitPos end
+	end
+	
+	if force then
+		return pos + Angle( 0, locations[ 1 ], 0 ):Forward() * 47
+	end
+	
 end
+
+
+function PLUGIN:Teleport( owner )
+	local pos = self:SendPlayer( owner, owner:GetEyeTrace().HitPos )
+	if !pos then exsto.Print( exsto_CHAT, owner, COLOR.NORM, "Not enough room to teleport to that ", COLOR.NAME, "position", COLOR.NORM, "!" ) return end
+	
+	owner:SetPos( pos )
+end
+PLUGIN:AddCommand( "teleport", {
+	Call = PLUGIN.Teleport,
+	Desc = "Teleports you to a position",
+	FlagDesc = "Allows users to teleport to their cursor.",
+	Console = { "teleport", "tp" },
+	Chat = { "!tp", "!teleport" },
+	Args = {},
+})
 
 function PLUGIN:Send( owner, victim, to, force )
 	
@@ -54,7 +100,7 @@ function PLUGIN:Goto( owner, ply, force )
 	
 	if owner:GetMoveType() == MOVETYPE_NOCLIP then force = true end
 	
-	local pos = self:SendPlayer( ply, owner, force )
+	local pos = self:SendPlayer( owner, ply, force )
 	
 	if !pos then exsto.Print( exsto_CHAT, owner, COLOR.NORM, "Not enough room to goto ", COLOR.NAME, ply:Nick(), COLOR.NORM, "!" ) return end
 	
@@ -82,7 +128,7 @@ function PLUGIN:Bring( owner, ply, force )
 		
 	if owner:GetMoveType() == MOVETYPE_NOCLIP then force = true end
 	
-	local pos = self:SendPlayer( owner, ply, force )
+	local pos = self:SendPlayer( ply, owner, force )
 
 	if !pos then return { owner, COLOR.NORM, "Not enough space to bring ", COLOR.NAME, ply:Nick() } end
 	

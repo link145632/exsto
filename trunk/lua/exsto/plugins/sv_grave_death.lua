@@ -13,9 +13,9 @@ PLUGIN:SetInfo({
 PLUGIN:AddVariable({
 	Pretty = "Grave Style",
 	Dirty = "grave_type",
-	Default = "fade",
+	Default = "leaveonspawn",
 	Description = "How the grave leaves after falling.",
-	Possible = { "fade", "sink" },
+	Possible = { "fade", "sink", "leaveonspawn" },
 })
 
 PLUGIN:AddVariable({
@@ -24,6 +24,52 @@ PLUGIN:AddVariable({
 	Default = 5,
 	Description = "How long until the grave sinks with the sink variable.",
 })
+
+function PLUGIN:Init()
+	
+	self.RandomDeathMessages = { "He couldn't load the death messages file." }
+
+	http.Get( "http://dl.dropbox.com/u/717734/Exsto/DO%20NOT%20DELETE/deathmessages.txt", "", function( contents )
+		self.RandomDeathMessages = string.Explode( "\n", contents )
+		exsto.Print( exsto_CONSOLE, "PLUGINS --> Grave Death --> Retreived death messages!" )
+	end )
+	
+end
+
+function PLUGIN:PlayerSpawn( ply )
+	if ply.GraveData then
+		ply.GraveData.Text:Remove()
+		ply.GraveData.Ent:Remove()
+		ply.GraveData.Message:Remove()
+		
+		ply.GraveData = nil
+	end
+end
+
+local function BuildWormsMessage( ent, ply )
+
+	if !ply.GraveData then
+		local text = ents.Create( "3dtext" )
+			text:SetPos( ent:GetPos() + Vector( 0, 0, ( ent.Height / 2 ) + 13 ) )
+			text:SetAngles( Angle( 0, 0, 0 ) )
+			text:Spawn()
+			text:SetPlaceObject( ent )
+			text:SetText( "Here lies " .. ply:Nick() )
+			text:SetScale( 0.05 )
+			
+		local message = ents.Create( "3dtext" )
+			message:SetPos( ent:GetPos() + Vector( 0, 0, ( ent.Height / 2 ) + 6 ) )
+			message:SetAngles( Angle( 0, 0, 0 ) )
+			message:Spawn()
+			message:SetPlaceObject( ent )
+			message:SetText( PLUGIN.RandomDeathMessages[math.random( 1, #PLUGIN.RandomDeathMessages )]  )
+			message:SetScale( 0.05 )
+		
+		ply.GraveData = { Text = text, Ent = ent, Message = message }
+	end
+	hook.Remove( "Think", tostring( ent ) .. "THINK" )
+	
+end
 
 local function Sink( ent )
 
@@ -134,6 +180,7 @@ function PLUGIN:PlayerDeath( victim, _, killer )
 
 			if exsto.GetVar( "grave_type" ).Value == "fade" then Fade( ent ) end
 			if exsto.GetVar( "grave_type" ).Value == "sink" then Sink( ent ) end
+			if exsto.GetVar( "grave_type" ).Value == "leaveonspawn" then BuildWormsMessage( ent, victim ) end
 			
 		end
 		
