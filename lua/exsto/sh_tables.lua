@@ -298,6 +298,8 @@ exsto.DefaultRanks = {
 			"slay",
 			"kick",
 			"kickid",
+			"teleport",
+			"jail",
 			"ban",
 			"banid",
 			"runspeed",

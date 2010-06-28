@@ -288,8 +288,11 @@ function exsto.ParseArguments( ply, text, data, alreadyString )
 
 		-- Now hang on, if we have gone over the number of text slots, then we need to start placing optionals.
 		if !textSlot then
+		
+			PrintTable( optional )
+			print( argName )
 
-			if optional[argName] then -- If an optional exists for this argument slot then continue
+			if type( optional[argName] ) != "nil" then -- If an optional exists for this argument slot then continue
 				table.insert( Return, optional[argName] )
 				exsto.Print( exsto_CONSOLE_DEBUG, "COMMANDS --> Optional value \"" .. argName .. "\" is being inserted with a value of " .. tostring( optional[argName] ) ) 
 			else

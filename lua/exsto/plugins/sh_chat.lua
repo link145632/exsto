@@ -39,6 +39,49 @@ if SERVER then
 		end
 	end
 	
+	local OnVarChange = function( val )
+		for k,v in pairs( player.GetAll() ) do
+			PLUGIN:SetRankColors( v, val )
+		end
+		return true
+	end
+	PLUGIN:AddVariable({
+		Pretty = "Override Team Colors with Exsto Colors",
+		Dirty = "native_exsto_colors",
+		Default = false,
+		Description = "Enable to have Exsto over-ride team colors with rank colors.",
+		OnChange = OnVarChange,
+		Possible = { true, false }
+	})
+	
+	local OnVarChange = function( val )
+		for k,v in pairs( player.GetAll() ) do
+			PLUGIN:SetAdminBlink( v, val )
+		end
+		return true
+	end
+	PLUGIN:AddVariable({
+		Pretty = "Chat Superadmin Blink",
+		Dirty = "chat_super_blink",
+		Default = false,
+		Description = "Enable to have Exsto blink superadmin chat messages.",
+		OnChange = OnVarChange,
+		Possible = { true, false }
+	})
+	
+	function PLUGIN:SetAdminBlink( ply, val )
+		exsto.UMStart( "ExChatPlug_AdminBlink", ply, val )
+	end
+	
+	function PLUGIN:SetRankColors( ply, val )
+		exsto.UMStart( "ExChatPlug_RankColors", ply, val )
+	end
+	
+	function PLUGIN:exsto_InitSpawn( ply )
+		self:SetAdminBlink( ply, exsto.GetVar( "chat_super_blink" ).Value )
+		self:SetRankColors( ply, exsto.GetVar( "native_exsto_colors" ).Value )
+	end
+	
 elseif CLIENT then
 	
 	local colName = table.Copy( COLOR.NAME )
@@ -73,11 +116,11 @@ elseif CLIENT then
 		self.ScrollSelection = 0
 		
 		self.Fade = 0
+		self.BlinkAdmins = false
+		self.RankColors = false
 		
 		self.X = self.GlobalX:GetInt()
 		self.Y = ScrH() - self.GlobalYOffset:GetInt()
-		--self.X = 35
-		--self.Y = ScrH() - 310
 	
 		-- ******
 		-- Create the panel.
@@ -88,6 +131,16 @@ elseif CLIENT then
 		self.Panel:SetSize( self.Panel.W + 20, self.Panel.H )
 
 	end
+	
+	local function SetRankColors( val )
+		PLUGIN.RankColors = val
+	end
+	exsto.UMHook( "ExChatPlug_RankColors", SetRankColors )
+	
+	local function SetAdminBlink( val )
+		PLUGIN.BlinkAdmins = val
+	end
+	exsto.UMHook( "ExChatPlug_AdminBlink", SetAdminBlink )
 	
 	function PLUGIN:Toggle( bool, team )
 	
@@ -120,7 +173,6 @@ elseif CLIENT then
 	end
 
 	function PLUGIN:ChatText( index, nick, msg, type )	
-		print( index, nick, msg, type )
 		if type == "none" then
 			chat.AddText( msg )
 		end
@@ -273,6 +325,14 @@ elseif CLIENT then
 			col = line.Blocks[I]["Color"]
 			text = line.Blocks[I]["Text"]
 			
+			if line.Blocks[I]["Blink"] then
+				col = PLUGIN:BlinkColor( col )
+			end
+			
+			if I == 1 and line.AdminSpoke and self.BlinkAdmins then
+				col = PLUGIN:BlinkColor( col )
+			end
+			
 			draw.SimpleTextOutlined( text, self.Font, x, y, self:ColorAlpha( col, 255 ), 0, 0, 1, self:ColorAlpha( self.OutlineColor, 255 ) )
 			
 			if w then x = x + w or x end
@@ -301,7 +361,6 @@ elseif CLIENT then
 			
 			if line then
 				if !line.BeginClose then self:SetLinePos( line, x, y ) end
-				//self:AnimateLine( line )
 				self:DrawLine( line )
 				
 				y = y - lineHeight - 2	
@@ -366,6 +425,17 @@ elseif CLIENT then
 		
 	end
 	
+	local newCol
+	function PLUGIN:BlinkColor( col )
+		newCol = {}
+		newCol.r = math.Clamp( col.r + ( math.sin( CurTime() * 7 ) * 90  ), 0, 255 )
+		newCol.g = math.Clamp( col.g + ( math.sin( CurTime() * 7 ) * 90  ), 0, 255 )
+		newCol.b = math.Clamp( col.b + ( math.sin( CurTime() * 7 ) * 90  ), 0, 255 )
+		newCol.a = col.a
+		
+		return newCol
+	end
+	
 	function PLUGIN:FormatColorString( col )
 		return "[c=" .. col.r .. "," .. col.g .. "," .. col.b .. "," .. col.a .. "]"
 	end
@@ -377,12 +447,16 @@ elseif CLIENT then
 	
 	-- Commonly used variables for chat.AddText
 	exsto_PLUGINADDTEXT = exsto_PLUGINADDTEXT or chat.AddText
-	local data, colOpen, col
+	local data, colOpen, col, ply, arg
 	function chat.AddText( ... )
 		if exsto.Plugins[ PLUGIN.Info.ID ].Disabled then return exsto_PLUGINADDTEXT( ... ) end
 		
+		ply = nil
 		data = ""
 		colOpen = false
+		arg = {...}
+		
+		if type( arg[1] ) == "Player" then ply = arg[1] end
 
 		for _, obj in ipairs( {...} ) do
 			if type( obj ) == "table" and obj.r then
@@ -408,7 +482,7 @@ elseif CLIENT then
 			end
 		end
 		
-		PLUGIN:ParseLine( nil, data )
+		PLUGIN:ParseLine( ply, data )
 		exsto_PLUGINADDTEXT( ... )
 	end
 	
@@ -457,8 +531,10 @@ elseif CLIENT then
 							tmpData["Color"] = Color( r, g, b, a )
 						else
 						
+							print( string.sub( text, 3, 3 ), string.Explode( " ", text )[2]:gsub( "@", "" ):lower() )
+						
 							-- Check for "twitter" style messages.
-							if string.sub( text, 3, 3 ) == "@" and string.find( LocalPlayer():Nick(), string.Explode( " ", text )[2]:gsub( "@", "" ), 1, true ) then
+							if string.sub( text, 3, 3 ) == "@" and string.find( LocalPlayer():Nick():lower(), string.Explode( " ", text )[2]:gsub( "@", "" ):lower(), 1, true ) then
 								tmpData["Color"] = self.Colors.Twitter
 								tmpData["Blink"] = true
 								
@@ -548,6 +624,7 @@ elseif CLIENT then
 		
 		data.EndTime = CurTime() + self.LineLivingTime
 		data.Width = totalWidth
+		data.AdminSpoke = ply and ply:IsSuperAdmin() or false
 			
 		table.insert( self.Lines, data )
 		data = {}

@@ -34,7 +34,7 @@ local function LoadVariables()
 	exsto = {}
 	exsto.DebugEnabled = true
 	
-	exsto.VERSION = 50
+	exsto.VERSION = 51
 end
 
 function exstoInit()
