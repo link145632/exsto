@@ -578,6 +578,7 @@ if SERVER then
 	function exsto.AddUsersOnJoin( ply, steamid, uniqueid )
 
 		local plydata = FEL.LoadUserInfo( ply )
+		print( "PLAYERDATA " .. plydata )
 
 		ply:SetNetworkedString( "rank", plydata or "guest" )	
 		
@@ -817,6 +818,8 @@ function _R.Player:IsAllowed( flag, victim )
 			if table.HasValue( rank.Flags, flag ) then return true end
 		elseif rank.Immunity <= victimRank.Immunity then
 			if table.HasValue( rank.Flags, flag ) then return true end
+		else
+			return false, "immunity"
 		end
 	else
 		if table.HasValue( rank.Flags, flag ) then return true end

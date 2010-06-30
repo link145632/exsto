@@ -26,7 +26,7 @@ exsto.Flags = {}
 exsto.FlagIndex = {}
 
 local function AddArg( style, type, func ) table.insert( exsto.Arguments, {Style = style, Type = type, Func = func} ) end
-AddArg( "PLAYER", "Player", function( nick ) if nick == "" then return -1 else return exsto.FindPlayer( nick ) end end )
+AddArg( "PLAYER", "Player", function( nick ) if nick == "" then return -1 else return exsto.FindPlayers( nick ) end end )
 AddArg( "NUMBER", "number", function( num ) return tonumber( num ) end )
 AddArg( "STRING", "string", function( string ) return tostring( string ) end )
 AddArg( "BOOLEAN", "boolean", function( bool ) return tobool( bool ) end )
@@ -210,6 +210,68 @@ function exsto.CommandCompatible( data )
 end
 
 --[[ -----------------------------------
+	Function: exsto.CommandRequiresImmunity
+	Description: Checks if a command handles players in any way
+     ----------------------------------- ]]
+function exsto.CommandRequiresImmunity( data )
+	for _, argument in ipairs( data.ReturnOrder ) do
+		if data.Args[ argument ] == "PLAYER" then return _ end
+	end
+	return false
+end
+
+--[[ -----------------------------------
+	Function: exsto.PrintReturns
+	Description: Does a format print of the return values given by plugins.
+     ----------------------------------- ]]
+function exsto.PrintReturns( data )
+
+	local style = { exsto_CHAT_ALL }
+	
+	print( type( data ) )
+	
+	-- Check if we can do this.
+	if type( data ) == "table" then
+	
+		-- Check if he only wants it printing to the caller.
+		if type( data[1] ) == "Player" or type( data[1] ) == "Entity" and data[1]:CanPrint() then
+			style = { exsto_CHAT, data[1] }
+		end
+		
+		-- Continue if he set us up to format his data.
+		if data.Activator and data.Activator:IsValid() and data.Wording then
+		
+			local ply = data.Player
+			if data.Player and type( data.Player ) == "Player" then ply = data.Player:Nick() end
+			
+			-- Format any [self] requests.
+			data.Wording = data.Wording:gsub( "%[self%]%", data.Activator:Nick() )
+			
+			local talk = { unpack( style ), COLOR.NAME, data.Activator:Name(), COLOR.NORM, data.Wording }
+			
+			if ply then 
+				table.insert( talk, COLOR.NAME )
+				table.insert( talk, ply )
+			end
+			
+			if data.Secondary then
+				table.insert( talk, COLOR.NORM )
+				table.insert( talk, data.Secondary )
+			end
+			
+			table.insert( talk, COLOR.NORM )
+			table.insert( talk, "!" )
+			
+			exsto.Print( unpack( style ), unpack( talk ) )
+			
+		-- He is returning custom data.
+		else exsto.Print( unpack( style ), unpack( data ) ) end
+		
+	end
+	
+end
+
+--[[ -----------------------------------
 	Function: exsto.ParseStrings
 	Description: Parses text, then returns a table with items split by spaces, except stringed items.
      ----------------------------------- ]]
@@ -240,102 +302,97 @@ end
 	Function: exsto.ParseArguments
 	Description: Parses text and returns formatted and normal typed variables.
      ----------------------------------- ]]
-function exsto.ParseArguments( ply, text, data, alreadyString )
+function exsto.ParseArguments( ply, data, args )
 
-	local Return = {}
-	Return[1] = ply or "Console"
+	-- Create return data.
+	local cleanedArguments = {} -- Our cleaned argument table
+	local activePlayers = { 1 } -- We put a 1 here for those commands who don't use this.
+	local playersSlot = 0 -- The slot where the multiple players are
 	
-	local args = data.Args
-	local returnOrder = data.ReturnOrder
-	local optional = data.Optional
-	
-	-- Compatibility checks, woop.
-	if !exsto.CommandCompatible( data ) and ply then
-		ply:Print( exsto_CHAT, COLOR.NORM, "The command you tried to run is not compatible with Exsto!" )
-		exsto.Print( exsto_CONSOLE_DEBUG, "COMMANDS --> Command \"" .. data.ID .. "\" could not be parsed due to incompatibilities with Exsto.  Please contact plugin coder." )
-		return
+	-- Check and see if the arguments need to be cleaned and table'ed
+	if type( args ) == "string" then
+		args = exsto.ParseStrings( args )
 	end
-
-	local text_args = text
-	if !alreadyString then
-		text_args = exsto.ParseStrings( text:Trim() )
-	end
-
-	for I = 1, #returnOrder do
 	
-		local curArg = args[returnOrder[I]]
-		local argName = returnOrder[I]
-	
-		local argkey = exsto.GetArgumentKey( curArg )
-		if not argkey then exsto.Error( "Invalid argument is being used!" ) return end
-		
-		-- If we are at the end of our return requirements, stuff all extra text into the last one.  It might be something like !admin I like money
-		if I == #returnOrder and #text_args > #returnOrder then
-			local tbl = ""
-			
-			for i = I, #text_args do
-				tbl = tbl .. text_args[i] .. " "
-			end
-			
-			text_args[I] = tbl
+	-- See if we can compile the excess text that we have to match the return order.
+	if #args > #data.ReturnOrder then
+		local compile = ""
+		for I = #data.ReturnOrder, #args do
+			compile = compile .. args[ I ] .. " "
+			args[ I ] = nil
 		end
 		
-		-- Easy thing.
-		local argTable = exsto.Arguments[argkey]
+		args[ #data.ReturnOrder ] = compile
+	end
+	
+	-- Time to loop through our requested return orders and place items
+	for I = 1, #data.ReturnOrder do
+	
+		-- Create local variables so we can call back
+		local currentArgument = data.ReturnOrder[ I ]
+		local currentType = data.Args[ currentArgument ]
+		local currentSplice = args[ I ]
+		local currentArgumentData = exsto.Arguments[ exsto.GetArgumentKey( currentType ) ]
 		
-		-- Lets look at the first text slot we have, and *assume* its going to be our first argument.
-		local textSlot = text_args[I]
-
-		-- Now hang on, if we have gone over the number of text slots, then we need to start placing optionals.
-		if !textSlot then
-		
-			PrintTable( optional )
-			print( argName )
-
-			if type( optional[argName] ) != "nil" then -- If an optional exists for this argument slot then continue
-				table.insert( Return, optional[argName] )
-				exsto.Print( exsto_CONSOLE_DEBUG, "COMMANDS --> Optional value \"" .. argName .. "\" is being inserted with a value of " .. tostring( optional[argName] ) ) 
-			else
-				-- Lets see what hes trying to access.  If he is trying to access a PLAYER with no value, substitue himself.
-				if curArg == "PLAYER" and I == 1 and ply:IsPlayer() then
-					table.insert( Return, ply )
-					exsto.Print( exsto_CONSOLE_DEBUG, "COMMANDS --> Adding in caller value for \"" .. argName .. "\'!" )
-				else
-				
-					ply:Print( exsto_CHAT, COLOR.NORM, "Argument ", COLOR.NAME, argName .. " (" .. exsto.Arguments[argkey].Type .. ")", COLOR.NORM, " is needed!" )
+		-- Check if we contain the splice, then convert that splice into the requested type.
+		if currentSplice then
+			local converted = currentArgumentData.Func( currentSplice )
+			
+			-- See if we can catch our acting players variable and store it
+			if currentArgumentData.Type == "Player" and type( converted ) == "table" then
+				activePlayers = converted
+				playersSlot = #cleanedArguments + 1
+				table.insert( cleanedArguments, converted )
+			
+			-- If we didn't get the correct value back, then something is wrong.  Lets check it out
+			elseif currentArgumentData.Type != type( converted ) then
+			
+				-- See if it is a player that we were looking for.  Maybe we can give a suggestion!
+				if type( converted ) == "nil" and currentArgumentData.Type == "Player" then
+					exsto.GetClosestString( converted, exsto.BuildPlayerNicks(), nil, ply, "Unknown player" )
 					return nil
 				end
-			end
-			
-		else
-			-- Run the text slot through the data type the argument is, see if it works.
-			local data = argTable.Func( textSlot )
-			
-			if argTable.Type != type( data ) then -- If its not the value type we need, panic and end.
-			
-				local form = type( data );
-					
-				if form == "string" and exsto.Arguments[argkey].Type == "Player" then
-					local tbl = exsto.BuildPlayerNicks()
-					exsto.GetClosestString( data, tbl, nil, ply, "Unknown player" )
-					return nil
-				end		
-				// Temp String Fix-- HACK
-				if form == "nil" and exsto.Arguments[argkey].Type == "number" then form = "string!" end
 				
-				ply:Print( exsto_CHAT, COLOR.NORM, "Argument ", COLOR.NAME, argName .. " (" .. exsto.Arguments[argkey].Type .. ")", COLOR.NORM, " is needed!  You put ", COLOR.NAME, form )
+				-- Format some issues with Lua
+				if type( converted ) == "nil" and currentArgumentData.Type == "number" then converted = "" end
+				
+				-- Finally notify us.
+				ply:Print( exsto_CHAT, COLOR.NORM, "Argument: ", COLOR.NAME, currentArgument .. " (" .. currentArgumentData.Type .. ")", COLOR.NORM, " is needed!  You put ", COLOR.NAME, type( converted ) )
 				
 				return nil
 				
-			else -- Add it to the return table, its fine.
-				table.insert( Return, data )
+			-- If our data type matches, celebrate!
+			elseif currentArgumentData.Type == type( converted ) then
+				table.insert( cleanedArguments, converted )
 			end
 			
+		-- We ran out of splices to check; this is where we request optionals.
+		else
+		
+			-- If the optional exists at all; insert his data in place of our own.
+			if type( data.Optional[ currentArgument ] ) != "nil" then
+				table.insert( cleanedArguments, data.Optional[ currentArgument ] )
+			
+			-- If the coder never supplied an optional value for the command, try and substitute things in.
+			else
+			
+				-- See if we can substitute ourselves in if he asks for a PLAYER value.
+				if currentType == "PLAYER" and I == 1 and ply:IsPlayer() then
+					table.insert( cleanedArguments, { ply } )
+					activePlayers = { ply }
+					playersSlot = #cleanedArguments
+					
+				-- We can't do anything else.  Tell the caller.
+				else
+					ply:Print( exsto_CHAT, COLOR.NORM, "Argument ", COLOR.NAME, currentArgument .. " (" .. currentArgumentData.Type .. ")", COLOR.NORM, " is needed!" )
+					return nil
+				end
+			end
 		end
-
 	end
-
-	return Return
+	
+	return cleanedArguments, activePlayers, playersSlot
+	
 end
 
 --[[ -----------------------------------
@@ -343,100 +400,83 @@ end
 	Description: Main thread that parses commands and runs them.
      ----------------------------------- ]]
 local function ExstoParseCommand( ply, command, args, style )
-
-	-- Make the strings nicer.
-	for k,v in pairs( args ) do
-		args[k] = v:Trim()
+	
+	for _, splice in ipairs( args ) do
+		args[ _ ] = splice:Trim()
 	end
 	
-	local Found = false
-	for k,v in pairs( exsto.Commands ) do
-		local tbl = v.Chat
-		if style == "console" then tbl = v.Console end
+	for k, data in pairs( exsto.Commands ) do
+		if ( style == "chat" and table.HasValue( data.Chat, command ) ) or ( style == "console" and table.HasValue( data.Console, command ) ) then
 		
-		if table.HasValue( tbl, command ) then
-			Found = v
-		end
-	end
-	
-	if Found then
-	
-		local alreadyTable = false
-		if style == "console" then
-			alreadyTable = true
-		else
-			args = string.Implode( " ", args )
-		end
-
-		if Found.Args != "" then 
-			args = exsto.ParseArguments( ply, args, Found, alreadyTable )
-		else
-			args = {ply}
-		end
-		
-		if args then
-		
-			local allowed = ply:IsAllowed( Found.ID )
-			local onPlayer = false
-			for k,v in pairs( Found.ReturnOrder ) do
-				if Found.Args[v] == "PLAYER" then
-					allowed = ply:IsAllowed( Found.ID, args[ k + 1 ] )
-					break
+			-- We found our command, continue.
+			
+			-- First, parse the text for the arguments.
+			if style == "chat" then args = string.Implode( " ", args ) end
+			local argTable, activePlayers, playersSlot = exsto.ParseArguments( ply, data, args )
+			
+			-- Check if we are allowed to perform this active command.
+			local allowed, reason = ply:IsAllowed( data.ID )
+			
+			-- If the command requires an immunity check, update our allowance
+			local slot = exsto.CommandRequiresImmunity( data )
+			if slot then
+				for I = 1, #activePlayers do
+					allowed, reason = ply:IsAllowed( data.ID, argTable[ slot ][I] )
 				end
 			end
 			
-			if Found.Plugin then
-				table.insert( args, 1, Found.Plugin )
-			end
-			
-			if !allowed then exsto.Print( exsto_CHAT, ply, COLOR.NORM, "You are not allowed to run ", COLOR.NAME, command, COLOR.NORM, "!" ) return "" end
-			
-			local status, data = pcall( Found.Call, unpack( args ) )
-			
-			if !status then
-				exsto.Print( exsto_CHAT, ply, COLOR.NORM, "Something went wrong while executing that command.  Check your console for more details." )
-				exsto.Print( exsto_CLIENT, ply, "The function call associated with " .. command .. " is broken.  Debug information will be printed to your console.\n ** Error: " .. data .. "\n Please use this information and report it as a bug at http://code.google.com/p/exsto/issues/list" )
-				exsto.ErrorNoHalt( "COMMAND --> " .. command .. " --> " .. data )
+			if !allowed then
+				-- Check our reason
+				if reason == "immunity" then
+					ply:Print( exsto_CHAT, COLOR.NORM, "Cannot run ", COLOR.NAME, command, COLOR.NORM, ", due to a player(s) involved having higher immunity!" )
+				else
+					ply:Print( exsto_CHAT, COLOR.NORM, "You are not allowed to run ", COLOR.NAME, command, COLOR.NORM, "!" )
+				end
 				return ""
 			end
 
-			local style = { exsto_CHAT_ALL }
-			if type( data ) == "table" and ( type( data[1] ) == "Player" or type( data[1] ) == "Entity" ) and data[1]:CanPrint() then style = { exsto_CHAT, data[1] } end
-		
-			if type( data ) == "table" and ( ( data.Activator and data.Activator:IsValid() ) and data.Wording) then
-			
-				local activator = data.Activator
-				local ply = nil
-				if data.Player then
-					ply = data.Player
-					if type( ply ) == "Player" then
-						ply = ply:Name()
-					else
-						ply = tostring( ply )
-					end
+			-- Run this command on a loop through all active player participents.
+			local newArgs, status, sentback
+			for I = 1, #activePlayers do
+				
+				-- Create a copy of the arg table so we can edit it.
+				newArgs = table.Copy( argTable )
+				
+				-- Now that we passed the immunity and allowance checks, insert what we need into the arg table
+				local requiredAdditions = 1
+				table.insert( newArgs, 1, ply )
+				if data.Plugin then
+					requiredAdditions = 2
+					table.insert( newArgs, 1, data.Plugin )
+				end
+
+				-- Set our multiple player slot to contain only one we currently are on right now.
+				if playersSlot != 0 then
+					newArgs[ playersSlot + requiredAdditions ] = activePlayers[ I ]
+				end
+
+				-- Finally, call the function
+				status, sentback = pcall( data.Call, unpack( newArgs ) )
+				
+				-- If we didn't make it, oh god.
+				if !status then
+					ply:Print( exsto_CHAT, COLOR.NORM, "Something went wrong while executing that command!" )
+					exsto.ErrorNoHalt( "COMMAND --> " .. command .. " --> " .. sentback )
+					return ""
 				end
 				
-				-- Lets pull some patterns into this, shall we?
-				if !data.Activator or !data.Activator:IsValid() then return "" end
-				data.Wording = string.gsub( data.Wording, "%[self%]%", data.Activator:Nick() )
+				-- Print the return values.
+				exsto.PrintReturns( sentback )
 				
-				if data.Secondary and data.Player then
-					data.Secondary = string.gsub( data.Secondary, "%[self%]", data.Activator:Nick() )
-					//local ply = data.Player
-					exsto.Print( unpack( style ), COLOR.NAME, activator:Name(), COLOR.NORM, data.Wording, COLOR.NAME, ply, COLOR.NORM, data.Secondary, "!" )
-				elseif !data.Secondary and data.Player then
-					//local ply = data.Player
-					exsto.Print( unpack( style ), COLOR.NAME, activator:Name(), COLOR.NORM, data.Wording, COLOR.NAME, ply, COLOR.NORM, "!" )
-				elseif !data.Secondary and !data.Player then
-					exsto.Print( unpack( style ), COLOR.NAME, activator:Name(), COLOR.NORM, data.Wording, COLOR.NORM, "!" )
-				end
-				
-			elseif type( data ) == "table" then exsto.Print( unpack( style ), unpack( data ) ) end
+			end
 			
 			return ""
-			
 		end
-		
+	end
+	
+end
+	
+--[[
 	elseif !Found and string.sub( command, 0, 1 ) == "!" and command and exsto.GetVar( "spellingcorrect" ).Value and style != "chat" then
 		
 		local data = { Max = 100, Com = "" } // Will a command ever be more than 100 chars?
@@ -456,7 +496,7 @@ local function ExstoParseCommand( ply, command, args, style )
 	
 	end
 	
-end
+end]]
 
 --[[ -----------------------------------
 	Function: exsto.ChatMonitor
