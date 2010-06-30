@@ -70,10 +70,18 @@ end
      ----------------------------------- ]]
 local queuedPlugins = {}
 
+if SERVER then
+	concommand.Add( "_ExClientPlugsReady", function( ply )
+		hook.Call( "ExClientPluginsReady", nil, ply )
+	end )
+end
+
 hook.Add( "exsto_RecievedSettings", "exsto_CheckOnSettings", function()
 	if table.Count( queuedPlugins ) >= 1 then	
 		for k,v in pairs( queuedPlugins ) do v:Register() end	
 	end
+	hook.Call( "ExPluginsReady" )
+	RunConsoleCommand( "_ExClientPlugsReady" )
 end )
 
 function plugin:Register()

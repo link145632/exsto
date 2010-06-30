@@ -31,4 +31,4 @@
 	
 	-- Init clientside items.
 	exsto.LoadPlugins()
-	exsto.InitPlugins()
+	exsto.InitPlugins( launchInit )

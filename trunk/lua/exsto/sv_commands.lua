@@ -26,7 +26,7 @@ exsto.Flags = {}
 exsto.FlagIndex = {}
 
 local function AddArg( style, type, func ) table.insert( exsto.Arguments, {Style = style, Type = type, Func = func} ) end
-AddArg( "PLAYER", "Player", function( nick ) if nick == "" then return -1 else return exsto.FindPlayers( nick ) end end )
+AddArg( "PLAYER", "Player", function( nick, caller ) if nick == "" then return -1 else return exsto.FindPlayers( nick, caller ) end end )
 AddArg( "NUMBER", "number", function( num ) return tonumber( num ) end )
 AddArg( "STRING", "string", function( string ) return tostring( string ) end )
 AddArg( "BOOLEAN", "boolean", function( bool ) return tobool( bool ) end )
@@ -224,11 +224,9 @@ end
 	Function: exsto.PrintReturns
 	Description: Does a format print of the return values given by plugins.
      ----------------------------------- ]]
-function exsto.PrintReturns( data )
+function exsto.PrintReturns( data, I, multiplePeople )
 
 	local style = { exsto_CHAT_ALL }
-	
-	print( type( data ) )
 	
 	-- Check if we can do this.
 	if type( data ) == "table" then
@@ -336,10 +334,10 @@ function exsto.ParseArguments( ply, data, args )
 		
 		-- Check if we contain the splice, then convert that splice into the requested type.
 		if currentSplice then
-			local converted = currentArgumentData.Func( currentSplice )
+			local converted = currentArgumentData.Func( currentSplice, ply )
 			
 			-- See if we can catch our acting players variable and store it
-			if currentArgumentData.Type == "Player" and type( converted ) == "table" then
+			if currentArgumentData.Type == "Player" and type( converted ) == "table" and #converted >= 1 then
 				activePlayers = converted
 				playersSlot = #cleanedArguments + 1
 				table.insert( cleanedArguments, converted )
@@ -348,8 +346,8 @@ function exsto.ParseArguments( ply, data, args )
 			elseif currentArgumentData.Type != type( converted ) then
 			
 				-- See if it is a player that we were looking for.  Maybe we can give a suggestion!
-				if type( converted ) == "nil" and currentArgumentData.Type == "Player" then
-					exsto.GetClosestString( converted, exsto.BuildPlayerNicks(), nil, ply, "Unknown player" )
+				if type( converted ) == "table" and currentArgumentData.Type == "Player" and #converted == 0 then
+					exsto.GetClosestString( currentSplice, exsto.BuildPlayerNicks(), nil, ply, "Unknown player" )
 					return nil
 				end
 				
@@ -414,6 +412,8 @@ local function ExstoParseCommand( ply, command, args, style )
 			if style == "chat" then args = string.Implode( " ", args ) end
 			local argTable, activePlayers, playersSlot = exsto.ParseArguments( ply, data, args )
 			
+			if !argTable then return "" end
+			
 			-- Check if we are allowed to perform this active command.
 			local allowed, reason = ply:IsAllowed( data.ID )
 			
@@ -436,7 +436,9 @@ local function ExstoParseCommand( ply, command, args, style )
 			end
 
 			-- Run this command on a loop through all active player participents.
-			local newArgs, status, sentback
+			local newArgs, status, sentback, multiplePeopleToggle, alreadySaid
+			
+			if #activePlayers >= 3 then multiplePeopleToggle = true end
 			for I = 1, #activePlayers do
 				
 				-- Create a copy of the arg table so we can edit it.
@@ -466,19 +468,16 @@ local function ExstoParseCommand( ply, command, args, style )
 				end
 				
 				-- Print the return values.
-				exsto.PrintReturns( sentback )
-				
+				exsto.PrintReturns( sentback, I, multiplePeopleToggle )
+
 			end
 			
 			return ""
 		end
 	end
 	
-end
-	
---[[
-	elseif !Found and string.sub( command, 0, 1 ) == "!" and command and exsto.GetVar( "spellingcorrect" ).Value and style != "chat" then
-		
+	-- I don't think we found anything?
+	if string.sub( command, 0, 1 ) == "!" and exsto.GetVar( "spellingcorrect" ).Value and style != "console" then
 		local data = { Max = 100, Com = "" } // Will a command ever be more than 100 chars?
 		local dist
 		// Apparently we didn't find anything...
@@ -493,10 +492,9 @@ end
 		end
 
 		ply:Print( exsto_CHAT, COLOR.NAME, command, COLOR.NORM, " is not a valid command.  Maybe you want ", COLOR.NAME, data.Com, COLOR.NORM, "?" )
-	
 	end
 	
-end]]
+end
 
 --[[ -----------------------------------
 	Function: exsto.ChatMonitor

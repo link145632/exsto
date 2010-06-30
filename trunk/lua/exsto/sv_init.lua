@@ -87,14 +87,29 @@ function exsto.FindPlayer( ply )
 	return exsto.FindPlayers( ply )[1] or nil
 end
 
-function exsto.FindPlayers( data )
+function exsto.FindPlayers( data, ply )
 
 	local players = {}
 	
 	if data == "*" then return player.GetAll() end
+	if data == "*-" and ply then
+		players = player.GetAll()
+		for _, _ply in ipairs( players ) do
+			if _ply == ply then table.remove( players, _ ) break end
+		end
+	end
 	if data == "[ALL]" then return player.GetAll() end
 	
-	local splits = string.Explode( ",", data ) or 1
+	-- Check rank styles
+	for short, info in pairs( exsto.Levels ) do
+		if data:Replace( "%", "" ) == short then
+			for _, ply in ipairs( player.GetAll() ) do
+				if ply:GetRank() == short then table.insert( players, ply ) end
+			end
+		end
+	end
+	
+	local splits = string.Explode( "-", data ) or 1
 	for I = 1, #splits do
 		data = splits[I]
 		for _, ply in ipairs( player.GetAll() ) do

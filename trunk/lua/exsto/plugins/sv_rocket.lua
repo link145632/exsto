@@ -61,8 +61,9 @@ end
 
 function _R.Player:RocketPrep()
 	-- Set his pos just high enough so we can smooth launch.
+	self:SetVelocity( Vector( 0, 0, 0 ) )
 	self:EmitSound( "buttons/button1.wav" )
-	self:SetPos( self:GetPos() + Vector( 0, 0, 30 ) )
+	self:SetPos( self:GetPos() + Vector( 0, 0, 40 ) )
 	ParticleEffectAttach( "rockettrail", PATTACH_ABSORIGIN_FOLLOW, self, 0 )
 	timer.Create( "ExRocket" .. self:EntIndex(), 6, 1, function() self:RocketExplode() end )
 end
@@ -96,6 +97,13 @@ function PLUGIN:Think()
 				ply.NextRocketTick = CurTime() + 0.1
 				ply.Player:SetVelocity( ply.RandomLaunchVec )
 				ply.RandomLaunchVec.z = ply.RandomLaunchVec.z + 3
+				ply.NumberTicksSinceLaunch = ply.NumberTicksSinceLaunch + 1
+				
+				-- If we hit something, stop
+				if ply.Player:GetVelocity().z <= 60 and ply.NumberTicksSinceLaunch >= 20 then 
+					timer.Destroy( "ExRocket" .. ply.Player:EntIndex() )
+					ply.Player:RocketExplode()
+				end
 			end
 		end
 		
@@ -120,7 +128,8 @@ function PLUGIN:RocketMan( owner, ply, delay )
 		Text = text,
 		Delay = delay,
 		NextRocketTick = 0,
-		RandomLaunchVec = Vector( 0, 0, 80 )
+		RandomLaunchVec = Vector( 0, 0, 50 ),
+		NumberTicksSinceLaunch = 0
 	} )
 	
 	return { COLOR.NAME, owner:Nick(), COLOR.NORM, " has scheduled ", COLOR.NAME, ply:Nick(), COLOR.NORM, " to be launched into space!" }
