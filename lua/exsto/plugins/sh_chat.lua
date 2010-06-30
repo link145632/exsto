@@ -16,7 +16,7 @@ if SERVER then
 	end
 	
 	function PLUGIN:ToggleAnims( owner )
-		exsto.UMStart( "CHAT_ToggleAnims", owner )
+		exsto.UMStart( "ExChatPlug_ToggleAnims", owner )
 	end
 	PLUGIN:AddCommand( "togglechatanim", {
 		Call = PLUGIN.ToggleAnims,
@@ -77,7 +77,7 @@ if SERVER then
 		exsto.UMStart( "ExChatPlug_RankColors", ply, val )
 	end
 	
-	function PLUGIN:exsto_InitSpawn( ply )
+	function PLUGIN:ExClientPluginsReady( ply )
 		self:SetAdminBlink( ply, exsto.GetVar( "chat_super_blink" ).Value )
 		self:SetRankColors( ply, exsto.GetVar( "native_exsto_colors" ).Value )
 	end
@@ -118,6 +118,7 @@ elseif CLIENT then
 		self.Fade = 0
 		self.BlinkAdmins = false
 		self.RankColors = false
+		self.AnimateLines = true
 		
 		self.X = self.GlobalX:GetInt()
 		self.Y = ScrH() - self.GlobalYOffset:GetInt()
@@ -141,6 +142,14 @@ elseif CLIENT then
 		PLUGIN.BlinkAdmins = val
 	end
 	exsto.UMHook( "ExChatPlug_AdminBlink", SetAdminBlink )
+	
+	local function AnimateLines( val )
+		PLUGIN.AnimateLines = !PLUGIN.AnimateLines
+		
+		if PLUGIN.AnimateLines then chat.AddText( COLOR.NORM, "Chat animations have been ", COLOR.NAME, "enabled", COLOR.NORM, "!" ) end
+		if !PLUGIN.AnimateLines then chat.AddText( COLOR.NORM, "Chat animations have been ", COLOR.NAME, "disabled", COLOR.NORM, "!" ) end
+	end
+	exsto.UMHook( "ExChatPlug_ToggleAnims", AnimateLines )
 	
 	function PLUGIN:Toggle( bool, team )
 	
@@ -282,6 +291,12 @@ elseif CLIENT then
 	local dist, speed
 	function PLUGIN:AnimateLine( line, mul )
 	
+		-- If we are not animating, just set our last as the current.
+		if !self.AnimateLines then
+			line.Anims.LastX = line.Anims.CurX
+			line.Anims.LastY = line.Anims.CurY
+		end
+	
 		-- Monitor his values.  If he is closed and gets to the point where he can be disabled draw wise, do it.
 		if line.BeginClose then
 			if line.Anims.LastX <= line.Anims.CurX then
@@ -375,11 +390,19 @@ elseif CLIENT then
 		-- Monitor fading stuff here.
 		if self.Open then
 			if self.Fade != 255 then
-				self.Fade = math.Approach( self.Fade, 255, 10 )
+				if self.AnimateLines then
+					self.Fade = math.Approach( self.Fade, 255, 10 )
+				else
+					self.Fade = 255
+				end
 			end
 		else
 			if self.Fade != 0 then
-				self.Fade = math.Approach( self.Fade, 0, 5 )
+				if self.AnimateLines then
+					self.Fade = math.Approach( self.Fade, 0, 5 )
+				else
+					self.Fade = 0
+				end
 			end
 		end
 		
@@ -449,7 +472,7 @@ elseif CLIENT then
 	exsto_PLUGINADDTEXT = exsto_PLUGINADDTEXT or chat.AddText
 	local data, colOpen, col, ply, arg
 	function chat.AddText( ... )
-		if exsto.Plugins[ PLUGIN.Info.ID ].Disabled then return exsto_PLUGINADDTEXT( ... ) end
+		if exsto.Plugins[ PLUGIN.Info.ID ] and exsto.Plugins[ PLUGIN.Info.ID ].Disabled then return exsto_PLUGINADDTEXT( ... ) end
 		
 		ply = nil
 		data = ""
@@ -474,7 +497,10 @@ elseif CLIENT then
 					colOpen = false
 				end
 				
-				data = data .. PLUGIN:FormatColorString( exsto.GetRankColor( obj:GetRank() ) )
+				local col = team.GetColor( obj:Team() )
+				if PLUGIN.RankColors then col = exsto.GetRankColor( obj:GetRank() ) end
+				
+				data = data .. PLUGIN:FormatColorString( col )
 				data = data .. obj:Nick()
 				data = data .. "[/c]"
 			elseif type( obj ) == "string" then

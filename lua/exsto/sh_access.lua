@@ -578,7 +578,6 @@ if SERVER then
 	function exsto.AddUsersOnJoin( ply, steamid, uniqueid )
 
 		local plydata = FEL.LoadUserInfo( ply )
-		print( "PLAYERDATA " .. plydata )
 
 		ply:SetNetworkedString( "rank", plydata or "guest" )	
 		
@@ -710,7 +709,8 @@ if SERVER then
 	----------------------------------- ]]
 	local function PingForClient( ply, sid, uid )
 		if ply.InitSpawn then -- If the client is clear to load.
-			hook.Call( "exsto_InitSpawn", nil, ply, sid, uid )
+			hook.Call( "ExInitSpawn", nil, ply, sid, uid )
+			hook.Call( "exsto_InitSpawn", nil, ply, sid, uid ) -- Legacy
 		else
 			timer.Simple( 0.1, PingForClient, ply, sid, uid )
 		end

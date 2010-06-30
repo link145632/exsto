@@ -28,44 +28,44 @@ function PLUGIN:Init()
 end
 
 function PLUGIN:PlayerNoClip( ply )
-	return !ply:Jailed()
+	if ply:Jailed() then return false end
 end
 
 function PLUGIN:CanTool( ply, tr, tool )
 	if tr.Entity.IsJailWall then return false end
-	return !ply:Jailed()
+	if ply:Jailed() then return false end
 end
 
 function PLUGIN:PlayerGiveSWEP( ply )
-	return !ply:Jailed()
+	if ply:Jailed() then return false end
 end
 
 function PLUGIN:PlayerSpawnProp( ply )
-	return !ply:Jailed()
+	if ply:Jailed() then return false end
 end
 
 function PLUGIN:PlayerSpawnSENT( ply )
-	return !ply:Jailed()
+	if ply:Jailed() then return false end
 end
 
 function PLUGIN:PlayerSpawnVehicle( ply )
-	return !ply:Jailed()
+	if ply:Jailed() then return false end
 end
 
 function PLUGIN:PlayerSpawnNPC( ply )
-	return !ply:Jailed()
+	if ply:Jailed() then return false end
 end
 
 function PLUGIN:PlayerSpawnEffect( ply )
-	return !ply:Jailed()
+	if ply:Jailed() then return false end
 end
 
 function PLUGIN:PlayerSpawnRagdoll( ply )
-	return !ply:Jailed()
+	if ply:Jailed() then return false end
 end
 
 function PLUGIN:PlayerUse( ply )
-	return !ply:Jailed()
+	if ply:Jailed() then return false end
 end
 
 function PLUGIN:PlayerSpawn( ply )
