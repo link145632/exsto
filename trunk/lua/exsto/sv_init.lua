@@ -84,18 +84,27 @@ function exsto.BuildPlayerNicks()
 end
 
 function exsto.FindPlayer( ply )
+	return exsto.FindPlayers( ply )[1] or nil
+end
 
-	local newply = string.lower( ply )
-	local nick
+function exsto.FindPlayers( data )
+
+	local players = {}
 	
-	for k,v in ipairs( player.GetAll() ) do
-		nick = string.lower( v:Nick() )
-		if v:UserID() == tonumber( ply  )then return v end
-		if string.find( nick, newply, 1, true ) or nick == newply then
-			return v 
+	if data == "*" then return player.GetAll() end
+	if data == "[ALL]" then return player.GetAll() end
+	
+	local splits = string.Explode( ",", data ) or 1
+	for I = 1, #splits do
+		data = splits[I]
+		for _, ply in ipairs( player.GetAll() ) do
+			if ply:UserID() == tostring( data ) then table.insert( players, ply ) end
+			if string.find( ply:Nick():lower(), data:lower(), 1, true ) then table.insert( players, ply ) end
 		end
 	end
-	return ply
+	
+	return players
+	
 end
 
 function exsto.GetPlayerByID( id )

@@ -10,6 +10,10 @@ PLUGIN:SetInfo({
 	Owner = "Prefanatic",
 } )
 
+function PLUGIN:Init()
+	self.Rocketeers = {}
+end
+
 function PLUGIN:Ignite( owner, ply, duration, radius )
 	ply:Ignite( duration, radius )
 	
@@ -30,37 +34,96 @@ PLUGIN:AddCommand( "ignite", {
 	Optional = {Duration = 10, Radius = 50}
 })
 
-local function Explode( ply )
+function PLUGIN:CanNoclip( ply )
+	if ply.IsRocket then return false end
+end
+
+function _R.Player:RocketExplode()
+	self.Stage = 3
 	local explode = ents.Create( "env_explosion" )
-		explode:SetPos( ply:GetPos() )
-		explode:SetOwner( ply )
+		explode:SetPos( self:GetPos() )
+		explode:SetOwner( self )
 		explode:Spawn()
 		explode:Fire( "Explode", 0, 0 )
 		
-	ply:StopParticles()
-	ply:Kill() -- I want to do a ragdoll version of this too, its funnier.
-	--ply:SetHealth( ply:Health() - speed / 6 ) -- Sets the health to the current, minus the speed / 6
+	self:StopParticles()
+	self:KillSilent()
 	
-	--if ply:Health() <= 0 then ply:Kill() end -- If the player has no health, kill him.
-end
-	
-function PLUGIN:RocketMan( owner, ply, speed ) -- Function, args Caller, Player, and Speed	
+	for _, ply in ipairs( PLUGIN.Rocketeers ) do
+		if ply.Player == self then
+			ply.Text:Remove()
+			table.remove( PLUGIN.Rocketeers, _ )
+			break
+		end
+	end
 
-	ply:SetMoveType( MOVETYPE_WALK )
+end
+
+function _R.Player:RocketPrep()
+	-- Set his pos just high enough so we can smooth launch.
+	self:EmitSound( "buttons/button1.wav" )
+	self:SetPos( self:GetPos() + Vector( 0, 0, 30 ) )
+	ParticleEffectAttach( "rockettrail", PATTACH_ABSORIGIN_FOLLOW, self, 0 )
+	timer.Create( "ExRocket" .. self:EntIndex(), 6, 1, function() self:RocketExplode() end )
+end
+
+--[[ Stages
+	1 = Waiting
+	2 = Launching
+	3 = Done
+]]
+
+function PLUGIN:Think()
+	for _, ply in pairs( self.Rocketeers ) do
+		
+		if ply.Stage == 1 then
+			if ply.NextRocketTick <= CurTime() then
+				ply.NextRocketTick = CurTime() + 1
+				
+				if ply.Delay <= 0 then
+					ply.NextRocketTick = CurTime() - 1
+					
+					ply.Player:RocketPrep()
+					ply.Stage = 2
+				else
+					ply.Delay = ply.Delay - 1
+					ply.Text:SetText( "Liftoff in " .. ply.Delay )
+					ply.Player:EmitSound( "buttons/blip1.wav" )
+				end
+			end
+		elseif ply.Stage == 2 then -- We are flying!
+			if ply.NextRocketTick <= CurTime() then
+				ply.NextRocketTick = CurTime() + 0.1
+				ply.Player:SetVelocity( ply.RandomLaunchVec )
+				ply.RandomLaunchVec.z = ply.RandomLaunchVec.z + 3
+			end
+		end
+		
+	end
+end
+
+function PLUGIN:RocketMan( owner, ply, delay )
+	local text = ents.Create( "3dtext" )
+		text:SetPos( ply:GetPos() + Vector( 0, 0, 80 ) )
+		text:SetAngles( Angle( 0, 0, 0 ) )
+		text:Spawn()
+		text:SetPlaceObject( ply )
+		text:SetText( "Liftoff in " .. delay )
+		text:SetScale( 0.1 )
+		text:SetParent( ply )
+		
+	ply.IsRocket = true
 	
-	-- Randoms to make it look cooler.
-	local x = math.random( -800, 800 )
-	local y = math.random( -800, 800 )
-	ply:SetVelocity( Vector( x, y, speed ) ) -- Set the velocity of the player to the up of the speed
-	ParticleEffectAttach( "rockettrail", PATTACH_ABSORIGIN_FOLLOW, ply, 0 )
-	
-	timer.Simple( 2, Explode, ply )
-	
-	return {
-		Activator = owner,
+	table.insert( self.Rocketeers, {
 		Player = ply,
-		Wording = " has rocketed ",
-	}
+		Stage = 1,
+		Text = text,
+		Delay = delay,
+		NextRocketTick = 0,
+		RandomLaunchVec = Vector( 0, 0, 80 )
+	} )
+	
+	return { COLOR.NAME, owner:Nick(), COLOR.NORM, " has scheduled ", COLOR.NAME, ply:Nick(), COLOR.NORM, " to be launched into space!" }
 	
 end
 PLUGIN:AddCommand( "rocketman", {
@@ -69,9 +132,9 @@ PLUGIN:AddCommand( "rocketman", {
 	FlagDesc = "Allows users to explode other players.",
 	Console = { "rocket" },
 	Chat = { "!rocket" },
-	ReturnOrder = "Victim-Speed",
-	Args = {Victim = "PLAYER", Speed = "NUMBER"},
-	Optional = {Speed = 3000}, -- Give the optional value
+	ReturnOrder = "Victim-Delay",
+	Args = {Victim = "PLAYER", Delay = "NUMBER"},
+	Optional = { Delay = 5 },
 })
 
 PLUGIN:Register()
