@@ -107,7 +107,7 @@ function exsto.AddChatCommand( ID, info )
 		Optional = info.Optional or {},
 		Plugin = info.Plugin or nil,
 		Category = info.Category or "Unknown",
-		DisallowCaller = info.DisallowCaller or true
+		DisallowCaller = info.DisallowCaller or false
 	}
 	
 	exsto.Commands[ID].Chat = {}
