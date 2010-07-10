@@ -19,8 +19,7 @@ function PLUGIN:LuaRun( owner, lua )
 end
 PLUGIN:AddCommand( "luarun", {
 	Call = PLUGIN.LuaRun,
-	Desc = "Runs lua code on the server.",
-	FlagDesc = "Allows users to execute lua on the server.",
+	Desc = "Allows users to execute lua on the server.",
 	Console = { "luarun" },
 	Chat = { "!lua" },
 	ReturnOrder = "Command",
@@ -38,8 +37,7 @@ function PLUGIN:CExec( owner, ply, command )
 end
 PLUGIN:AddCommand( "cexec", {
 	Call = PLUGIN.CExec,
-	Desc = "Runs a command on the client.",
-	FlagDesc = "Allows users to run commands on the client.",
+	Desc = "Allows users to run commands on the client.",
 	Console = { "cexec" },
 	Chat = { "!cexec" },
 	ReturnOrder = "Player-Command",
@@ -59,8 +57,7 @@ function PLUGIN:RunCommand( owner, command )
 end
 PLUGIN:AddCommand( "command", {
 	Call = PLUGIN.RunCommand,
-	Desc = "Runs console command",
-	FlagDesc = "Allows users to run console commands.",
+	Desc = "Allows users to run console commands.",
 	Console = { "command" },
 	Chat = { "!command" },
 	ReturnOrder = "Command",

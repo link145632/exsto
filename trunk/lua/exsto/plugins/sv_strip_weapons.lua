@@ -14,7 +14,7 @@ function PLUGIN:Return( self, victim )
 	
 	if !victim.OldWeapons then
 		return {
-			self, COLOR.NAME, victim, COLOR.NORM, " does not have any weapons to return!"
+			self, COLOR.NAME, victim:Nick(), COLOR.NORM, " does not have any weapons to return!"
 		}
 	end
 	
@@ -27,36 +27,55 @@ function PLUGIN:Return( self, victim )
 	return {
 		Activator = self,
 		Player = victim,
-		Wording = " has gived back ",
+		Wording = " has gave back ",
 		Secondary = " his weapons"
 	}
 end
 PLUGIN:AddCommand( "returnweps", {
 	Call = PLUGIN.Return,
-	Desc = "Returns weapons to a player.",
-	FlagDesc = "Allows users to return players their weapons.",
+	Desc = "Allows users to return players their weapons.",
 	Console = { "returnweapons" },
 	Chat = { "!returnweps" },
 	ReturnOrder = "Victim",
 	Args = { Victim = "PLAYER" },
-	Optional = { }
+	Optional = { },
+	Category = "Fun",
 })
+PLUGIN:RequestQuickmenuSlot( "returnweps" )
 
 function PLUGIN:Give( self, victim, weapon )
+	if string.find( weapon, "npc", 1, true ) then
+		return { self, COLOR.NORM, "You cannot give yourself ", COLOR.NAME, "npcs", COLOR.NORM, "!" }
+	end
+	
 	victim:Give( weapon )
 	
-	return { COLOR.NAME, self, COLOR.NORM, " has given ", COLOR.NAME, victim, COLOR.NORM, " a " .. weapon }
+	return { COLOR.NAME, self:Nick(), COLOR.NORM, " has given ", COLOR.NAME, victim:Nick(), COLOR.NORM, " a " .. weapon }
 end
 PLUGIN:AddCommand( "give", {
 	Call = PLUGIN.Give,
-	Desc = "Gives a weapon to a player.",
-	FlagDesc = "Allows users to give weapons.",
+	Desc = "Allows users to give weapons.",
 	Console = { "give" },
 	Chat = { "!give" },
 	ReturnOrder = "Victim-Weapon",
 	Args = { Victim = "PLAYER", Weapon = "STRING" },
-	Optional = { }
+	Optional = { },
+	Category = "Fun",
 })
+PLUGIN:RequestQuickmenuSlot( "give", {
+	Weapon = {
+		{ Display = "AK-47", Data = "weapon_ak47" },
+		{ Display = "Deagle", Data = "weapon_deagle" },
+		{ Display = "FiveSeven", Data = "weapon_fiveseven" },
+		{ Display = "Glock", Data = "weapon_glock" },
+		{ Display = "M4", Data = "weapon_m4" },
+		{ Display = "MP5", Data = "weapon_mp5" },
+		{ Display = "Para", Data = "weapon_para" },
+		{ Display = "PumpShotgun", Data = "weapon_pumpshotgun" },
+		{ Display = "TMP", Data = "weapon_tmp" },
+		{ Display = "Mac10", Data = "weapon_mac10" },
+	},
+} )
 
 function PLUGIN:Strip( self, victim )
 	victim.OldWeapons = {}
@@ -76,13 +95,14 @@ function PLUGIN:Strip( self, victim )
 end
 PLUGIN:AddCommand( "stripweps", {
 	Call = PLUGIN.Strip,
-	Desc = "Strips weapons from a player.",
-	FlagDesc = "Allows users to strip players of weapons.",
+	Desc = "Allows users to strip players of weapons.",
 	Console = { "stripweapons", "strip" },
 	Chat = { "!stripweps", "!strip" },
 	ReturnOrder = "Victim",
 	Args = { Victim = "PLAYER" },
-	Optional = { }
+	Optional = { },
+	Category = "Fun",
 })
+PLUGIN:RequestQuickmenuSlot( "stripweps" )
 
 PLUGIN:Register()

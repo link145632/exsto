@@ -37,6 +37,7 @@ function exsto.CreatePlugin()
 	obj.FEL.AddData = {}
 	obj.Variables = {}
 	obj.Overrides = {}
+	obj.QuickmenuRequests = {}
 	
 	-- Set defaults for info.
 	obj.Info = {
@@ -168,6 +169,11 @@ function plugin:Register()
 		v.Table[v.Old] = self[v.New]
 	end
 	
+	-- Quickmenu Requests
+	for _, info in ipairs( self.QuickmenuRequests ) do
+		exsto.SetQuickmenuSlot( info.name, info.data )
+	end
+	
 	exsto.Print( exsto_CONSOLE, "PLUGIN --> Loading " .. self.Info.Name .. " by " .. self.Info.Owner .. "!" )
 	
 	self:Init()
@@ -233,6 +239,14 @@ end
 
 function plugin:AddOverride( old, new, tbl )
 	table.insert( self.Overrides, { Old = old, New = new, Table = tbl, Saved = tbl[old] } )
+end
+
+function plugin:SendData( hook, ply, ... )
+	exsto.UMStart( hook, ply, ... )
+end
+
+function plugin:RequestQuickmenuSlot( commandName, _data )
+	table.insert( self.QuickmenuRequests, { name = commandName, data = _data } )
 end
 
 --[[ -----------------------------------

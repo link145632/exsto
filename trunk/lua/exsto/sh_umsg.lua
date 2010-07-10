@@ -51,13 +51,12 @@ if SERVER then
 	Function: exsto.SendRank
 	Description: Sends a single rank down to the client.
      ----------------------------------- ]]
-	function exsto.SendRank( ply, rank )
-		local rank = exsto.Levels[rank]
-		
-		//if !rank then exsto.ErrorNoHalt( "UMSG --> Failure to send rank '" .. rank .. "' To " .. ply:Nick() .. ".  No rank exists!" ) return end
-		
+	function exsto.SendRank( ply, short )
+		local rank = exsto.Ranks[ short ]
+
 		exsto.UMStart( "exsto_ReceiveRanks", ply, rank.Name, rank.Short, rank.Desc, rank.Derive, rank.Immunity, rank.Color, rank.CanRemove )
-		exsto.UMStart( "exsto_ReceiveRankNoDerive", ply, rank.Short, rank.Flags_NoDerive )
+		exsto.UMStart( "exsto_ReceiveRankNoDerive", ply, rank.Short, rank.Flags )
+		exsto.UMStart( "ExRecFlagRank", ply, rank.Short, rank.AllFlags )
 	end
 	
 --[[ -----------------------------------
@@ -66,10 +65,9 @@ if SERVER then
      ----------------------------------- ]]	
 	function exsto.SendRanks( ply )
 		exsto.UMStart( "ExClearRanks", ply )
-		for k,v in pairs( exsto.Levels ) do
+		for k,v in pairs( exsto.Ranks ) do
 			exsto.SendRank( ply, k )
 		end
-		exsto.UMStart( "exsto_BuildRanks", ply )
 	end
 	
 --[[ -----------------------------------
@@ -190,30 +188,37 @@ if SERVER then
      ----------------------------------- ]]
 	function exsto.UMStart( name, ply, ... )
 		if type( name ) != "string" then exsto.ErrorNoHalt( "No name to send usermessage to!" ) return end
-		if type( ply ) != "Player" and type( ply ) != "table" then exsto.ErrorNoHalt( "No player to send usermessage to!" ) return end
+		if type( ply ) != "Player" and type( ply ) != "table" and type( ply ) != "CRecipientFilter" then exsto.ErrorNoHalt( "No player to send usermessage to!" ) return end
+		
+		hook.Call( "ExDataSend", nil, name, ply )
 
 		local nothing = false
 		local sendTable
-		local num, players = exsto.MultiplePlayers( ply )
-	
 		if not arg then nothing = true end
-
-		for I = 1, num do
-			ply = players[I]
-			
-			umsg.Start( name, ply )
-				umsg.Char( #arg )
-				
-				if not nothing then
-					for I = 1, #arg do			
-						sendTable = exsto.ParseUMType( ply, arg[I] )
-					end
-				end
-			umsg.End()
-			
-			if sendTable then
-				exsto.SendTable( sendTable[1], sendTable[2], sendTable[3] )
+		
+		local rp = RecipientFilter()
+		if type( ply ) == "CRecipientFilter" then
+			rp = ply
+		elseif type( ply ) == "Player" then
+			rp:AddPlayer( ply )
+		elseif type( ply ) == "table" then
+			for _, ply in ipairs( ply ) do
+				rp:AddPlayer( ply )
 			end
+		end
+
+		umsg.Start( name, rp )
+			umsg.Char( #arg )
+		
+			if not nothing then
+				for I = 1, #arg do			
+					sendTable = exsto.ParseUMType( rp, arg[I] )
+				end
+			end
+		umsg.End()
+		
+		if sendTable then
+			exsto.SendTable( sendTable[1], sendTable[2], sendTable[3] )
 		end
 	end
 	
@@ -394,115 +399,44 @@ if CLIENT then
 		Rank Receiving UMSGS
      ----------------------------------- ]]
 	function exsto.ReceiveRanks( name, short, desc, derive, immunity, color, remove )
-		exsto.LoadedLevels[short] = {
+		exsto.Ranks[short] = {
 			Name = name,
 			Desc = desc,
 			Short = short,
 			Color = color,
 			Immunity = immunity,
 			Flags = {},
-			Flags_NoDerive = {},
+			AllFlags = {},
 			Derive = derive,
 			CanRemove = remove,
 		}
 	end
 	exsto.UMHook( "exsto_ReceiveRanks", exsto.ReceiveRanks )
 	
-	function exsto.ReceiveRankNoDerive( short, noderive )
-		local rank = exsto.LoadedLevels[short]
+	function exsto.ReceiveRankFlags( short, flags )
+		local rank = exsto.Ranks[short]
 		if !rank then print( "[EXSTO ERROR] UMSG --> Trying to insert flag data into unknown rank!" ) return end
 		
-		rank.Flags = noderive
+		rank.Flags = flags
 	end
-	exsto.UMHook( "exsto_ReceiveRankNoDerive", exsto.ReceiveRankNoDerive )
+	exsto.UMHook( "exsto_ReceiveRankNoDerive", exsto.ReceiveRankFlags )
 	
+	function exsto.ReceiveRankAllFlags( short, flags )
+		local rank = exsto.Ranks[short]
+		if !rank then print( "[EXSTO ERROR] UMSG --> Trying to insert flag data into unknown rank!" ) return end
+		
+		rank.AllFlags = flags
+	end
+	exsto.UMHook( "ExRecFlagRank", exsto.ReceiveRankAllFlags )
+
 	function exsto.ReceiveRankErrors( errs )
 		exsto.RankErrors = errs
 	end
 	exsto.UMHook( "ExRankErr", exsto.ReceiveRankErrors )
 	
-	local function AddLevel( data )
-		exsto.Levels[data.Short] = {
-			Name = data.Name,
-			Desc = data.Desc, -- lol
-			Short = data.Short,
-			Color = data.Color,
-			Immunity = data.Immunity,
-			Flags = data.Flags,
-			Flags_NoDerive = data.Flags_NoDerive,
-			Derive = data.Derive,
-			CanRemove = data.CanRemove,
-		}
-	end
-	
-	local function RANK_Loaded( short )
-		return exsto.Levels[short]
-	end
-	
-	local function RANK_Derive( rank )
-		local derive = exsto.LoadedLevels[rank]
-		
-		-- if for some reason he cant derive off of anything, lets just send back an empty table so he atleast exists.
-		if !derive then return {} end
-		
-		//exsto.Print( exsto_CONSOLE, "RANKS --> DERIVE --> Deriving from " .. rank .. "!" )
-		
-		if !RANK_Loaded( rank ) then	
-			local args = derive.Flags
-			derive.Flags_NoDerive = table.Copy( args )
-			local Derive = "NONE"
-			
-			if derive.Derive != "NONE" then
-				Derive = derive.Derive
-				local derive_flags = RANK_Derive( derive.Derive )
-				
-				for k,v in pairs( derive_flags ) do
-					table.insert( args, v )
-				end
-				
-			end
-			
-			derive.Flags = args
-
-			AddLevel( derive )
-			return exsto.Levels[derive.Short].Flags		
-
-		else -- If we are loaded.
-			return exsto.Levels[derive.Short].Flags
-		end
-	end
-	
-	// Builds the ranks after all data was Received
-	function exsto.BuildRanks()
-		
-		-- Loop through all ranks
-		for k,v in pairs( exsto.LoadedLevels ) do
-			
-			local args = v.Flags
-			v.Flags_NoDerive = table.Copy( args )
-			local Derive = "NONE"
-			
-			if v.Derive != "NONE" then
-				Derive = v.Derive
-				local derive_flags = RANK_Derive( v.Derive )
-				
-				for k,v in pairs( derive_flags ) do
-					table.insert( args, v )
-				end
-
-			end
-			
-			v.Flags = args
-			
-			AddLevel( v )
-		end
-		
-	end
-	exsto.UMHook( "exsto_BuildRanks", exsto.BuildRanks )
-	
 	function exsto.ClearRanks()
-		exsto.Levels = {}
-		exsto.LoadedLevels = {}
+		exsto.Ranks = {}
+		exsto.LoadedRanks = {}
 	end
 	exsto.UMHook( "ExClearRanks", exsto.ClearRanks )
 	

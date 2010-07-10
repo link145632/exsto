@@ -180,8 +180,7 @@ function PLUGIN:CheckVersion( owner )
 end
 PLUGIN:AddCommand( "checkversion", {
 	Call = PLUGIN.CheckVersion,
-	Desc = "Checks the version of Exsto.",
-	FlagDesc = "Allows users to check and see the version of Exsto.",
+	Desc = "Allows users to check and see the version of Exsto.",
 	Console = { "version" },
 	Chat = { "!version" },
 	Args = {},
@@ -316,8 +315,7 @@ function PLUGIN:Update( owner )
 end
 PLUGIN:AddCommand( "update", {
 	Call = PLUGIN.Update,
-	Desc = "Updates Exsto",
-	FlagDesc = "Allows users to update the server via OOSocks.",
+	Desc = "Allows users to update the server via OOSocks.",
 	Console = { "update" },
 	Chat = { "!update" },
 	Args = {},

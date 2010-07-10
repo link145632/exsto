@@ -25,14 +25,32 @@ function PLUGIN:Ignite( owner, ply, duration, radius )
 end
 PLUGIN:AddCommand( "ignite", {
 	Call = PLUGIN.Ignite,
-	Desc = "Ignites players.",
-	FlagDesc = "Allows users to ignite other players.",
+	Desc = "Allows users to ignite other players.",
 	Console = { "ignite" },
 	Chat = { "!ignite", "!fire" },
 	ReturnOrder = "Victim-Duration-Radius",
 	Args = {Victim = "PLAYER", Duration = "NUMBER", Radius = "NUMBER"},
-	Optional = {Duration = 10, Radius = 50}
+	Optional = {Duration = 10, Radius = 50},
+	Category = "Fun",
 })
+PLUGIN:RequestQuickmenuSlot( "ignite", {
+	Duration = {
+		{ Display = "Instant", Data = 0 },
+		{ Display = "5 seconds", Data = 5 },
+		{ Display = "10 seconds", Data = 10 },
+		{ Display = "20 seconds", Data = 20 },
+		{ Display = "30 seconds", Data = 30 },
+		{ Display = "1 minute", Data = 60 },
+	},
+	Radius = {
+		{ Display = "5 units", Data = 5 },
+		{ Display = "5 units", Data = 5 },
+		{ Display = "10 units", Data = 10 },
+		{ Display = "20 units", Data = 20 },
+		{ Display = "30 units", Data = 30 },
+		{ Display = "60 units", Data = 60 },
+	}
+} )
 
 function PLUGIN:CanNoclip( ply )
 	if ply.IsRocket then return false end
@@ -137,13 +155,23 @@ function PLUGIN:RocketMan( owner, ply, delay )
 end
 PLUGIN:AddCommand( "rocketman", {
 	Call = PLUGIN.RocketMan,
-	Desc = "Player is now rocket",
-	FlagDesc = "Allows users to explode other players.",
+	Desc = "Allows users to explode other players.",
 	Console = { "rocket" },
 	Chat = { "!rocket" },
 	ReturnOrder = "Victim-Delay",
 	Args = {Victim = "PLAYER", Delay = "NUMBER"},
 	Optional = { Delay = 5 },
+	Category = "Fun",
 })
+PLUGIN:RequestQuickmenuSlot( "rocketman", {
+	Delay = {
+		{ Display = "Instant", Data = 0 },
+		{ Display = "5 seconds", Data = 5 },
+		{ Display = "10 seconds", Data = 10 },
+		{ Display = "20 seconds", Data = 20 },
+		{ Display = "30 seconds", Data = 30 },
+		{ Display = "1 minute", Data = 60 },
+	}
+} )
 
 PLUGIN:Register()

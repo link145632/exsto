@@ -25,6 +25,7 @@
 	include( "exsto/sh_umsg.lua" )
 	include( "exsto/sh_print.lua" )
 	include( "exsto/sh_data.lua" )
+	include( "exsto/cl_menu_skin.lua" )
 	include( "exsto/cl_menu.lua" )
 	include( "exsto/sh_access.lua" )
 	include( "exsto/sh_plugins.lua" )
@@ -32,3 +33,8 @@
 	-- Init clientside items.
 	exsto.LoadPlugins()
 	exsto.InitPlugins( launchInit )
+	
+	local seconds = SysTime() - exsto.StartTime
+	print( "----------------------------------------------" )
+	print( "Exsto started in " .. math.floor( seconds ) .. " seconds!" )
+	print( "----------------------------------------------" )

@@ -37,7 +37,6 @@ end
 exsto_CHAT = AddPrint( 
 	function( ply, ... )
 		if CLIENT then return end
-		print( ply:Name() )
 		if ply:IsConsole() then return end
 		
 		exsto.UMStart( "exsto_ChatPrint", ply, COLOR.EXSTO, "[Exsto] ", unpack( {...} ) )
@@ -63,7 +62,7 @@ exsto_CHAT_ALL = AddPrint(
 )
 	
 exsto_CONSOLE = AddPrint( 
-	function( msg )
+	function( msg, extra )
 		print( exsto.TextStart .. msg )
 	end
 )
@@ -77,7 +76,7 @@ exsto_CONSOLE_DEBUG = AddPrint(
 exsto_ERROR = AddPrint( 
 	function( msg )
 		local send = exsto.ErrorStart .. " " .. msg .. "\n" 
-		
+
 		if SERVER then
 			for k,v in pairs( player.GetAll() ) do
 				if v:IsSuperAdmin() then exsto.UMStart( "exsto_ClientERROR", v, send ) end
@@ -92,7 +91,7 @@ exsto_ERROR = AddPrint(
 exsto_ERRORNOHALT = AddPrint( 
 	function( msg )
 		local send = exsto.ErrorStart .. " " .. msg .. "\n" 
-		
+
 		if SERVER then
 			for k,v in pairs( player.GetAll() ) do
 				if v:IsSuperAdmin() then exsto.UMStart( "exsto_ClientERRORNoHalt", v, send ) end
@@ -123,7 +122,7 @@ exsto_CLIENT = AddPrint(
 		if type( ply ) != "Player" then return end
 		
 		local send = exsto.TextStart .. " " .. msg .. "\n" 
-		exsto.UMStart( "exsto_ClientMSG", ply, send )
+		ply:PrintMessage( HUD_PRINTCONSOLE, send )
 	end, true
 )
 	
@@ -133,7 +132,7 @@ exsto_CLIENT_NOLOGO = AddPrint(
 		if type( ply ) != "Player" then return end
 		
 		local send = msg .. "\n" 
-		exsto.UMStart( "exsto_ClientMSG", ply, send )
+		ply:PrintMessage( HUD_PRINTCONSOLE, send )
 	end, true
 )
 	
@@ -146,6 +145,7 @@ function exsto.Print( style, ... )
 	if style == nil then exsto.ErrorNoHalt( "Issue creating print command!" ) return end -- Weird bug?
 	for k,v in pairs( exsto.PrintStyles ) do
 		if style == v.enum then	
+			hook.Call( "ExPrintCalled", nil, style )
 			return v.func( ... )		
 		end	
 	end

@@ -58,6 +58,10 @@ function exsto.SendCommandList( ply, format )
 			FlagDesc = v.FlagDesc,
 			ReturnOrder = v.ReturnOrder,
 			Optional = v.Optional,
+			QuickMenu = v.QuickMenu,
+			CallerID = v.CallerID,
+			ExtraOptionals = v.ExtraOptionals or {},
+			Category = v.Category
 		}
 		
 	end
@@ -97,11 +101,13 @@ function exsto.AddChatCommand( ID, info )
 		ID = ID,
 		Call = info.Call,
 		Desc = info.Desc or "None Provided",
-		FlagDesc = info.FlagDesc or "None Provided",
+		FlagDesc = info.Desc or "None Provided",
 		ReturnOrder = returnOrder,
 		Args = info.Args,
 		Optional = info.Optional or {},
 		Plugin = info.Plugin or nil,
+		Category = info.Category or "Unknown",
+		DisallowCaller = info.DisallowCaller or true
 	}
 	
 	exsto.Commands[ID].Chat = {}
@@ -242,6 +248,9 @@ function exsto.PrintReturns( data, I, multiplePeople )
 			local ply = data.Player
 			if data.Player and type( data.Player ) == "Player" then ply = data.Player:Nick() end
 			
+			-- Change to himself if the acting player is the victim
+			if ply == data.Activator:Nick() then ply = "him/herself" end
+			
 			-- Format any [self] requests.
 			data.Wording = data.Wording:gsub( "%[self%]%", data.Activator:Nick() )
 			
@@ -323,6 +332,16 @@ function exsto.ParseArguments( ply, data, args )
 		args[ #data.ReturnOrder ] = compile
 	end
 	
+	-- Check and loop through our arguments if he contains any environment variable.
+	for I = 1, #args do
+		for slice in string.gmatch( args[ I ], "\#(%w+)" ) do
+			local data = exsto.GetVar( slice )
+			if data then
+				args[ I ] = string.gsub( args[ I ], "#" .. slice, data.Value )
+			end
+		end
+	end
+	
 	-- Time to loop through our requested return orders and place items
 	for I = 1, #data.ReturnOrder do
 	
@@ -375,7 +394,7 @@ function exsto.ParseArguments( ply, data, args )
 			else
 			
 				-- See if we can substitute ourselves in if he asks for a PLAYER value.
-				if currentType == "PLAYER" and I == 1 and ply:IsPlayer() then
+				if currentType == "PLAYER" and I == 1 and ply:IsPlayer() and data.DisallowCaller == false then
 					table.insert( cleanedArguments, { ply } )
 					activePlayers = { ply }
 					playersSlot = #cleanedArguments
@@ -398,7 +417,7 @@ end
 	Description: Main thread that parses commands and runs them.
      ----------------------------------- ]]
 local function ExstoParseCommand( ply, command, args, style )
-	
+
 	for _, splice in ipairs( args ) do
 		args[ _ ] = splice:Trim()
 	end
@@ -407,6 +426,7 @@ local function ExstoParseCommand( ply, command, args, style )
 		if ( style == "chat" and table.HasValue( data.Chat, command ) ) or ( style == "console" and table.HasValue( data.Console, command ) ) then
 		
 			-- We found our command, continue.
+			hook.Call( "ExCommandCalled" )
 			
 			-- First, parse the text for the arguments.
 			if style == "chat" then args = string.Implode( " ", args ) end
@@ -466,6 +486,9 @@ local function ExstoParseCommand( ply, command, args, style )
 					exsto.ErrorNoHalt( "COMMAND --> " .. command .. " --> " .. sentback )
 					return ""
 				end
+				
+				-- Call our hook!
+				hook.Call( "ExCommand-" .. data.ID, nil, newArgs )
 				
 				-- Print the return values.
 				exsto.PrintReturns( sentback, I, multiplePeopleToggle )
@@ -598,6 +621,26 @@ function exsto.ParseCommands( com, args )
 end
 
 --[[ -----------------------------------
+	Function: exsto.SetQuickmenuSlot
+	Description: Modifies an existing command to work with the quickmenu
+     ----------------------------------- ]]
+function exsto.SetQuickmenuSlot( id, data )
+	if !exsto.Commands[ id ] then return end
+	
+	-- We have our data, now add to it.
+	-- Create a special caller function for it for the client to call us with.
+	local randID = "_ExPlugCaller_" .. math.random( -1000, 1000 )
+	
+	concommand.Add( randID, function( ply, _, args )
+		return ExstoParseCommand( ply, exsto.Commands[ id ].Console[ 1 ], args, "console" )
+	end )
+	
+	exsto.Commands[ id ].QuickMenu = true
+	exsto.Commands[ id ].CallerID = randID
+	exsto.Commands[ id ].ExtraOptionals = data
+end
+
+--[[ -----------------------------------
 	Function: exsto.CommandCall
 	Description: Run on the 'exsto' command.  It re-directs to a new command.
      ----------------------------------- ]]
@@ -620,7 +663,7 @@ end
 concommand.Add( "exsto", exsto.CommandCall, exsto.ParseCommands )
 
 --[[ -----------------------------------
-	Function: exsto.AddChatCommand
+	Function: exsto.RunCommand
 	Description: Adds chat commands into the Exsto list.
      ----------------------------------- ]]
 function exsto.RunCommand( ply, command, args )
@@ -647,7 +690,7 @@ function exsto.OpenMenu( ply )
 	local menuAuthKey = math.random( -1000, 1000 )
 	ply.MenuAuthKey = menuAuthKey
 	
-	exsto.UMStart( "exsto_Menu", ply, menuAuthKey )
+	exsto.UMStart( "exsto_Menu", ply, menuAuthKey, ply:GetRank(), #exsto.GetRankData( ply:GetRank() ).Flags )
 	
 end
 exsto.AddChatCommand( "menu", {

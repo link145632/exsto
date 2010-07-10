@@ -26,14 +26,22 @@ function PLUGIN:SetArmor( self, victim, armor )
 end
 PLUGIN:AddCommand( "setarmor", {
 	Call = PLUGIN.SetArmor,
-	Desc = "Sets the armor of a player.",
-	FlagDesc = "Allows users to set the armor of players.",
+	Desc = "Allows users to set the armor of players.",
 	Console = { "setarmor" },
 	Chat = { "!armor" },
 	ReturnOrder = "Victim-Armor",
 	Args = { Victim = "PLAYER", Armor = "NUMBER" },
-	Optional = { Armor = 100 }
+	Optional = { Armor = 100 },
+	Category = "Fun",
 })
+PLUGIN:RequestQuickmenuSlot( "setarmor", {
+	Armor = {
+		{ Display = "50 points", Data = 50 },
+		{ Display = "100 points", Data = 100 },
+		{ Display = "150 points", Data = 150 },
+		{ Display = "200 points", Data = 200 },
+	},
+} )
 
 function PLUGIN:SetHealth( self, victim, health )
 
@@ -49,14 +57,22 @@ function PLUGIN:SetHealth( self, victim, health )
 end
 PLUGIN:AddCommand( "sethealth", {
 	Call = PLUGIN.SetHealth,
-	Desc = "Sets the health of a player.",
-	FlagDesc = "Allows users to set the health of players.",
+	Desc = "Allows users to set the health of players.",
 	Console = { "sethealth" },
 	Chat = { "!health" },
 	ReturnOrder = "Victim-Health",
 	Args = { Victim = "PLAYER", Health = "NUMBER" },
-	Optional = { Health = 100 }
+	Optional = { Health = 100 },
+	Category = "Fun",
 })
+PLUGIN:RequestQuickmenuSlot( "sethealth", {
+	Health = {
+		{ Display = "50 points", Data = 50 },
+		{ Display = "100 points", Data = 100 },
+		{ Display = "150 points", Data = 150 },
+		{ Display = "200 points", Data = 200 },
+	},
+} )
 
 function PLUGIN:PlayerSpawn( ply )
 	if ply.God and ply.ForceGod then
@@ -92,13 +108,18 @@ function PLUGIN:God( self, victim, force )
 end
 PLUGIN:AddCommand( "godmode", {
 	Call = PLUGIN.God,
-	Desc = "Sets godmode on a player",
-	FlagDesc = "Allows users to set godmode on players.",
+	Desc = "Allows users to set godmode on players.",
 	Console = { "god", "ungod" },
 	Chat = { "!god", "!ungod" },
 	ReturnOrder = "Victim-Force",
 	Args = { Victim = "PLAYER", Force = "BOOLEAN" },
-	Optional = { Force = false, }
+	Optional = { Force = false, },
+	Category = "Fun",
 })
+PLUGIN:RequestQuickmenuSlot( "godmode", {
+	Force = {
+		{ Display = "God After Killed", Data = true },
+	},
+} )
 
 PLUGIN:Register()

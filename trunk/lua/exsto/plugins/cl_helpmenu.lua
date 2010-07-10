@@ -11,7 +11,7 @@ PLUGIN:SetInfo({
 	Experimental = false,
 } )
 
-Menu.CreatePage( {
+--[[Menu.CreatePage( {
 	Title = "Exsto Help",
 	Short = "exstohelp",
 	Flag = "helppage",
@@ -84,4 +84,4 @@ Menu.CreatePage( {
 		end
 		http.Get( "http://94.23.154.153/Exsto/helpdb.txt", "", RecieveHelp )
 	end
-)
+)]]

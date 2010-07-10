@@ -12,10 +12,6 @@ PLUGIN:SetInfo({
 
 function PLUGIN:Search( ply, command )
 	
-	if !ply.LastSearch then ply.LastSearch = CurTime() end
-	if CurTime() < ply.LastSearch then return { ply, COLOR.NORM, "Please wait, you are trying to search for commands too ", COLOR.NAME, "fast", COLOR.NORM, "!" } end
-	ply.LastSearch = CurTime() + 10
-	
 	local data = {}
 	-- Grab all the commands that contain the command
 	for k,v in pairs( exsto.Commands ) do
@@ -83,8 +79,7 @@ function PLUGIN:Search( ply, command )
 end
 PLUGIN:AddCommand( "search", {
 	Call = PLUGIN.Search,
-	Desc = "Searches or lists commands",
-	FlagDesc = "Allows users to search for commands.",
+	Desc = "Allows users to search for commands.",
 	Console = { "commands" },
 	Chat = { "!search" },
 	ReturnOrder = "Command",

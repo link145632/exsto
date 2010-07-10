@@ -208,12 +208,13 @@ function PLUGIN:Jail( owner, ply )
 end
 PLUGIN:AddCommand( "jail", {
 	Call = PLUGIN.Jail,
-	Desc = "Jails a player.",
-	FlagDesc = "Allows users to put other users in jail.",
+	Desc = "Allows users to put other users in jail.",
 	Console = { "jail", "unjail" },
 	Chat = { "!jail", "!unjail" },
 	ReturnOrder = "Victim",
 	Args = {Victim = "PLAYER"},
+	Category = "Fun",
 })
+PLUGIN:RequestQuickmenuSlot( "jail" )
 
 PLUGIN:Register()

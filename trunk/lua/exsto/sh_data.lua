@@ -166,6 +166,7 @@ if SERVER then
 	Description: Main query, returns data from SQL query
      ----------------------------------- ]]
 	function FEL.Query( run, threaded, callback, printerror )
+		hook.Call( "ExFELQuery", nil, run, FEL.Settings["MySQL"], threaded, callback, printerror )
 		if FEL.Settings["MySQL"] then
 			if !mysqloo then
 				exsto.Print( exsto_ERRORNOHALT, "FEL --> Couldn't locate MySQL library!  Falling back to SQL!" )
@@ -176,7 +177,7 @@ if SERVER then
 				return mysqlQuery( run, threaded, callback, printerror )
 			end
 		else
-			return sqliteQuery( run, printerror )
+			return sqliteQuery( run, true )
 		end
 	end
 	
@@ -199,7 +200,7 @@ if SERVER then
 	Description: Prints an error recieved from the FEL.Query
      ----------------------------------- ]]
 	function FEL.PrintError( info )
-		ErrorNoHalt( "\n---- FEL SQL Error ----\n ** Running - " .. info.Running .. " \n ** Error Msg - " .. info.Error .. "\n" );
+		ErrorNoHalt( "\n---- FEL SQL Error ----\n ** Running - \n ** Error Msg - " .. info.Error .. "\n" );
 	end
 	
 --[[ -----------------------------------
@@ -664,7 +665,7 @@ end
 	Description: Makes a color nice.
      ----------------------------------- ]]
 function FEL.NiceColor( color )
-	return "c," .. color.r .. "," .. color.g .. "," .. color.b .. "," .. color.a
+	return "[c=" .. color.r .. "," .. color.g .. "," .. color.b .. "," .. color.a .. "]"
 end
 
 --[[ -----------------------------------
@@ -672,14 +673,12 @@ end
 	Description: Makes a nice color a color.
      ----------------------------------- ]]
 function FEL.MakeColor( str )
-	local split = string.Explode( ",", str )
-	table.remove( split, 1 )
-	
-	for k,v in pairs( split ) do split[k] = split[k]:Trim() end
-	
-	for k,v in pairs( split ) do split[k] = tonumber( split[k] ) end
-	
-	return Color( split[1], split[2], split[3], split[4] )
+	local startCol, endCol, r, g, b, a = string.find( str, "%[c=(%d+),(%d+),(%d+),(%d+)%]" )
+	if startCol then
+		return Color( tonumber( r ), tonumber( g ), tonumber( b ), tonumber( a ) )
+	else
+		return Color( 255, 255, 255, 255 )
+	end
 end
 
 --[[ -----------------------------------

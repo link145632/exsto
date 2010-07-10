@@ -17,8 +17,7 @@ function PLUGIN:ChatNotify( ply, text )
 end
 PLUGIN:AddCommand( "chatnotify", {
 	Call = PLUGIN.ChatNotify,
-	Desc = "Talks to all users.",
-	FlagDesc = "Allows users to talk to do a chat notify on all players.",
+	Desc = "Allows users to talk to do a chat notify on all players.",
 	Console = { "chatnotify" },
 	Chat = { "@@" },
 	ReturnOrder = "Text",
@@ -36,8 +35,7 @@ function PLUGIN:AdminSay( ply, text )
 end
 PLUGIN:AddCommand( "adminsay", {
 	Call = PLUGIN.AdminSay,
-	Desc = "Talks to admins only.",
-	FlagDesc = "Allows users to talk to admins privatly.",
+	Desc = "Allows users to talk to admins privatly.",
 	Console = { "adminsay" },
 	Chat = { "@", "!admin" },
 	ReturnOrder = "Text",

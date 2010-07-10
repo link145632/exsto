@@ -49,9 +49,8 @@ end
 
 PLUGIN:AddCommand( "decals", {
 	Call = PLUGIN.ClearDecals,
-	Desc = "Clears all player's decals",
-	FlagDesc = "Allows a player to clear all player's decals",
-	Console = { "exsto_decals", },
+	Desc = "Allows a player to clear all player's decals",
+	Console = { "decals", },
 	Chat = { "!decals" },
 	Args = {},
 	--The above is formated like Variable=Type, Args = { Variable1 = "PLAYER", Variable2 = "NUMBER" },
@@ -60,9 +59,8 @@ PLUGIN:AddCommand( "decals", {
 
 PLUGIN:AddCommand( "stopsounds", {
 	Call = PLUGIN.StopSounds,
-	Desc = "Stops all server sounds",
-	FlagDesc = "Allows a player to stop all sounds on the server",
-	Console = { "exsto_sounds", },
+	Desc = "Allows a player to stop all sounds on the server",
+	Console = { "stopsounds", },
 	Chat = { "!stopsounds" },
 	Args = {},
 	--The above is formated like Variable=Type, Args = { Variable1 = "PLAYER", Variable2 = "NUMBER" },

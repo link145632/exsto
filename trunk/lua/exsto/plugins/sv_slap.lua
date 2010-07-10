@@ -45,13 +45,35 @@ function PLUGIN:Slap( owner, ply, damage, duration, delay )
 end
 PLUGIN:AddCommand( "slap", {
 	Call = PLUGIN.Slap,
-	Desc = "Slaps a player",
-	FlagDesc = "Allows users to slap other players.",
+	Desc = "Allows users to slap other players.",
 	Console = { "slap" },
 	Chat = { "!slap", "!whip" },
 	ReturnOrder = "Victim-Damage-Duration-Delay",
 	Args = {Victim = "PLAYER", Damage = "NUMBER", Duration = "NUMBER", Delay = "NUMBER"},
-	Optional = {Damage = 10, Duration = 1, Delay = 0.7}
+	Optional = {Damage = 10, Duration = 1, Delay = 0.7},
+	Category = "Fun",
 })
+PLUGIN:RequestQuickmenuSlot( "slap", {
+	Damage = {
+		{ Display = "1 health", Data = 1 },
+		{ Display = "10 health", Data = 10 },
+		{ Display = "50 health", Data = 50 },
+		{ Display = "100 health", Data = 100 },
+		{ Display = "200 health", Data = 200 },
+	},
+	Duration = {
+		{ Display = "1 time", Data = 1 },
+		{ Display = "5 times", Data = 5 },
+		{ Display = "10 times", Data = 10 },
+		{ Display = "50 times", Data = 50 },
+		{ Display = "100 times", Data = 100 },
+	},
+	Delay = {
+		{ Display = "1 half of a second", Data = 0.5 },
+		{ Display = "Default", Data = 0.7 },
+		{ Display = "1 second interval", Data = 1 },
+		{ Display = "5 second interval", Data = 5 },
+	},
+} )
 
 PLUGIN:Register()

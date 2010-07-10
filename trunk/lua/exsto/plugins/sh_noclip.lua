@@ -43,14 +43,15 @@ if SERVER then
 	end
 	PLUGIN:AddCommand( "noclip", {
 		Call = PLUGIN.NoClip,
-		Desc = "Noclips a player",
-		FlagDesc = "Allows users to use noclip on other players.",
+		Desc = "Allows users to use noclip on other players.",
 		Console = { "noclip" },
 		Chat = { "!noclip" },
 		ReturnOrder = "Victim",
 		Args = { Victim = "PLAYER" },
-		Optional = { Victim = nil }
+		Optional = { Victim = nil },
+		Category = "Fun",
 	})
+	PLUGIN:RequestQuickmenuSlot( "noclip" )
 	
 end
 

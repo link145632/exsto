@@ -133,8 +133,6 @@ if SERVER then
 	PLUGIN:AddCommand( "skeleton", { -- Don't forget to do this ID here.
 		Call = PLUGIN.Skeleton, -- The function you want to call.
 		Desc = "Shows you how to format this.", -- A summary of what this command does.  It helps players who use it figure out what commands they need
-		FlagDesc = "Oh God.", -- Remember the ID?  Yeah, thats also the flag.  Each rank contains flags that pretty much set up what the rank is.
-						-- This FlagDesc describes what the flag does.  It helps in the rank editor, where it is displayed as a popup to help server admins.
 		Console = { "skeleton" }, -- A table of console commands the user can say to call this function.
 		Chat = { "!skeleton" }, -- A table of chat commands the user can say to call this function.
 		ReturnOrder = "Number-Extra", -- The order you want your arguments to be returned as.
@@ -156,13 +154,13 @@ elseif CLIENT then
 	-- Exsto provides a ton of *ease of use* functions to automatically speed up development of Derma in Exsto.
 	-- These functions are in cl_derma.lua, where you should take a look to see what functions can do what.
 	-- Also, each derma object in Exsto is automatically painted to take on the Exsto theme, so you don't need to worry about yours standing out.
-	Menu.CreatePage( {
+	--[[Menu:CreatePage( {
 		Title = "Skeleton Stuff", -- The title of the page
 		Short = "skeletonpage", -- The short ID
 		Flag = "skeletonpage"}, -- The flag you wish players to have to view your panel.
 		function( panel ) -- The function that is run to create your panel.  You put all stuff in here.
 		
-		end )
+		end )]]
 
 end
 

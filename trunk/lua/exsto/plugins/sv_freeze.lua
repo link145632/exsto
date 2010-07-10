@@ -35,12 +35,13 @@ function PLUGIN:Freeze( self, ply )
 end
 PLUGIN:AddCommand( "freeze", {
 	Call = PLUGIN.Freeze,
-	Desc = "Freezes a player",
-	FlagDesc = "Allows users to freeze other players.",
+	Desc = "Allows users to freeze other players.",
 	Console = { "freeze" },
 	Chat = { "!freeze", "!unfreeze" },
 	ReturnOrder = "Victim",
 	Args = {Victim = "PLAYER"},
+	Category = "Fun",
 })
+PLUGIN:RequestQuickmenuSlot( "freeze" )
 
 PLUGIN:Register()
