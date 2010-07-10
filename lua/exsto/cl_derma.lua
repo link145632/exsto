@@ -20,83 +20,123 @@
 -- Derma Utilities
 
 -- ################# Time saving DERMA functions @ Prefanatic
-	function exsto.CreateLabel( x, y, text, font, parent )
+function exsto.CreateLabel( x, y, text, font, parent )
 
-		local label = vgui.Create("DLabel", parent)
-			label:SetText( text )
-			label:SetFont( font )
-			label:SizeToContents()
+	local label = vgui.Create("DLabel", parent)
+		label:SetText( text )
+		label:SetFont( font )
+		label:SizeToContents()
 
-			if x == "center" then x = (parent:GetWide() / 2) - (label:GetWide() / 2) end
-			label:SetPos( x, y )
-			label:SetVisible(true)
-			
-		-- Convinence lol.
-		local oldSetText = label.SetText
-		label.SetText = function( self, text )
-			oldSetText( self, text )
-			return self
-		end
+		if x == "center" then x = (parent:GetWide() / 2) - (label:GetWide() / 2) end
+		label:SetPos( x, y )
+		label:SetVisible(true)
+		label:SetTextColor( Color( 99, 99, 99, 255 ) )
 
-		return label
+	return label
 
-	end	
-		
-	function exsto.CreatePanel( x, y, w, h, color, parent )
-
-		local panel = vgui.Create("DPanel", parent)
-			panel:SetSize( w, h )
-			panel:SetPos( x, y )
-			panel.Paint = function()
-				surface.SetDrawColor( color.r, color.g, color.b, color.a )
-				surface.DrawRect( 0, 0, panel:GetWide(), panel:GetTall() )
-			end
-			
-		return panel
+end	
 	
-	end
-	
-	function exsto.CreateTextEntry( x, y, w, h, parent )
+function exsto.CreatePanel( x, y, w, h, color, parent )
 
-		local tentry = vgui.Create( "DTextEntry", parent )
-		
-		tentry:SetSize( w, h )
-		
-		if x == "center" then x = (parent:GetWide() / 2) - (tentry:GetWide() / 2) end
-		tentry:SetPos( x, y )
-		
-		return tentry
-	
-	end
-	
-	function exsto.CreateMultiChoice( x, y, w, h, parent )
-	
-		local panel = vgui.Create( "DMultiChoice", parent )
-		
+	local panel = vgui.Create("DPanel", parent)
 		panel:SetSize( w, h )
 		panel:SetPos( x, y )
 		
-		return panel
+		panel.Gradient = function( self, grad )
+			if grad then
+				self.GradientHigh = Color( 236, 236, 236, 255 )
+				self.GradientLow = Color( 249, 249, 249, 255 )
+				self.GradientBorder = Color( 124, 124, 124, 255 )
+			end
+			self.ShouldGradient = grad	
+		end
 		
-	end
-
-	function exsto.CreateFrame( x, y, w, h, title, showclose, borderfill )
-
-		local frame = vgui.Create( "DFrame" )
+		panel.bgColor = color
 		
-			frame:SetPos( x, y )
-			frame:SetSize( w, h )
-			frame:SetVisible( true )
-			frame:SetTitle( title )
-			frame:SetDraggable( true )
-			frame:SetBackgroundBlur( false )
-			frame:ShowCloseButton( true )
-			
-			frame:MakePopup()
+	return panel
+
+end
+
+function exsto.CreateColorMixer( x, y, w, h, defaultColor, parent )
+	local mixer = vgui.Create( "DColorMixer", parent )
+		mixer:SetSize( w, h )
+		mixer:SetPos( x, y )
+		mixer:SetColor( defaultColor )
+		mixer.ColorCube:UpdateColor()
+		
+	return mixer
+end
+
+function exsto.CreateTextEntry( x, y, w, h, parent )
+
+	local tentry = vgui.Create( "DTextEntry", parent )
 	
-		return frame
+	tentry:SetSize( w, h )
+	
+	if x == "center" then x = (parent:GetWide() / 2) - (tentry:GetWide() / 2) end
+	tentry:SetPos( x, y )
+	
+	return tentry
+
+end
+
+function exsto.CreateMultiChoice( x, y, w, h, parent )
+
+	local panel = vgui.Create( "DMultiChoice", parent )
+	
+	panel:SetSize( w, h )
+	panel:SetPos( x, y )
+	
+	return panel
+	
+end
+
+function exsto.CreateFrame( x, y, w, h, title, showclose, borderfill )
+
+	local frame = vgui.Create( "DFrame" )
+	
+		frame:SetPos( x, y )
+		frame:SetSize( w, h )
+		frame:SetVisible( true )
+		frame:SetTitle( title )
+		frame:SetDraggable( true )
+		frame:SetBackgroundBlur( false )
+		frame:ShowCloseButton( true )
 		
-	end
+		frame.GradientHigh = Color( 236, 236, 236, 255 )
+		frame.GradientLow = Color( 249, 249, 249, 255 )
+		frame.GradientBorder = Color( 124, 124, 124, 255 )
+		
+		frame:MakePopup()
+
+	return frame
+	
+end
+
+function exsto.CreateComboBox( x, y, w, h, parent )
+	local box = vgui.Create( "DComboBox", parent )
+		box:SetPos( x, y )
+		box:SetSize( w, h )
+		box:SetMultiple( false )
+
+		local old = box.AddItem
+		box.AddItem = function( self, ... )
+			local obj = old( self, ... )
+				obj.OnCursorEntered = function( self ) self.Hovered = true end
+				obj.OnCursorExited = function( self ) self.Hovered = false end
+			return obj
+		end
+		
+	return box
+end
+
+function exsto.CreateImage( x, y, w, h, img, parent )
+	local image = vgui.Create( "DImage", parent )
+		image:SetSize( w, h )
+		image:SetPos( x, y )
+		image:SetImage( img )
+	return image
+end
 
 function exsto.CreateButton( x, y, w, h, text, parent )
 
@@ -108,50 +148,54 @@ function exsto.CreateButton( x, y, w, h, text, parent )
 		if x == "center" then x = (parent:GetWide() / 2) - (button:GetWide() / 2) end
 		button:SetPos( x, y )
 		
-		button.OnCursorEntered = function()
-			surface.PlaySound( "UI/buttonrollover.wav" )
-		end
-		
-		local buttonDraw = function( self )
-			local col = self.Color
-			if self.Depressed then
-				col = self.DepressedCol
-			elseif self.Hovered then
-				col = self.HoverCol
-			end
-			
-			draw.RoundedBox( 4, 0, 0, self:GetWide(), self:GetTall(), col )
-			draw.SimpleText( self.Text, self.Font, self:GetWide() / 2, self:GetTall() / 2, Color( 255, 255, 255, self.Color.a ), 1, 1 )
+		button.GetStyle = function( self )
+			return self.mStyle
 		end
 		
 		button.SetStyle = function( self, style )
-			if type( self ) == "string" then style = self end
-			
-			if style == "normal" then
-				button.Color = Color( 155, 228, 255, 255 )
-				button.HoverCol = Color( 136, 199, 255, 255 )
-				button.DepressedCol = Color( 156, 179, 255, 255 )
-			elseif style == "hot" then
-				button.Color = Color( 255, 155, 155, 255 )
-				button.HoverCol = Color( 255, 126, 126, 255 )
-				button.DepressedCol = Color( 255, 106, 106, 255 )
-			elseif style == "cool" then
-				button.Color = Color( 171, 255, 155, 255 )
-				button.HoverCol = Color( 143, 255, 126, 255 )
-				button.DepressedCol = Color( 123, 255, 106, 255 )
+			self.mStyle = style
+			if style == "secondary" then
+				button.GradientHigh = Color( 229, 229, 299, 255 )
+				button.GradientLow = Color( 222, 222, 222, 222 )
+				button.BorderColor = Color( 191, 191, 191, 255 )
+				button.Rounded = 0
+				
+				button.HoveredGradHigh = Color( 237, 237, 237, 255 )
+				button.HoveredGradLow = Color( 226, 226, 226, 255 )
+				
+				button.SelectedBorder = Color( 0, 194, 14, 255 )
+				
+				button.TextColor = Color( 64, 64, 64, 255 )
+				button.Font = "exstoSecondaryButtons"
+				return 
 			end
+			
+			if style == "neutral" then
+				button.TextColor = Color( 0, 153, 176, 255 )
+			elseif style == "negative" then
+				button.TextColor = Color( 176, 0, 0, 255 )
+			elseif style == "positive" then
+				button.TextColor = Color( 12, 176, 0, 255 )
+			end
+			
+			button.BorderColor = Color( 194, 194, 194, 255 )
+			button.SelectedBorder = button.BorderColor
+			button.GradientHigh = Color( 255, 255, 255, 255 )
+			button.GradientLow = Color( 236, 236, 236, 255 )
+			button.Rounded = 4
+			button.Font = "exstoButtons"
 		end
 		
-		button.SetStyle( "normal" )
+		function button.SetText( self, text )
+			self.Text = text
+		end
+		
+		button:SetStyle( "neutral" )
 		
 		button.Text = text
-		button.Paint = buttonDraw
-		
-		-- Font bug fix, wtf.
-		button.Font = "exstoButtons"
 		
 		surface.SetFont( button.Font )
-		local w, h = surface.GetTextSize( button.Text )
+		local w, h = surface.GetTextSize( text )
 		
 		if w > button:GetWide() then
 			button:SetSize( w + 10, button:GetTall() )
@@ -185,114 +229,6 @@ function exsto.CreateListView( x, y, w, h, parent )
 		lview:SetPos( x, y )
 		lview:SetMultiSelect( false )
 		
-		lview.Color = Color( 242, 242, 242, 255 )
-		lview.Round = 4
-		lview.Paint = function( self )
-			draw.RoundedBox( self.Round, 0, 0, self:GetWide(), self:GetTall(), self.Color )
-		end
-		
-		lview.ScrollbarGripCol = Color( 123, 240, 101, 255 )
-		lview.ScrollbarButtonCol = Color( 123, 240, 101, 255 )
-		
-		lview.VBar.Paint = function() end
-		
-		local oldPaint = lview.VBar.btnGrip.Paint
-		lview.VBar.btnGrip.Paint = function( self )
-			if !lview.ScrollbarGripCol then
-				if oldPaint then oldPaint( self ) end
-			else
-				draw.RoundedBox( 4, 0, 0, self:GetWide(), self:GetTall(), lview.ScrollbarGripCol )
-			end
-		end
-		
-		local oldPaint = lview.VBar.btnUp
-		local newPaint = function( self )
-			if !lview.ScrollbarButtonCol then
-				if oldPaint then oldPaint( self ) end
-			else
-				draw.RoundedBox( 0, 0, 0, self:GetWide(), self:GetTall(), lview.ScrollbarButtonCol )
-			end
-		end
-		
-		lview.VBar.btnUp.Paint = newPaint
-		lview.VBar.btnDown.Paint = newPaint
-		
-		local oldSettings = lview.VBar.btnUp.ApplySchemeSettings
-		lview.VBar.btnUp.ApplySchemeSettings = function( self )
-			oldSettings( self )
-			self:SetTextColor( Color( 255, 255, 255, 255 ) )
-		end
-		local oldSettings = lview.VBar.btnDown.ApplySchemeSettings
-		lview.VBar.btnDown.ApplySchemeSettings = function( self )
-			oldSettings( self )
-			self:SetTextColor( Color( 255, 255, 255, 255 ) )
-		end
-
-		lview.ColumnFont = "default"
-		lview.ColumnTextCol = Color( 0, 0, 0, 255 )
-
-		local oldAdd = lview.AddColumn
-		lview.AddColumn = function( self, strName, strMaterial, iPosition )
-			local column = oldAdd( self, strName, strMaterial, iPosition )
-			
-			local texture = surface.GetTextureID( "gui/gradient_down" )
-			column.Header.Paint = function( self )
-				surface.SetDrawColor( lview.Color.r, lview.Color.b, lview.Color.g, lview.Color.a )
-				surface.SetTexture( texture )
-				surface.DrawTexturedRect( 3, 0, self:GetWide()- 6, self:GetTall() + 10 )
-			end
-			
-			local oldSettings = column.Header.ApplySchemeSettings
-			column.Header.ApplySchemeSettings = function( self )
-				oldSettings( self )
-				column.Header:SetFont( lview.ColumnFont )
-				column.Header:SetTextColor( lview.ColumnTextCol )
-
-				local selfW, selfH = column.Header:GetSize()
-				local parW, parH = column:GetSize()
-				
-				column.Header:SetPos( (parW / 2 ) - (selfW / 2), (parH / 2) - (selfH / 2 ) )
-			end
-			
-			return column
-		end
-		
-		lview.LineFont = "default"
-		lview.LineTextCol = Color( 0, 0, 0, 255 )
-		
-		lview.SelectColor = Color( 149, 227, 134, 255 )
-		lview.HoverColor = Color( 229, 229, 229, 255 )
-		
-		local oldLineAdd = lview.AddLine
-		lview.AddLine = function( self, ... )
-			local line = oldLineAdd( self, ... )
-			
-			for k,v in pairs( line.Columns ) do
-				local oldSettings = v.ApplySchemeSettings
-				v.ApplySchemeSettings = function( self )
-					oldSettings( self )
-					v:SetFont( lview.LineFont )
-					v:SetTextColor( lview.LineTextCol )
-				end
-			end
-			
-			line.Paint = function( self )
-				local col = Color( 0, 0, 0, 0 )
-				if (self:IsSelected()) then
-					col = lview.SelectColor
-				elseif (self.Hovered) then
-					col = lview.HoverColor
-				end
-				
-				surface.SetDrawColor( col.r, col.g, col.b, col.a )
-				surface.DrawRect( 0, 0, self:GetWide(), self:GetTall() )
-			end
-			
-			return line
-		end
-		
-		lview:SetDrawBackground( false )
-		
 	return lview
 	
 end
@@ -311,6 +247,15 @@ function exsto.CreateCheckBox( x, y, text, convar, value, parent )
 	
 end
 
+function exsto.CreateNumberWang( x, y, w, h, value, max, min, parent )
+	local wang = vgui.Create( "DNumberWang", parent )
+		wang:SetPos( x, y )
+		wang:SetSize( w, h )
+		wang:SetMinMax( min, max )
+		wang:SetValue( value )
+	return wang
+end
+
 function exsto.CreateNumSlider( x, y, w, text, min, max, decimals, panel )
 
 	local panel = vgui.Create( "DNumSlider", panel )
@@ -327,7 +272,6 @@ function exsto.CreateNumSlider( x, y, w, text, min, max, decimals, panel )
 end
 
 function exsto.CreatePanelList( x, y, w, h, space, horiz, vscroll, parent )
-
 	local list = vgui.Create( "DPanelList", parent )
 		list:SetPos( x, y )
 		list:SetSize( w, h )
@@ -335,52 +279,15 @@ function exsto.CreatePanelList( x, y, w, h, space, horiz, vscroll, parent )
 		list:EnableHorizontal( horiz )
 		list:EnableVerticalScrollbar( vscroll )
 		
-		list.Color = Color( 242, 242, 242, 255 )
-		list.Paint = function( self )
-			draw.RoundedBox( 4, 0, 0, self:GetWide(), self:GetTall(), self.Color )
-		end
-		
-		if vscroll then
-			list.ScrollbarGripCol = Color( 131, 255, 114, 255 )
-			list.ScrollbarButtonCol = Color( 96, 216, 80, 255 )
-			
-			list.VBar.Paint = function() end
-			
-			local oldPaint = list.VBar.btnGrip.Paint
-			list.VBar.btnGrip.Paint = function( self )
-				if !list.ScrollbarGripCol then
-					if oldPaint then oldPaint( self ) end
-				else
-					draw.RoundedBox( 0, 0, 0, self:GetWide(), self:GetTall(), list.ScrollbarGripCol )
-				end
-			end
-			
-			local oldPaint = list.VBar.btnUp
-			local newPaint = function( self )
-				if !list.ScrollbarButtonCol then
-					if oldPaint then oldPaint( self ) end
-				else
-					draw.RoundedBox( 0, 0, 0, self:GetWide(), self:GetTall(), list.ScrollbarButtonCol )
-				end
-			end
-			
-			list.VBar.btnUp.Paint = newPaint
-			list.VBar.btnDown.Paint = newPaint
-			
-			local oldSettings = list.VBar.btnUp.ApplySchemeSettings
-			list.VBar.btnUp.ApplySchemeSettings = function( self )
-				oldSettings( self )
-				self:SetTextColor( Color( 255, 255, 255, 255 ) )
-			end
-			local oldSettings = list.VBar.btnDown.ApplySchemeSettings
-			list.VBar.btnDown.ApplySchemeSettings = function( self )
-				oldSettings( self )
-				self:SetTextColor( Color( 255, 255, 255, 255 ) )
-			end
+		list.contentWidth = 0
+		list.contentHeight = 0
+		local oldAddItem = list.AddItem
+		list.AddItem = function( self, panel, ... )
+			oldAddItem( self, panel, ... )
+			panel:SetSkin( "ExstoTheme" )
 		end
 		
 	return list
-	
 end
 
 function exsto.CreateCollapseCategory( x, y, w, h, label, parent )
@@ -407,24 +314,17 @@ function exsto.CreateCollapseCategory( x, y, w, h, label, parent )
 	
 end
 
+function exsto.CreateModelPanel( x, y, w, h, model, parent )
+	local panel = vgui.Create( "DModelPanel", parent )
+		panel:SetPos( x, y )
+		panel:SetWide( w, h )
+		panel:SetModel( model )
+	return panel
+end
+
 function exsto.CreateLabeledPanel( x, y, w, h, label, color, parent )
 	local panel = exsto.CreatePanel( x, y, w, h, color, parent )
 	panel.Label = exsto.CreateLabel( x + 5, y - 10, label, "default", parent )
-	
-	--[[
-	local oldFont = panel.Label.SetFont
-	panel.Label.SetFont = function( label, font )
-	
-		surface.SetFont( font )
-		local w, h = surface.GetTextSize( label:GetValue() )
-		//local x, y = label:GetPos()
-		
-		oldFont( label, font )
-		
-		label:SetPos( 5, ( ( h / 2 ) * -1 ) - 3 )
-		label:SizeToContents()
-		
-	end]]
 	
 	local oldApplyScheme = panel.Label.ApplySchemeSettings
 	panel.Label.ApplySchemeSettings = function( self )

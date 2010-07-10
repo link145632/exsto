@@ -63,11 +63,11 @@ function PLUGIN:Teleport( owner )
 end
 PLUGIN:AddCommand( "teleport", {
 	Call = PLUGIN.Teleport,
-	Desc = "Teleports you to a position",
-	FlagDesc = "Allows users to teleport to their cursor.",
+	Desc = "Allows users to teleport to their cursor.",
 	Console = { "teleport", "tp" },
 	Chat = { "!tp", "!teleport" },
 	Args = {},
+	Category = "Teleportation",
 })
 
 function PLUGIN:Send( owner, victim, to, force )
@@ -87,13 +87,13 @@ function PLUGIN:Send( owner, victim, to, force )
 end
 PLUGIN:AddCommand( "send", {
 	Call = PLUGIN.Send,
-	Desc = "Sends a player",
-	FlagDesc = "Allows users to send other players to places.",
+	Desc = "Allows users to send other players to places.",
 	Console = { "send" },
 	Chat = { "!send" },
 	ReturnOrder = "Victim-To-Force",
 	Args = { Victim = "PLAYER", To = "PLAYER", Force = "BOOLEAN" },
 	Optional = { Force = false },
+	Category = "Teleportation",
 })
 
 function PLUGIN:Goto( owner, ply, force )
@@ -115,14 +115,19 @@ function PLUGIN:Goto( owner, ply, force )
 end
 PLUGIN:AddCommand( "goto", {
 	Call = PLUGIN.Goto,
-	Desc = "Goto a player",
-	FlagDesc = "Allows users to teleport to a player.",
+	Desc = "Allows users to teleport to a player.",
 	Console = { "goto" },
 	Chat = { "!goto" },
 	ReturnOrder = "Victim-Force",
 	Args = {Victim = "PLAYER", Force = "BOOLEAN"},
 	Optional = { Force = false },
+	Category = "Teleportation",
 })
+PLUGIN:RequestQuickmenuSlot( "goto", {
+	Force = {
+		{ Display = "Force Teleport", Data = true },
+	},
+} )
 
 function PLUGIN:Bring( owner, ply, force )
 		
@@ -143,13 +148,18 @@ function PLUGIN:Bring( owner, ply, force )
 end
 PLUGIN:AddCommand( "bring", {
 	Call = PLUGIN.Bring,
-	Desc = "Bring a player to your location!",
-	FlagDesc = "Allows users to bring other players.",
+	Desc = "Allows users to bring other players.",
 	Console = { "bring" },
 	Chat = { "!bring" },
 	ReturnOrder = "Victim-Force",
 	Args = {Victim = "PLAYER", Force = "BOOLEAN"},
 	Optional = { Force = false },
+	Category = "Teleportation",
 })
+PLUGIN:RequestQuickmenuSlot( "bring", {
+	Force = {
+		{ Display = "Force Teleport", Data = true },
+	},
+} )
 
 PLUGIN:Register()

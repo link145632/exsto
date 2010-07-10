@@ -119,7 +119,20 @@ local function Fade( ent )
 	
 end
 
+function PLUGIN:PlayerDisconnected( ply )
+	if ply.HasGrave then
+		ply.HasGrave:Remove()
+	end
+	
+	if ply.GraveData then
+		ply.GraveData.Ent:Remove()
+		ply.GraveData.Text:Remove()
+	end
+end
+
 function PLUGIN:PlayerDeath( victim, _, killer )
+
+	if victim.HasGrave then return end
 	
 	local opos = victim:GetPos()
 	local trace = {}

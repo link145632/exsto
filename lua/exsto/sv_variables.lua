@@ -25,7 +25,8 @@ FEL.MakeTable( "exsto_data_variables", {
 	Value = "varchar(255)",
 	DataType = "varchar(255)",
 	Description = "varchar(255)",
-	Possible = "varchar(255)"
+	Possible = "varchar(255)",
+	EnvVar = "boolean",
 	}
 )
 
@@ -60,11 +61,25 @@ function exsto.AddVariable( data )
 		Description = data.Description or "No Description Provided!",
 		OnChange = data.OnChange or filler_function,
 		Possible = data.Possible or {},
+		EnvVar = data.EnvVar or false,
 	}
 	
 	exsto.Print( exsto_CONSOLE_DEBUG, "EVC --> " .. data.Dirty .. " --> Adding from function, was not in database!" )
 	exsto.SaveVarInfo( data.Dirty )
 
+end
+
+--[[ -----------------------------------
+	Function: exsto.AddEnvironmentVar
+	Description: Creates an EnvVar
+	 ----------------------------------- ]]
+function exsto.AddEnvironmentVar( dirty, value )
+	exsto.AddVariable( {
+		Pretty = "envar_" .. dirty,
+		Dirty = dirty,
+		Default = value,
+		EnvVar = true,
+	} )
 end
 
 --[[ -----------------------------------
@@ -109,6 +124,7 @@ function exsto.SaveVarInfo( dirty )
 			DataType = var.DataType,
 			Description = var.Description,
 			Possible = FEL.NiceEncode( var.Possible ),
+			EnvVar = var.EnvVar,
 		},
 		Options = {
 			Update = true,
@@ -154,6 +170,7 @@ function exsto.Variable_Load()
 			Description = v.Description,
 			OnChange = oldchange or nil,
 			Possible = FEL.NiceDecode( v.Possible ),
+			EnvVar = v.EnvVar
 		}
 	end
 	

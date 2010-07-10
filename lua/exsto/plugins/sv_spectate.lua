@@ -34,13 +34,14 @@ function PLUGIN:Spectate( owner, ply )
 end
 PLUGIN:AddCommand( "spectate", {
 	Call = PLUGIN.Spectate,
-	Desc = "Spectates a player",
-	FlagDesc = "Allows users to spectate a person.",
+	Desc = "Allows users to spectate a person.",
 	Console = { "spectate" },
 	Chat = { "!spectate" },
 	ReturnOrder = "Victim",
 	Args = {Victim = "PLAYER"},
+	Category = "Administration",
 })
+PLUGIN:RequestQuickmenuSlot( "specate" )
 
 function PLUGIN:UnSpectate( owner )
 
@@ -61,11 +62,12 @@ function PLUGIN:UnSpectate( owner )
 end
 PLUGIN:AddCommand( "unspectate", {
 	Call = PLUGIN.UnSpectate,
-	Desc = "Unspectates",
-	FlagDesc = "Allows users to unspectate a person.",
+	Desc = "Allows users to unspectate a person.",
 	Console = { "unspectate" },
 	Chat = { "!unspectate" },
 	Args = {},
+	Category = "Administration",
 })
+PLUGIN:RequestQuickmenuSlot( "unspecate" )
 
 PLUGIN:Register()

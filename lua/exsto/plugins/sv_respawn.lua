@@ -24,14 +24,13 @@ end
 
 PLUGIN:AddCommand( "respawn", {
 	Call = PLUGIN.Respawn,
-	Desc = "Respawns a selected player",
-	FlagDesc = "Allows a player to respawn a dead player",
+	Desc = "Allows a player to respawn a dead player.",
 	Console = { "exsto_respawn", },
 	Chat = { "!respawn" },
 	ReturnOrder = "Target",
 	Args = {Target="PLAYER"},
-	--The above is formated like Variable=Type, Args = { Variable1 = "PLAYER", Variable2 = "NUMBER" },
-	--Also, you need a ReturnOrder, like ReturnOrder = "Variable1-Variable2-Variable3",
+	Category = "Administration",
 })
+PLUGIN:RequestQuickmenuSlot( "respawn" )
 
 PLUGIN:Register()

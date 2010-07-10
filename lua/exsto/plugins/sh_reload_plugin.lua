@@ -22,8 +22,7 @@ if SERVER then
 	end
 	PLUGIN:AddCommand( "reloadplug", {
 		Call = PLUGIN.ReloadPlug,
-		Desc = "Reloads a plugin",
-		FlagDesc = "Allows users to reload plugins.",
+		Desc = "Allows users to reload plugins.",
 		Console = { "reloadplug" },
 		Chat = { "!reloadplug" },
 		ReturnOrder = "Plug",
@@ -142,20 +141,6 @@ elseif CLIENT then
 
 		return max, newH
 	end
-		
-	function PLUGIN.SetButton( button, enabled )
-		if enabled then
-			button.Text = "Disable"
-			button.Color = Color( 155, 228, 255, 255 )
-			button.HoverCol = Color( 136, 199, 255, 255 )
-			button.DepressedCol = Color( 156, 179, 255, 255 )
-		else
-			button.Text = "Enable"
-			button.Color = Color( 255, 155, 155, 255 )
-			button.HoverCol = Color( 255, 126, 126, 255 )
-			button.DepressedCol = Color( 255, 106, 106, 255 )
-		end
-	end
 	
 	local function sort( a, b )
 		return a.Name < b.Name
@@ -163,104 +148,63 @@ elseif CLIENT then
 	
 	function PLUGIN.Build( panel )
 	
-		surface.SetFont( "exstoTitleMenu" )
-	
 		-- List view of the plugins.
-		PLUGIN.PluginList = exsto.CreatePanelList( 10, 10, panel:GetWide() - 20, panel:GetTall() - 70, 5, false, true, panel )
+		panel.pluginList = exsto.CreateComboBox( 10, 10, panel:GetWide() - 20, panel:GetTall() - 70, panel )
 		
 		-- Sort them nicely
 		table.sort( plugins, sort )
 		for k,v in ipairs( plugins ) do
-
-			-- Background panel for the layout
-			local w, h = PLUGIN.GetProperSize( v.Desc, PLUGIN.PluginList:GetWide() * ( 6/9 ), "exstoTitleMenu" )
-			
-			local panel = exsto.CreateCollapseCategory( 0, 0, PLUGIN.PluginList:GetWide(), h + 40, v.Name )
-				panel.Header.Font = "exstoPlyColumn"
-				panel.Header.TextColor = Color( 68, 68, 68, 255 )
-				panel.Color = Color( 224, 224, 224, 255 )
-				panel.Header:SetWide( PLUGIN.PluginList:GetWide() )
-				
-			local container = exsto.CreatePanel( 0, 0, panel:GetWide(), panel:GetTall(), Color( 0, 0, 0, 0 ) )
-			local descPanel = exsto.CreatePanel( 5, 0, container:GetWide() * ( 6/9 ), container:GetTall(), Color( 0, 0, 0, 0 ), container )
-			local divider = exsto.CreatePanel( descPanel:GetWide() + 5, 0, 3, descPanel:GetTall(), Color( 0, 0, 0, 70 ), container )
-			local commandList = exsto.CreatePanel( descPanel:GetWide() + 8, 0, container:GetWide() - descPanel:GetWide() - 8, container:GetTall(), Color( 0, 0, 0, 0 ), container )
-			
-			local label = exsto.CreateLabel( 5, 0, v.Desc, "exstoTitleMenu", descPanel )
-				label:SetSize( w, h )
-				label:SetWrap( true )
-				label:SetTextColor( Color( 68, 68, 68, 255 ) )
-
-			label = exsto.CreateLabel( 5, descPanel:GetTall() - 15, "Created by: " .. v.Owner, "exstoDataLines", descPanel )
-				label:SizeToContents()
-				label:SetWrap( true )
-				label:SetTextColor( Color( 68, 68, 68, 255 ) )
-				
-				
-			local command = exsto.CreateLabel( 5, 0, "Commands:", "default", commandList )
-			local col = Color( 68, 68, 68, 255 )
-			command:SetTextColor( col )
-			local h = 13
-			local x = 5
-			for k,v in ipairs( v.Commands ) do
-			
-				if h >= commandList:GetTall() - 10 then
-					x = 70
-					h = 0
-				end
-				
-				for k,v in ipairs( v.Chat ) do
-					command = exsto.CreateLabel( x, h, v, "default", commandList )
-					command:SetTextColor( col )
-					h = h + 13
-				end
-			end
-			
-			if LocalPlayer():IsSuperAdmin() then
-				-- Create the button for enabling
-				local button = exsto.CreateButton( panel.Header:GetWide() - 90, 0 / 2, 60, panel.Header:GetTall(), "Disable", panel.Header )
-					PLUGIN.SetButton( button, settings[v.ID] )
-					
-					button.DoClick = function( self )
-						if !LocalPlayer().PlugChange then LocalPlayer().PlugChange = CurTime() end
-						if CurTime() < LocalPlayer().PlugChange then Menu.PushError( "Slow down, you are toggling plugins too fast!" ) return end
-						
-						LocalPlayer().PlugChange = CurTime() + 1
-						
-						if settings[v.ID] then
-							-- We are trying to disable the plugin.
-							
-							settings[v.ID] = false
-							
-							Menu.CallServer( "_TogglePlugin", "false", v.ID )
-							PLUGIN.SetButton( self, false )
-						else
-							-- Trying to enable it.
-							
-							settings[v.ID] = true
-
-							Menu.CallServer( "_TogglePlugin", "true", v.ID )
-							PLUGIN.SetButton( self, true )
-						end
-					end
-			end
-			
-			-- Add the plugin into the list
-			panel:SetContents( container )
-			PLUGIN.PluginList:AddItem( panel )
-			
-			if v.Disabled then
-				panel:SetExpanded( true )
-			end
 		
+			local obj = panel.pluginList:AddItem( " " )
+				obj.PaintOver = function( self )
+					draw.SimpleText( v.Name, "exstoPlyColumn", 5, self:GetTall() / 2, Color( 68, 68, 68, 255 ), 0, 1 )
+					
+					if self.OldIcon != self.Icon then
+						self.IconID = surface.GetTextureID( self.Icon )
+						self.OldIcon = self.Icon
+					end
+
+					surface.SetTexture( self.IconID )
+					surface.SetDrawColor( 255, 255, 255, 255 )
+					surface.DrawTexturedRect( panel.pluginList:GetWide() - 40, ( self:GetTall() / 2 ) - 8, 16, 16 )
+				end
+				if settings[v.ID] then
+					obj.Icon = "icon_on"
+				else
+					obj.Icon = "icon_off"
+				end
+				
+				if LocalPlayer():IsSuperAdmin() then
+						obj.DoClick = function( self )
+							if !LocalPlayer().PlugChange then LocalPlayer().PlugChange = CurTime() end
+							if CurTime() < LocalPlayer().PlugChange then Menu.PushError( "Slow down, you are toggling plugins too fast!" ) return end
+							
+							LocalPlayer().PlugChange = CurTime() + 1
+							
+							if settings[v.ID] then
+								-- We are trying to disable the plugin.
+								
+								settings[v.ID] = false
+								
+								Menu.CallServer( "_TogglePlugin", "false", v.ID )
+								self.Icon = "icon_off"
+							else
+								-- Trying to enable it.
+								
+								settings[v.ID] = true
+
+								Menu.CallServer( "_TogglePlugin", "true", v.ID )
+								self.Icon = "icon_on"
+							end
+						end
+				end
 		end
 		
 	end
 
-	Menu.CreatePage( {
+	Menu:CreatePage( {
 		Title = "Plugin List",
 		Short = "pluginlist",
-		Flag = "pluginlist",
 		},
 		function( panel )
 			PLUGIN.ReloadData( panel )

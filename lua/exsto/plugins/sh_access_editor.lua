@@ -1,599 +1,545 @@
--- Exsto
--- Rank Creator + Editor
-
--- TODO: Per user flags.
-
 local PLUGIN = exsto.CreatePlugin()
 
-PLUGIN:SetInfo({
+PLUGIN:SetInfo( {
 	Name = "Rank Editor",
 	ID = "rank-editor",
 	Desc = "A plugin that allows management over rank creation.",
 	Owner = "Prefanatic",
-	Experimental = false,
 } )
 
-if SERVER then 
+if SERVER then
 
-	PLUGIN.Editing = {}
-	
-	PLUGIN.DefaultTable = {
-		Short = "",
-		Derive = "NONE",
-		Desc = "",
-		Flags_NoDerive = {},
-		Name = "",
-		CanRemove = true,
-		Color = Color( 0, 0, 0, 0 ),
-		Immunity = 1,
-	}
-
-	local NextRequest = 0
-	
 	function PLUGIN.DeleteRank( ply, _, args )
-	
-		if !ply:IsAdmin() then return end
+		-- Add Flag.
 		
-		-- If the ID in question is the broken one, tell Exsto.
-		if exsto.RankErrors[args[1]] then
-			exsto.RankErrors[args[1]] = nil
-		end
-		
-		FEL.RemoveData( "exsto_data_access", "short", args[1] )
-		
-		ACCESS_PrepReload()
-		ACCESS_LoadFiles()
-		ACCESS_InitLevels()	
-		ACCESS_ResendRanks()
+		-- Remove exsto rank error data if we are removing the rank
+		//exsto.RankErrors[ args[ 1 ] ] = nil
 
-		exsto.UMStart( "exsto_ReloadRankEditor", ply )
+		-- Remove the data.
+		FEL.RemoveData( "exsto_data_access", "short", args[ 1 ] )
+		
+		-- Reload Exsto's access controllers.
+		ACCESS_Reload()
+		
+		-- Resend the ranks to clients
+		ACCESS_ResendRanks()
+		
+		-- Reload the rank editor.
+		PLUGIN:SendData( "ExRankEditor_Reload", ply )
 	end
 	exsto.MenuCall( "_DeleteRank", PLUGIN.DeleteRank )
 	
-	
 	function PLUGIN.CommitChanges( ply, rank )
-		PrintTable( rank )
-		
-		exsto.UMStart( "exsto_ReloadRankEditor", ply )
-		
-		PLUGIN.WriteAccess( rank[1], rank[2], rank[3], rank[4], rank[5], rank[6], rank[7] )
-		
-		-- Reload the access lib
-		ACCESS_PrepReload()
-		ACCESS_LoadFiles()
-		ACCESS_ResendRanks()
+	
+		local immunity = nil
+		if !exsto.Ranks[ rank[3] ] then immunity = 10 end
 
+		-- Write the data
+		PLUGIN:WriteAccess( rank[1], rank[2], rank[3], rank[4], rank[5], rank[6], immunity )
+		if immunity then
+			PLUGIN.RecieveImmunityData( ply, { rank[3], immunity } )
+		end
+		
+		-- Reload Exsto's access controllers.
+		ACCESS_Reload()
+		
+		-- Send the new rank, thats smarter than sending the entire jazz, right?
+		exsto.SendRank( player.GetAll(), rank[ 3 ] )
+		
+		-- Reload the rank editor.
+		timer.Create( "reload_" .. ply:EntIndex(), 1, 1, PLUGIN.SendData, PLUGIN, "ExRankEditor_Reload", ply )
+		
 	end
 	exsto.ClientHook( "ExRecRankData", PLUGIN.CommitChanges )
 	
-	function PLUGIN.WriteAccess( Name, Desc, Short, Derive, Immunity, Color, Flags )				
+	function PLUGIN.RecieveImmunityData( ply, data )
 		FEL.AddData( "exsto_data_access", {
 			Look = {
-				Short = Short,
+				Short = data[1],
 			},
 			Data = {
-				Name = Name,
-				Short = Short,
-				Description = Desc,
-				Derive = Derive,
-				Color = FEL.NiceColor( Color ),
-				Immunity = Immunity,
-				Flags = FEL.NiceEncode( Flags ),
+				Immunity = data[2],
+			},
+			Options = {
+				Update = true,
+			},
+		} )
+	end
+	exsto.ClientHook( "ExRecImmuneChange", PLUGIN.RecieveImmunityData )
+	
+	function PLUGIN:WriteAccess( name, desc, short, derive, color, flags )
+		FEL.AddData( "exsto_data_access", {
+			Look = {
+				Short = short,
+			},
+			Data = {
+				Name = name,
+				Short = short,
+				Description = desc,
+				Derive = derive,
+				Color = FEL.NiceColor( color ),
+				Flags = FEL.NiceEncode( flags ),
 			},
 			Options = {
 				Update = true,
 			}
 		} )
-		
 	end
-	
+
 elseif CLIENT then
 
-	surface.CreateFont( "arial", 15, 700, true, false, "labeledPanelFont" )
-	surface.CreateFont( "arial", 17, 700, true, false, "tabFont" )
-
-	exsto.Levels = {}
-	exsto.Flags = {}
-	exsto.RankErrors = {}
-	local Main
-	local Title
-	local names = {}
-	local rankPages
-	local rankSheets
-	
-	function PLUGIN.ReloadMenuFromHook()	
-		PLUGIN.ReloadMenu()
+	PLUGIN.Panel = nil
+	local function reload()
+		PLUGIN:ReloadMenu( PLUGIN.Panel )
 	end
-	exsto.UMHook( "exsto_ReloadRankEditor", PLUGIN.ReloadMenuFromHook )
-	hook.Add( "exsto_BuildRanks", PLUGIN.ReloadMenuFromHook )
+	exsto.UMHook( "ExRankEditor_Reload", reload )
 
-	Menu.CreatePage( {
+	Menu:CreatePage( {
 		Title = "Rank Editor",
-		Short = "rankeditor",
-		Flag = "rankeditor"}, function( panel )
-		
-		if !LocalPlayer():IsAdmin() then return end
-		
-		Main = panel
-		
-		if table.Count( exsto.Levels ) == 0 then
-			RunConsoleCommand( "_ResendRanks" )
+		Short = "rankeditor", },
+		function( panel )
+			-- Request ranks.
+			if table.Count( exsto.Ranks ) == 0 then
+				RunConsoleCommand( "_ResendRanks" )
+			end
+			PLUGIN.Panel = panel
+			PLUGIN:Main( panel )
 		end
-		
-		PLUGIN.Main()
-		
-	end )
+	)
 	
-	function PLUGIN.Main()
-	
-		if table.Count( exsto.Levels ) == 0 then
-
-			//print( "Waiting..." )
-			timer.Simple( 1, PLUGIN.Main )
-			
+	function PLUGIN:Main( panel )
+		if table.Count( exsto.Ranks ) == 0 then
+			timer.Simple( 1, PLUGIN.Main, self, panel )
 			return
-			
 		end
 		
-		PLUGIN.RefreshMenu()
-		Menu.EndLoad()
+		if table.Count( exsto.Flags ) == 0 then
+			timer.Simple( 1, PLUGIN.Main, self, panel )
+			return
+		end
 		
+		if !self.Flags then
+			self.Flags = {}
+			for name, desc in pairs( exsto.Flags ) do
+				table.insert( self.Flags, {Name = name, Desc = desc} )
+			end
+			table.SortByMember( self.Flags, "Name", true )
+		end
+		
+		self:BuildMenu( panel )
 	end
 	
-	function PLUGIN.ReloadMenu()
-	
-		Menu.PushLoad()
-	
-		exsto.Levels = {}
+	function PLUGIN:ReloadMenu( panel )
+		exsto.Ranks = {}
 		RunConsoleCommand( "_ResendRanks" )
+		self:Main( panel )
+	end
+	
+	function PLUGIN:FormulateUpdate( name, short, desc, derive, col, flags )
+
+		-- Upload new rank data
+		exsto.SendToServer( "ExRecRankData", name, desc, short, derive, col, flags )
 		
-		PLUGIN.Main()
+		-- Send changes to immunity
+		if table.Count( self.ImmunityBox.Changed ) >= 1 then
+			for short, immunity in pairs( self.ImmunityBox.Changed ) do
+				exsto.SendToServer( "ExRecImmuneChange", short, immunity )
+			end
+			self.ImmunityBox.Changed = {}
+		end
 		
 	end
 	
-	function PLUGIN.RefreshMenu()
+	function PLUGIN:BuildMenu( panel )
 	
-		if rankPages and rankSheets then
-			rankSheets:Remove()
-		end
-	
-		names = {}
-		for k,v in pairs( exsto.Levels ) do table.insert( names, k ) end
-		for k,v in pairs( exsto.RankErrors ) do table.insert( names, "ERROR: " .. k ) end -- For the ranks that are bugged somehow
-		
-		if table.Count( exsto.RankErrors ) >= 1 then
-			Menu.PushError( "Exsto has found a few ranks that are bugged!" )
+		-- Clear pre-existing content.
+		local reloading = false
+		if self.Tabs then
+			self.Tabs:Clear()
+			self.Tabs:Remove()
+			reloading = true
 		end
 		
-		table.insert( names, "Create New" )
-		
-		rankPages, rankSheets = Menu.CreateTabs( Main, names )
-		
-		rankSheets.Paint = function() end
-		
-		-- Make the things paint right.
-		for k,v in pairs( rankSheets.Items ) do
-			v.Tab.Paint = function( self )
-				draw.RoundedBox( 4, 0, 0, self:GetWide(), self:GetTall(), self.Color )
-			end
-			
-			v.Tab.Color = Color( 171, 255, 155, 255 )
-			local oldEnter = v.Tab.OnCursorEntered
-			local oldExit = v.Tab.OnCursorExited
-			local oldPressed = v.Tab.OnMousePressed
-			v.Tab.OnCursorEntered = function( self )
-				oldEnter( self )
-				if self != rankSheets:GetActiveTab() then
-					self.Color = Color( 139, 255, 117, 255 )
-				end
-			end
-			
-			v.Tab.OnCursorExited = function( self )
-				oldExit( self )
-				if self != rankSheets:GetActiveTab() then
-					self.Color = Color( 171, 255, 155, 255 )
-				end
-			end
-			
-			v.Tab.OnMousePressed = function( self )
-				oldPressed( self )
-				self.Color = Color( 98, 219, 75, 255 )
-				self.IsActive = true
-			end
-			
-			v.Tab.Think = function( self )
-				if self != rankSheets:GetActiveTab() and self.IsActive then
-					self.Color = Color( 171, 255, 155, 255 )
-					self.IsActive = false
-				end
-			end
-			v.Tab:SetFont( "tabFont" )
-			v.Tab:SetTextColor( Color( 255, 255, 255, 255 ) )
+		if self.Secondary then
+			self.Secondary:Remove()
+			reloading = true
 		end
 		
-		rankSheets.m_pActiveTab.Color = Color( 98, 219, 75, 255 )
-		rankSheets.m_pActiveTab.IsActive = true
-		
-		rankSheets.tabScroller.btnRight.Paint = function( self )
-			draw.RoundedBox( 4, 0, 0, self:GetWide(), self:GetTall(), self.Color )
+		self.Tabs = panel:RequestTabs( reloading )
+		self.Secondary = panel:RequestSecondary( reloading )
+		if reloading then 
+			Menu:BringBackSecondaries() 
 		end
 		
-		rankSheets.tabScroller.btnLeft.Paint = function( self )
-			draw.RoundedBox( 4, 0, 0, self:GetWide(), self:GetTall(), self.Color )
-		end
-		
-		rankSheets.tabScroller.btnLeft.Color = Color( 155, 228, 255, 255 )
-		rankSheets.tabScroller.btnRight.Color = Color( 155, 228, 255, 255 )
-		
-		local CreateNew = rankPages[#rankPages]
-		
-		local I = 1
-		for k,v in pairs( exsto.Levels ) do
-			local Level = v
-			local page = rankPages[I]
+		local immunityData = {}
+		for short, data in pairs( exsto.Ranks ) do
+			local page = self.Tabs:CreatePage( panel )
+			self:FormPage( page, data )
+			self.Tabs:AddItem( data.Name, page )
 			
-			print( "Forming a page for " .. Level.Name )
+			table.insert( immunityData, { Name = data.Name, Immunity = data.Immunity, Short = data.Short } )
+		end
+		
+		local page = self.Tabs:CreatePage( panel )
+		self:FormPage( page, {
+			Name = "",
+			Short = "",
+			Desc = "",
+			Derive = "NONE",
+			Color = Color( 255, 255, 255, 200 ),
+			Flags = {},
+			AllFlags = {},
+		} )
+		self.Tabs:AddItem( "Create New", page )
 
-			PLUGIN.FormPage( rankPages[I], Level.Name, Level.Desc, Level.Short, Level.Derive, Level.Color, Level.CanRemove )
+		-- Immunity Box
+		local immunityLabel = exsto.CreateLabel( "center", 5, "Immunity", "exstoSecondaryButtons", self.Secondary )
+		self.ImmunityBox = exsto.CreateComboBox( 10, 25, self.Secondary:GetWide() - 20, self.Secondary:GetTall() - 60, self.Secondary )
+			self.ImmunityBox.Changed = {}
 			
-			I = I + 1
-		end
-		
-		-- Do the broken ranks.
-		for k,v in pairs( exsto.RankErrors ) do
-			local Level = v[1]
-			PLUGIN.FormPage( rankPages[I], Level.Name, Level.Desc, Level.Short, Level.Derive, Level.Color, true, v[2] )
-			
-			I = I + 1
-		end
-		
-		PLUGIN.FormPage( CreateNew, "", "", "", "", Color( 255, 255, 255, 200 ) ) -- Create New Page
+			self.ImmunityBox.BuildData = function( self, data )
+				self:Clear()
+				table.sort( data, function( a, b )
+					if !tonumber( a.Immunity ) or !tonumber( b.Immunity ) then return false end
+					return tonumber( a.Immunity ) < tonumber( b.Immunity )
+				end)
+				for _, info in ipairs( data ) do
+					local item = PLUGIN.ImmunityBox:AddItem( info.Name )
+						item.Name = info.Name
+						item.Immunity = info.Immunity
+						item.Short = info.Short
+						item.Key = _
+						
+						item.PaintOver = function( self )
+							draw.SimpleText( "Level: " .. self.Immunity, "default", self:GetWide() - 50, self:GetTall() / 2, Color( 0, 0, 0, 255 ), 0, 1 )
+						end
+				end
+			end
+			self.ImmunityBox:BuildData( immunityData )
 
-		//Menu.SetTitle( "Rank Editor" )
-		
+		local immunityRaise = exsto.CreateButton( 10, self.Secondary:GetTall() - 33, 60, 27, "Raise", self.Secondary )
+			immunityRaise:SetStyle( "positive" )
+			immunityRaise.DoClick = function( self )
+				local selected = PLUGIN.ImmunityBox.m_pSelected
+				if selected then
+					if selected.Immunity == 0 then return end
+					
+					PLUGIN.ImmunityBox.Changed[ selected.Short ] = selected.Immunity - 1
+					immunityData[ selected.Key ].Immunity = tonumber( selected.Immunity - 1 )
+					PLUGIN.ImmunityBox:BuildData( immunityData )
+					PLUGIN.ImmunityBox:SelectByName( selected.Name )
+				end
+			end	
+			
+		local immunityLower = exsto.CreateButton( self.Secondary:GetWide() - 70, self.Secondary:GetTall() - 33, 60, 27, "Lower", self.Secondary )
+			immunityLower:SetStyle( "negative" )
+			immunityLower.DoClick = function( self )
+				local selected = PLUGIN.ImmunityBox.m_pSelected
+				if selected then				
+					PLUGIN.ImmunityBox.Changed[ selected.Short ] = selected.Immunity + 1
+					immunityData[ selected.Key ].Immunity = tonumber( selected.Immunity + 1 )
+					PLUGIN.ImmunityBox:BuildData( immunityData )
+					PLUGIN.ImmunityBox:SelectByName( selected.Name )
+				end
+			end	
+			
+		local immunitySlider = exsto.CreateNumberWang( ( self.Secondary:GetWide() / 2 ) - 15, self.Secondary:GetTall() - 30, 30, 20, 0, 100, 0, self.Secondary )
+			immunitySlider.OnValueChanged = function( self )
+				if !self.MotherObject then return false end
+				if self.DontUpdateValue then return false end
+				PLUGIN.ImmunityBox.Changed[ self.MotherObject.Short ] = self:GetValue()
+				immunityData[ self.MotherObject.Key ].Immunity = self:GetValue()
+				PLUGIN.ImmunityBox:BuildData( immunityData )
+				PLUGIN.ImmunityBox:SelectByName( self.MotherObject.Name )
+			end
+			immunitySlider.Wanger.Paint = function() end
+			immunitySlider:SetDecimals( 0 )
+			
+		local oldSelect = self.ImmunityBox.SelectItem
+			self.ImmunityBox.SelectItem = function( self, item, onlyme )
+				oldSelect( self, item, onlyme )
+				immunitySlider.MotherObject = item
+				immunitySlider.DontUpdateValue = true
+				immunitySlider:SetValue( item.Immunity )
+				immunitySlider.DontUpdateValue = false
+			end
 	end
 	
-	function PLUGIN.FormPage( panel, Name, Desc, Short, Derive, Col, CanRemove, errIssue )
-		local Derive = Derive or ""
-		local Short = Short or ""
-		local Col = Col or Color( 255, 255, 255, 255 )
+	function PLUGIN:FormPage( panel, data )
 		
-		local FullFlags = {}
-		local NoDeriveFlags = {}
-		local Immunity = 100
+		-- Main data color panel.
+		local mainColorPanel = Menu:CreateColorPanel( 10, 10, panel:GetWide() - 20, 110, panel )
 		
-		local RealShort = Short
-		if RealShort == "" then RealShort = "Create New" end
-
-		if exsto.Levels[Short] then
-			Immunity = exsto.Levels[Short].Immunity
-			FullFlags = exsto.Levels[Short].Flags
-			NoDeriveFlags = exsto.Levels[Short].Flags_NoDerive
-		end
-
-		-- Name Entry
-		local NamePanel = exsto.CreateLabeledPanel( 5, 10, (panel:GetWide() / 2) - 20, 40, "Display Name", Color( 232, 232, 232, 255 ), panel )
-		local NameEntry = exsto.CreateTextEntry( 10, 10, NamePanel:GetWide() - 20, 20, NamePanel )
-			NameEntry:SetText( Name )
-			NamePanel.Label:SetFont( "labeledPanelFont" )
-	
-		-- Desc Entry
-		local DescPanel = exsto.CreateLabeledPanel( (panel:GetWide() / 2), 10, (panel:GetWide() / 2) - 20, 40, "Description", Color( 232, 232, 232, 255 ), panel )
-		local DescEntry = exsto.CreateTextEntry( 10, 10, DescPanel:GetWide() - 20, 20, DescPanel )
-			DescEntry:SetText( Desc )
-			DescPanel.Label:SetFont( "labeledPanelFont" )
+		local invalidator = nil
+		local function ContentCheck( self )
+			if string.find( self:GetValue(), "['\"]" ) then
+				self.Invalid = true
+				invalidator = self
+				mainColorPanel:Deny()
+				self:SetToolTip( "You cannot have ', \", or ! in the name!" )
+				return
+			end
 			
-		-- Short Entry
-		local ShortPanel = exsto.CreateLabeledPanel( 5, 60, (panel:GetWide() / 2) - 20, 40, "Unique ID", Color( 232, 232, 232, 255 ), panel )
-		local ShortEntry = exsto.CreateTextEntry( 10, 10, ShortPanel:GetWide() - 20, 20, ShortPanel )
-			ShortEntry:SetText( Short )
-			ShortPanel.Label:SetFont( "labeledPanelFont" )
+			if self:GetValue() == "" then
+				self.Invalid = true
+				invalidator = self
+				mainColorPanel:Deny()
+				self:SetToolTip( "You cannot leave this empty!" )
+				return
+			end
 			
-			if Short != ""	then ShortEntry:SetEditable( false ) end
-			
-		-- Derive Entry
-		local DerivePanel = exsto.CreateLabeledPanel( panel:GetWide() / 2, 60, (panel:GetWide() / 2) - 20, 40, "Derive From", Color( 232, 232, 232, 255 ), panel )
-		local DeriveEntry = exsto.CreateMultiChoice( 10, 10, DerivePanel:GetWide() - 20, 20, DerivePanel )
-			DeriveEntry:SetText( Derive )
-			DerivePanel.Label:SetFont( "labeledPanelFont" )
-			DeriveEntryText = Derive
-
-			-- Options for DeriveEntry
-			for k,v in pairs( names ) do
-				if v == "Create New" then v = "NONE" end
-				if v:sub( 1, 6 ) != "ERROR" then
-					if v != Short then 
-						DeriveEntry:AddChoice( v )
+			if self.IsUID then
+				for short, info in pairs( exsto.Ranks ) do
+					if self:GetValue() == short then
+						self.Invalid = true
+						invalidator = self
+						mainColorPanel:Deny()
+						self:SetToolTip( "You cannot have more than one rank with the same unique id!" )
+						return
 					end
 				end
 			end
-
-			-- Make DeriveEntry uneditable
-			DeriveEntry:SetEditable( false )
-
-		-- Color Sliders
-		local ColorPanel = exsto.CreateLabeledPanel( 5, 110, (panel:GetWide() / 2) + 40, 200, "Color Selection", Color( 232, 232, 232, 255 ), panel )
-		local RedSlider = exsto.CreateNumSlider( 10, 10, 100, "Red", 0, 255, 0, ColorPanel )
-		local GreenSlider = exsto.CreateNumSlider( 10, 60, 100, "Green", 0, 255, 0, ColorPanel )
-		local BlueSlider = exsto.CreateNumSlider( 10, 110, 100, "Blue", 0, 255, 0, ColorPanel )
-		local AlphaSlider = exsto.CreateNumSlider( 10, 160, 100, "Alpha", 0, 255, 0, ColorPanel )
-		
-		-- Setting sliders to the correct number.
-			RedSlider:SetValue( Col.r )
-			GreenSlider:SetValue( Col.g )
-			BlueSlider:SetValue( Col.b )
-			AlphaSlider:SetValue( Col.a )
-			ColorPanel.Label:SetFont( "labeledPanelFont" )
 			
-			RedSlider.Label:SetTextColor( Color( 120, 120, 120, 255 ) )
-			GreenSlider.Label:SetTextColor( Color( 120, 120, 120, 255 ) )
-			BlueSlider.Label:SetTextColor( Color( 120, 120, 120, 255 ) )
-			AlphaSlider.Label:SetTextColor( Color(120, 120, 120, 255 ) )
-			
-		-- Color Example
-	
-		local ExampleLabel = exsto.CreateLabel( 130, 190, LocalPlayer():Nick(), "coolvetica", panel )
-			ExampleLabel.Paint = function()
-				local ExampleColor = Color( RedSlider:GetValue(), GreenSlider:GetValue(), BlueSlider:GetValue(), AlphaSlider:GetValue() )
-				draw.SimpleText( ExampleLabel:GetValue(), "coolvetica", 0, 0, ExampleColor )
-				return true
+			if self.Invalid then
+				self:SetToolTip( "" )
+				self.Invalid = false
 			end
-			ExampleLabel:SetSize( 200, 40 )
-	
-		---- Flags ( This is going to be big )
-		local w = 150
-		local h = 290
-		
-		local FlagPanelUnused = exsto.CreateLabeledPanel( 5, 330, (panel:GetWide() / 2) - 40, 220, "Unused Flags", Color( 232, 232, 232, 255 ), panel )
-		FlagPanelUnused.Label:SetFont( "labeledPanelFont" )
-		
-		local FlagPanelUsed = exsto.CreateLabeledPanel( (panel:GetWide() / 2) + 20, 330, (panel:GetWide() / 2) - 40, 220, "Used Flags", Color( 232, 232, 232, 255 ), panel )
-		FlagPanelUsed.Label:SetFont( "labeledPanelFont" )
-		
-		local Flag_PossibleList = exsto.CreateListView( 5, 10, FlagPanelUnused:GetWide() - 10, 200, FlagPanelUnused )
-		local Flag_UsingList = exsto.CreateListView( 5, 10, FlagPanelUsed:GetWide() - 10, 200, FlagPanelUsed )
-		
-		DeriveEntry.OnSelect = function( index, value, data )
-			DeriveEntryText = data
-			
-			-- Emulate his derive moving.
-			if data != "NONE" and exsto.Levels[Short] then
-				exsto.Levels[Short].Derive = data
-			
-				PLUGIN.UpdateFlagList( Flag_UsingList, Flag_PossibleList, NoDeriveFlags, FullFlags, Short )
-			end
-		end
-		
-		Flag_PossibleList:AddColumn( " " )
-		Flag_UsingList:AddColumn( " " )
-		
-		Flag_PossibleList:SortByColumn( 1, true )
-		
-		Flag_PossibleList.Color = Color( 238, 238, 238, 255 )
-		Flag_PossibleList.ColumnColor = Color( 229, 229, 229, 255 )
-		Flag_UsingList.Color = Color( 238, 238, 238, 255 )
-		Flag_UsingList.ColumnColor = Color( 229, 229, 229, 255 )
-
-		PLUGIN.UpdateFlagList( Flag_UsingList, Flag_PossibleList, NoDeriveFlags, FullFlags, Short )
-		
-		-- Create buttons between lists that shuffle flags into or out of
-		local MoveAllToUsing = exsto.CreateButton( ( panel:GetWide() / 2 ) - 22, panel:GetTall() - ( FlagPanelUsed:GetTall() / 2 ) - 60, 30, 20, ">>", panel )
-		local MoveToUsing = exsto.CreateButton( ( panel:GetWide() / 2 ) - 22, panel:GetTall() - ( FlagPanelUsed:GetTall() / 2 ) - 20, 30, 20, ">", panel )
-		local RemoveFromUsing = exsto.CreateButton( ( panel:GetWide() / 2 ) - 22, panel:GetTall() - ( FlagPanelUsed:GetTall() / 2 ) + 20, 30, 20, "<", panel )
-		local RemoveAllFromUsing = exsto.CreateButton( ( panel:GetWide() / 2 ) - 22, panel:GetTall() - ( FlagPanelUsed:GetTall() / 2 ) + 60, 30, 20, "<<", panel )
-		
-		MoveAllToUsing.Color = Color( 255, 155, 155 )
-		MoveAllToUsing.HoverCol = Color( 255, 126, 126, 255 )
-		MoveAllToUsing.DepressedCol = Color( 255, 106, 106, 255 )
-		
-		RemoveAllFromUsing.Color = Color( 255, 155, 155 )
-		RemoveAllFromUsing.HoverCol = Color( 255, 126, 126, 255 )
-		RemoveAllFromUsing.DepressedCol = Color( 255, 106, 106, 255 )
-		
-		RemoveAllFromUsing.DoClick = function()
-			NoDeriveFlags = {}
-			PLUGIN.UpdateFlagList( Flag_UsingList, Flag_PossibleList, NoDeriveFlags, FullFlags, Short )
-		end
-		
-		MoveAllToUsing.DoClick = function()
-			for k,v in pairs( Flag_PossibleList:GetLines() ) do
-				table.insert( NoDeriveFlags, v:GetValue(1) )
-			end
-			PLUGIN.UpdateFlagList( Flag_UsingList, Flag_PossibleList, NoDeriveFlags, FullFlags, Short )
-		end
-		
-		-- Remove from using list
-		RemoveFromUsing.DoClick = function()
-			local line = Flag_UsingList:GetSelectedLine()	
-			if !line then return end
-
-			table.remove( NoDeriveFlags, line )
-			
-			PLUGIN.UpdateFlagList( Flag_UsingList, Flag_PossibleList, NoDeriveFlags, FullFlags, Short )
-		end
-		
-		-- Add to using list
-		MoveToUsing.DoClick = function()
-			local line = Flag_PossibleList:GetSelected()[1]	
-			if !line then return end
-
-			table.insert( NoDeriveFlags, line:GetValue(1) )
-			
-			PLUGIN.UpdateFlagList( Flag_UsingList, Flag_PossibleList, NoDeriveFlags, FullFlags, Short )
-		end
-		
-		local ImmunityPanel = exsto.CreateLabeledPanel( (panel:GetWide() / 2) + 60, 290, ( panel:GetWide() / 2 ) - 80, 30, "Immunity", Color( 232, 232, 232, 255 ), panel )
-			ImmunityPanel.Label:SetFont( "labeledPanelFont" )
-		local ImmunityEntry = exsto.CreateNumSlider( 50, 2, 50, "", 0, 1000, 0, ImmunityPanel )
-			ImmunityEntry:SetValue( Immunity )
-
-		local UpdatePanel = exsto.CreateLabeledPanel( (panel:GetWide() / 2) + 60, 110, (panel:GetWide() / 2) - 80, 170, "Update / Create", Color( 232, 232, 232, 255 ), panel )
-			UpdatePanel.Label:SetFont( "labeledPanelFont" )
-		-- Create Button
-		local text = "Update Rank"
-		if Short == "" then text = "Create Rank" end
-		local CUButton = exsto.CreateButton( "center", 10, 74, 27, text, UpdatePanel )
-			CUButton.Color = Color( 171, 255, 155 )
-			CUButton.HoverCol = Color( 143, 255, 126, 255 )
-			CUButton.DepressedCol = Color( 123, 255, 106, 255 )
-			CUButton:SetPos( ( UpdatePanel:GetWide() / 2 ) - ( CUButton:GetWide() / 2 ), 10 )
-		
-		-- Finally, Formulate changes
-		CUButton.DoClick = function()
-			local Name = NameEntry:GetValue()
-			local Desc = DescEntry:GetValue()
-			local Short = ShortEntry:GetValue()
-			local Immunity = ImmunityEntry:GetValue()
-			local Derive_Entry = DeriveEntryText
-			if Derive_Entry == "" then Derive_Entry = Derive end
-			
-			local FullCol = Color( RedSlider:GetValue(), GreenSlider:GetValue(), BlueSlider:GetValue(), AlphaSlider:GetValue() )
-			local Flags = NoDeriveFlags
-			
-			if Derive_Entry == "" then Menu.PushError( "Error: Please (re)select a derive!" ) return end
-			if Name == "" then Menu.PushError( "Error: Please input a name!" ) return end
-			if Desc == "" then Menu.PushError( "Error: Please input a description!" ) return end
-			if Short == "" then Menu.PushError( "Error: Please input a short!" ) return end
-			if !Immunity then Menu.PushError( "Error: Please select an immunity level!" ) return end
-			
-			PLUGIN.FormulateUpdate( Name, Short, Desc, Derive_Entry, FullCol, Immunity, Flags )
-		end
-		
-		local DeleteButton = exsto.CreateButton( "center", 50, 74, 27, "Delete Rank", UpdatePanel )
-		DeleteButton.Color = Color( 255, 155, 155 )
-		DeleteButton.HoverCol = Color( 255, 126, 126, 255 )
-		DeleteButton.DepressedCol = Color( 255, 106, 106, 255 )
-		DeleteButton.DoClick = function()
-			Menu.CallServer( "_DeleteRank", Short )
-			//timer.Simple( 1, PLUGIN.ReloadMenu() )
-		end
-		DeleteButton:SetPos( ( UpdatePanel:GetWide() / 2 ) - ( CUButton:GetWide() / 2 ), 50 )
-		DeleteButton:SetVisible( false )
-		
-		if CanRemove then DeleteButton:SetVisible( true ) end
-		if Short == "" then DeleteButton:SetVisible( false ) end
-		
-		local RefreshButton = exsto.CreateButton( "center", 90, 74, 27, "Refresh Ranks", UpdatePanel )
-			RefreshButton.DoClick = function( self )
-				PLUGIN.ReloadMenu()
-			end
-			RefreshButton:SetPos( ( UpdatePanel:GetWide() / 2 ) - ( CUButton:GetWide() / 2 ), 90 )
-			
-		local ErrorButton = exsto.CreateButton( "center", 130, 74, 27, "View Error", UpdatePanel )
-		ErrorButton.DoClick = function( self )
-			Menu.PushError( PLUGIN.TranslateIssue( errIssue ) )
-		end
-		ErrorButton:SetPos( ( UpdatePanel:GetWide() / 2 ) - ( CUButton:GetWide() / 2 ), 130 )
-		ErrorButton.Color = Color( 255, 155, 155 )
-		ErrorButton.HoverCol = Color( 255, 126, 126, 255 )
-		ErrorButton.DepressedCol = Color( 255, 106, 106, 255 )
-		ErrorButton:SetVisible( false )
-		
-		if errIssue then ErrorButton:SetVisible( true ) end
-	end
-	
-	function PLUGIN.TranslateIssue( msg )
-	
-		if msg == "endless derive" then
-			return "The rank got stuck in an endless derive!"
-		elseif msg == "self derive" then
-			return "The rank is trying to derive off itself!"
-		elseif msg == "nonexistant derive" then
-			return "The rank is deriving off of an invalid rank!"
-		end
-		
-	end
-	
-	function PLUGIN.UpdateFlagList( usingList, possibleList, NoDeriveFlags, FullFlags, short )
-
-		local info = exsto.Levels[short]
-		local derivedFlags = PLUGIN.GetDeriveFlags( short )
-		local newFullFlags = {}
-	
-		-- Clear the lists so we can add them.
-		usingList:Clear()
-		possibleList:Clear()
-		
-		-- Loop through the new flags
-		for k,v in pairs( NoDeriveFlags ) do
-			
-			-- Insert them into our using list.
-			usingList:AddLine( v )
-			PLUGIN.SetFlagTooltip( v, usingList )
-			
-			-- Push the flag into the new full list
-			table.insert( newFullFlags, v )
-			
-		end
-		
-		-- Set up his derived flags in the same list.
-		for k,v in pairs( derivedFlags ) do
-			
-			-- Insert them.
-			local line = usingList:AddLine( v )
-			local oldScheme = line.Columns[1].ApplySchemeSettings
-			line.Columns[1].ApplySchemeSettings = function( self )
-				oldScheme( self )
-				self:SetTextColor( COLOR.NAME )
-			end
-			PLUGIN.SetFlagTooltip( v, usingList )
-			
-			-- Push the flag into the new full list
-			table.insert( newFullFlags, v )
-		
-		end
-		
-		-- We are done with the rank specific list, move onto the all possible list.
-		for k,v in pairs( exsto.Flags ) do
-		
-			-- If he doesn't exist in our new full flags, add him to the possibles.
-			if !table.HasValue( newFullFlags, k ) then
-			
-				-- Insert
-				possibleList:AddLine( k )
-				PLUGIN.SetFlagTooltip( k, possibleList )
 				
+			if mainColorPanel:GetStyle() != "accept" and !self.Invalid and invalidator == self then
+				mainColorPanel:Accept()
+			end
+		end
+			
+		-- Display Name
+		local nameLabel = exsto.CreateLabel( 20, 5, "Display Name", "exstoSecondaryButtons", mainColorPanel )
+		local nameEntry = exsto.CreateTextEntry( 20, 0, 200, 20, mainColorPanel )
+			nameEntry:MoveBelow( nameLabel )
+			nameEntry:SetText( data.Name )
+			nameEntry.OnTextChanged = ContentCheck
+			
+		-- Description
+		local descLabel = exsto.CreateLabel( ( mainColorPanel:GetWide() / 2 ) + 20, 5, "Description", "exstoSecondaryButtons", mainColorPanel )
+		local descEntry = exsto.CreateTextEntry( ( mainColorPanel:GetWide() / 2 ) + 20, 0, 200, 20, mainColorPanel )
+			descEntry:MoveBelow( descLabel )
+			descEntry:SetText( data.Desc )
+			descEntry.OnTextChanged = ContentCheck
+			
+		-- UniqueID
+		local x, y = nameEntry:GetPos()
+		local uidLabel = exsto.CreateLabel( 20, y + 40, "Unique ID", "exstoSecondaryButtons", mainColorPanel )
+		local uidEntry = exsto.CreateTextEntry( 20, 0, 200, 20, mainColorPanel )
+			uidEntry:MoveBelow( uidLabel )
+			uidEntry:SetText( data.Short )
+			uidEntry.IsUID = true
+			uidEntry.OnTextChanged = ContentCheck
+			
+		-- Derive
+		local x, y = descEntry:GetPos()
+		local deriveLabel = exsto.CreateLabel( ( mainColorPanel:GetWide() / 2 ) + 20, y + 40, "Derive From", "exstoSecondaryButtons", mainColorPanel )
+		local deriveEntry = exsto.CreateMultiChoice( ( mainColorPanel:GetWide() / 2 ) + 20, 0, 200, 20, mainColorPanel )
+			deriveEntry:MoveBelow( deriveLabel )
+			deriveEntry:SetText( data.Derive )
+			deriveEntry:SetEditable( false )
+			
+			for short, info in pairs( exsto.Ranks ) do
+				if short != data.Short then
+					deriveEntry:AddChoice( short )
+				end
+			end
+			deriveEntry:AddChoice( "NONE" )
+			
+		-- Color Panel
+		local colorColorPanel = Menu:CreateColorPanel( ( mainColorPanel:GetWide() / 2 ) + 70, 10, ( mainColorPanel:GetWide() / 2 ) - 60, 160, panel )
+			colorColorPanel:MoveBelow( mainColorPanel, 10 )
+			
+		local colorMixer = exsto.CreateColorMixer( 0, 0, 160, 100, data.Color, colorColorPanel )
+			colorMixer:Center()
+			
+		local colorExample = exsto.CreateLabel( "center", 5, "abc ABC 123", "exstoSecondaryButtons", colorColorPanel )
+			colorExample:SetTextColor( data.Color )
+			
+			colorMixer.ColorCube.OnUserChanged = function( self )
+				colorExample:SetTextColor( self:GetParent():GetColor() )
 			end
 			
-		end
-		
-		-- Reset the full using flag list.
-		FullFlags = newFullFlags
-		
-	end
-
-	function PLUGIN.GetDeriveFlags( short )
-		local data = exsto.Levels[short]
-		local derivedflags = {}
-		
-		if !data then return derivedflags end
-		if !data.Flags_NoDerive then return derivedflags end
-		
-		for k,v in pairs( data.Flags ) do -- For every one of his flags
-		
-			if !table.HasValue( data.Flags_NoDerive, v ) then -- If they arent in his specific then
-				table.insert( derivedflags, v )
+			local oldPress = colorMixer.ColorCube.OnMousePressed
+			colorMixer.ColorCube.OnMousePressed = function( self, ... )
+				oldPress( self, ... )
+				self.Updating = true
 			end
+			
+			local oldRelease = colorMixer.ColorCube.OnMouseReleased
+			colorMixer.ColorCube.OnMouseReleased = function( self, ... )
+				oldRelease( self, ... )
+				self.Updating = false
+			end
+			
+		local emptyFunc = function() end
 		
+		local valChanged = function( self, tbl )
+			local col = colorMixer:GetColor()
+			colorExample:SetTextColor( col )
+			
+			if !colorMixer.ColorCube.Updating then
+				col[ tbl ] = self:GetValue()
+				colorMixer:SetColor( col )
+			end
 		end
+			
+		local redSlider = exsto.CreateNumberWang( 0, 30, 32, 20, data.Color.r, 255, 0, colorColorPanel )
+			redSlider.OnValueChanged = function( self )
+				valChanged( self, "r" )
+			end
+			redSlider.TextEntry.OnTextChanged = function( self )	
+				valChanged( self, "r" )
+			end
+			redSlider.Wanger.Paint = emptyFunc
+			redSlider:SetDecimals( 0 )
+			redSlider:MoveRightOf( colorMixer )
+			
+		local greenSlider = exsto.CreateNumberWang( 0, 55, 32, 20, data.Color.g, 255, 0, colorColorPanel )
+			greenSlider.OnValueChanged = function( self )
+				valChanged( self, "g" )
+			end
+			redSlider.TextEntry.OnTextChanged = function( self )
+				valChanged( self:GetParent(), "g" )
+			end
+			greenSlider.Wanger.Paint = emptyFunc
+			greenSlider:SetDecimals( 0 )
+			greenSlider:MoveRightOf( colorMixer )
+			
+		local blueSlider = exsto.CreateNumberWang( 0, 80, 32, 20, data.Color.b, 255, 0, colorColorPanel )
+			blueSlider.OnValueChanged = function( self )
+				valChanged( self, "b" )
+			end
+			redSlider.TextEntry.OnTextChanged = function( self )
+				valChanged( self:GetParent(), "b" )
+			end
+			blueSlider.Wanger.Paint = emptyFunc
+			blueSlider:SetDecimals( 0 )
+			blueSlider:MoveRightOf( colorMixer )
+			
+		local alphaSlider = exsto.CreateNumberWang( 0, 105, 32, 20, data.Color.a, 255, 0, colorColorPanel )
+			alphaSlider.OnValueChanged = function( self )
+				valChanged( self, "a" )
+			end
+			redSlider.TextEntry.OnTextChanged = function( self )
+				valChanged( self:GetParent(), "a" )
+			end
+			alphaSlider.Wanger.Paint = emptyFunc
+			alphaSlider:SetDecimals( 0 )
+			alphaSlider:MoveRightOf( colorMixer )
+			
+		colorMixer.ColorCube.OnUserChanged = function( self )
+			local col = self:GetParent():GetColor()
+			redSlider:SetValue( col.r )
+			greenSlider:SetValue( col.g )
+			blueSlider:SetValue( col.b )
+			alphaSlider:SetValue( col.a )
+		end
+			
+		-- Flag Panel
+		local flagColorPanel = Menu:CreateColorPanel( 10, 0, ( mainColorPanel:GetWide() / 2 ) + 50, 195, panel )
+			flagColorPanel:MoveBelow( mainColorPanel, 10 )
+			
+		local flagList = exsto.CreateComboBox( 0, 0, flagColorPanel:GetWide(), flagColorPanel:GetTall(), flagColorPanel )
+			flagList.dontDrawBackground = true
+
+			flagList.UpdateFlagList = function( self, index )
+				local info = PLUGIN.Flags[ index ]
+				if !info then return end
+				
+				local obj = self:AddItem( info.Name )
+					obj:SetToolTip( info.Desc )
+					obj.FlagName = info.Name
+					
+					local oldClick = obj.DoClick
+					obj.DoClick = function( self, ... )
+						oldClick( self, ... )
+						
+						if self.FlagName == "issuperadmin" or self.FlagName == "isadmin" or self.FlagName == "menu" then return end
+						
+						-- If the flag exists in his main flag table, remove it.
+						if table.HasValue( data.Flags, self.FlagName ) then
+							for _, flag in ipairs( data.Flags ) do
+								if flag == self.FlagName then
+									table.remove( data.Flags, _ )
+									break
+								end
+							end
+							
+							for _, flag in ipairs( data.AllFlags ) do
+								if flag == self.FlagName then
+									table.remove( data.AllFlags, _ )
+									self.Icon = "icon_off"
+									self.overrideColor = Color( 0, 0, 0, 0 )
+									break
+								end
+							end
+						
+						-- If it doesn't exist in our flags.
+						else
+							-- If it doesn't exist in our flags at all.
+							if !table.HasValue( data.AllFlags, self.FlagName ) then
+								table.insert( data.Flags, self.FlagName )
+								table.insert( data.AllFlags, self.FlagName )
+								self.Icon = "icon_on"
+								self.overrideColor = Color( 180, 241, 170 )
+							end
+						end
+					end
+					
+					obj.PaintOver = function( self )
+						if self.OldIcon != self.Icon then
+							self.IconID = surface.GetTextureID( self.Icon )
+							self.OldIcon = self.Icon
+						end
+
+						surface.SetTexture( self.IconID )
+						surface.SetDrawColor( 255, 255, 255, 255 )
+						surface.DrawTexturedRect( flagList:GetWide() - 40, ( self:GetTall() / 2 ) - 8, 16, 16 )
+					end
+
+					obj.Icon = "icon_on"
+					obj.overrideColor = Color( 180, 241, 170 )
+					
+					if !table.HasValue( data.Flags, obj.FlagName ) then
+						obj.overrideColor = Color( 0, 0, 0, 0 )
+						if table.HasValue( data.AllFlags, obj.FlagName ) then
+							obj.Icon = "icon_locked"
+						else
+							obj.Icon = "icon_off"
+						end
+					end
+					
+				self:UpdateFlagList( index + 1 )
+			end
+			flagList:UpdateFlagList( 1 )
 		
-		return derivedflags
-	end
-	
-	function PLUGIN.SetFlagTooltip( flag, list )
-		list:GetLines()[#list:GetLines()]:SetToolTip( PLUGIN.GetFlagDescription( flag ) )
-	end
-	
-	function PLUGIN.GetFlagDescription( flag )
-		for k,v in pairs( exsto.Flags ) do
-			if k == flag then return v end
-		end
-	end				
-	
-	function PLUGIN.FormulateUpdate( name, short, desc, derive, col, immunity, flags )
-		exsto.SendToServer( "ExRecRankData", name, desc, short, derive, immunity, col, flags )
+		-- Commit Buttons
+		local save = exsto.CreateButton( panel:GetWide() - 80, panel:GetTall() - 40, 70, 27, "Save", panel )
+			save:SetStyle( "positive" )
+			save.DoClick = function( self )
+				PLUGIN:FormulateUpdate( nameEntry:GetValue(), uidEntry:GetValue(), descEntry:GetValue(), deriveEntry.TextEntry:GetValue(), colorMixer:GetColor(), data.Flags )
+			end
+			
+		local delete = exsto.CreateButton( 0, panel:GetTall() - 40, 70, 27, "Delete", panel )
+			delete:SetStyle( "negative" )
+			delete:MoveLeftOf( save, 5 )
+			delete:SetVisible( data.CanRemove )
+			delete.DoClick = function( self )
+				Menu.CallServer( "_DeleteRank", data.Short )
+			end
+			
+		local refresh = exsto.CreateButton( 0, panel:GetTall() - 40, 75, 27, "Refresh", panel )
+			refresh:SetStyle( "neutral" )
+			refresh:MoveLeftOf( delete, 5 )
+			refresh.DoClick = function( self )
+				PLUGIN:ReloadMenu( PLUGIN.Panel )
+			end
 	end
 	
 end
 
 PLUGIN:Register()
+		

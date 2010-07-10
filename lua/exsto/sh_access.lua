@@ -21,29 +21,9 @@
 
 -- Variables
 
-exsto.Levels = {}
-exsto.LoadedLevels = {}
+exsto.Ranks = {}
+exsto.LoadedRanks = {}
 exsto.RankErrors = {} -- For storing errors from ranks.
-
---[[ -----------------------------------
-	Function: AddLevel
-	Description: Inserts a rank into Exsto's rank table.
-     ----------------------------------- ]]
-local function AddLevel( data )
-
-	exsto.Levels[data.Short] = {
-		Name = data.Name,
-		Desc = data.Desc, -- lol
-		Short = data.Short,
-		Color = data.Color,
-		Immunity = data.Immunity,
-		Flags = data.Flags,
-		Flags_NoDerive = data.Flags_NoDerive,
-		Derive = data.Derive,
-		CanRemove = data.CanRemove,
-	}
-
-end
 
 if SERVER then
 	FEL.MakeTable( "exsto_data_access", {
@@ -57,15 +37,13 @@ if SERVER then
 			DefaultFlags = "text",
 		}
 	)
-
-	local Default_Access = exsto.DefaultRanks
 	
 --[[ -----------------------------------
 	Function: ACCESS_CreateDefaults
 	Description: Creates the default ranks from sh_tables.
 	----------------------------------- ]]
 	function ACCESS_CreateDefaults()
-		for k,v in pairs( Default_Access ) do
+		for k,v in pairs( exsto.DefaultRanks ) do
 		
 			FEL.AddData( "exsto_data_access", {
 				Look = {
@@ -89,38 +67,16 @@ if SERVER then
 		end
 		
 	end
-	
---[[ -----------------------------------
-	Function: ACCESS_ForceRefresh
-	Description: Reloads the ranks.
-	----------------------------------- ]]
-	function ACCESS_ForceRefresh( ply, _, args )
-	
-		if !ply:IsAdmin() then return end
-		
-		exsto.Levels = {}
-		exsto.LoadedLevels = {}
-		
-		ACCESS_LoadFiles()
-		ACCESS_InitLevels()
-		
-		exsto.Print( exsto_CLIENT, ply, "Recreating all ranks!" )
-		
-	end
-	concommand.Add( "exsto_RecreateRankData", ACCESS_ForceRefresh )
 
 --[[ -----------------------------------
 	Function: ACCESS_LoadFiles
 	Description: Loads all the ranks.
 	----------------------------------- ]]
 	function ACCESS_LoadFiles()
-
-		local ranks = FEL.LoadTable( "exsto_data_access" )
-
-		for k,v in pairs( ranks ) do
+		for k,v in pairs( FEL.LoadTable( "exsto_data_access" ) ) do
 
 			if v.DefaultFlags != "NULL" and v.DefaultFlags != nil then
-				exsto.LoadedLevels[v.Short] = {
+				exsto.LoadedRanks[v.Short] = {
 					Name = v.Name,
 					Desc = v.Description,
 					Short = v.Short,
@@ -135,7 +91,7 @@ if SERVER then
 				-- Check to make sure his default flags are up to date.
 				ACCESS_UpdateDefaultFlags( v.Short )
 			else
-				exsto.LoadedLevels[v.Short] = {
+				exsto.LoadedRanks[v.Short] = {
 					Name = v.Name,
 					Desc = v.Description,
 					Short = v.Short,
@@ -147,8 +103,6 @@ if SERVER then
 				}
 			end
 		end
-			
-		ACCESS_InitLevels()	
 	end		
 
 --[[ -----------------------------------
@@ -156,7 +110,7 @@ if SERVER then
 	Description: Updates the saved default flags with the new ones in sh_tables.
 	----------------------------------- ]]
 	function ACCESS_UpdateDefaultFlags( short )
-		local data = table.Copy( exsto.LoadedLevels[short] )
+		local data = table.Copy( exsto.LoadedRanks[short] )
 		local defaultData = exsto.DefaultRanks[short]
 		local checkedFlags = table.Copy( data.DefaultFlags )
 		local addToFlags = table.Copy( data.Flags )
@@ -207,7 +161,7 @@ if SERVER then
 				}
 			} )
 				
-			exsto.LoadedLevels[short] = {
+			exsto.LoadedRanks[short] = {
 				Name = data.Name,
 				Desc = data.Desc,
 				Short = data.Short,
@@ -226,7 +180,7 @@ if SERVER then
 	Description: Returns true if the rank is loaded
 	----------------------------------- ]]
 	function RANK_Loaded( rank )
-		if exsto.Levels[rank] then return true end
+		if exsto.Ranks[rank] then return true end
 		return false
 	end
 	
@@ -243,7 +197,7 @@ if SERVER then
 				return false
 			end
 
-			local info = exsto.LoadedLevels[currentRank]
+			local info = exsto.LoadedRanks[currentRank]
 			
 			-- if hes broken, just don't continue.
 			if !info then return true end
@@ -265,7 +219,7 @@ if SERVER then
 			
 			local exists = false
 			-- Check to see if that derive exists.
-			for k,v in pairs( exsto.LoadedLevels ) do
+			for k,v in pairs( exsto.LoadedRanks ) do
 				if ( info.Derive == v.Short ) and ( info.Short != v.Short ) then
 					-- The derive exists, return OK.
 					exists = true
@@ -291,90 +245,74 @@ if SERVER then
 		end
 		
 		if currentRank != "NONE" then -- We probably got stuck in a loop.
-			exsto.RankErrors[rank] = {exsto.LoadedLevels[rank], "nonexistant derive"}
+			exsto.RankErrors[rank] = {exsto.LoadedRanks[rank], "nonexistant derive"}
 			return true
 		end
 		
 	end
-	
+
 --[[ -----------------------------------
-	Function: ACCESS_Derive
-	Description: Derives a rank off another
+	Function: ACCESS_LoadRank
+	Description: Loads a rank
 	----------------------------------- ]]	
-	function ACCESS_Derive( rank )
-	
-		local derive = exsto.LoadedLevels[rank]
-		
-		-- if for some reason he cant derive off of anything, lets just send back an empty table so he atleast exists.
-		if !derive then return {} end
-		
-		exsto.Print( exsto_CONSOLE, "RANKS --> DERIVE --> Deriving from " .. rank .. "!" )
-		
-		if !RANK_Loaded( rank ) then	
-			local args = derive.Flags
-			derive.Flags_NoDerive = table.Copy( args )
-			local Derive = "NONE"
+	function ACCESS_LoadRank( short )
+
+		local data = exsto.LoadedRanks[ short ]
+
+		-- We need to load him
+		if !RANK_Loaded( short ) then
 			
-			if derive.Derive != "NONE" then
-				Derive = derive.Derive
-				local derive_flags = ACCESS_Derive( derive.Derive )
-				
-				for k,v in pairs( derive_flags ) do
-					table.insert( args, v )
+			exsto.Ranks[ short ] = {
+				Name = data.Name,
+				Desc = data.Desc,
+				Short = data.Short,
+				Color = data.Color,
+				Immunity = data.Immunity,
+				Flags = table.Copy( data.Flags ),
+				AllFlags = {},
+				Derive = data.Derive,
+				CanRemove = data.CanRemove,
+			}
+			
+			-- Derive flags if we can.
+			if data.Derive != "NONE" then
+
+				-- Load him if he isn't alive.
+				if !RANK_Loaded( data.Derive ) then
+					ACCESS_LoadRank( data.Derive )
 				end
 				
+				-- Copy his flags to our AllFlags section.
+				exsto.Ranks[ short ].AllFlags = table.Add( table.Copy( exsto.Ranks[ short ].Flags ), exsto.Ranks[ data.Derive ].AllFlags )
+			else
+				exsto.Ranks[ short ].AllFlags = table.Copy( exsto.Ranks[ short ].Flags )
 			end
-			
-			derive.Flags = args
-
-			AddLevel( derive )
-			return exsto.Levels[derive.Short].Flags		
-
-		else -- If we are loaded.
-			return exsto.Levels[derive.Short].Flags
+			exsto.Print( exsto_CONSOLE, "RANKS --> Loading " .. data.Name .. "!" )
 		end
-		
 	end
 	
 --[[ -----------------------------------
 	Function: ACCESS_InitLevels
 	Description: Initializes all the ranks
 	----------------------------------- ]]
-	function ACCESS_InitLevels()
-
-		for k,v in pairs( exsto.LoadedLevels ) do
-		
-			if !RANK_Loaded( v.Short ) then
-				local endless = ACCESS_CheckIfEndless( v.Short )
+	function ACCESS_InitRanks()
+		for short, data in pairs( exsto.LoadedRanks ) do
+			if !RANK_Loaded( short ) then
+				local endless = ACCESS_CheckIfEndless( short )
 				
 				if endless then
-					exsto.Print( exsto_CONSOLE, "RANKS --> " .. v.Name .. " has been stuck into an endless derive loop!  Ending his life!" )
+					exsto.Print( exsto_CONSOLE, "RANKS --> " .. data.Name .. " has been stuck into an endless derive loop!  Ending his life!" )
 				else
-				
-					exsto.Print( exsto_CONSOLE, "RANKS --> Loading " .. v.Name .. "!" )
-				
-					local args = v.Flags
-					v.Flags_NoDerive = table.Copy( args )
-					local Derive = "NONE"
-					
-					if v.Derive != "NONE" then
-						Derive = v.Derive
-						local derive_flags = ACCESS_Derive( v.Derive )
-						
-						for k,v in pairs( derive_flags ) do
-							table.insert( args, v )
-						end
-
-					end
-					
-					v.Flags = args
-					
-					AddLevel( v )
+					ACCESS_LoadRank( short )
 				end
 			end
-			
 		end
 		
+		if table.Count( exsto.RankErrors ) >= 1 then
+			exsto.Print( exsto_CONSOLE, "RANKS --> Finished loading with errors!" )
+		else
+			exsto.Print( exsto_CONSOLE, "RANKS --> Loaded successfully!" )
+		end
 	end
 
 --[[ -----------------------------------
@@ -382,8 +320,30 @@ if SERVER then
 	Description: Deletes the rank tables
 	----------------------------------- ]]
 	function ACCESS_PrepReload()
-		exsto.Levels = {}
-		exsto.LoadedLevels = {}
+		exsto.Ranks = {}
+		exsto.LoadedRanks = {}
+	end
+	
+--[[ -----------------------------------
+	Function: ACCESS_Reload
+	Description: Reloads the rank controller
+	----------------------------------- ]]
+	function ACCESS_Reload()
+		ACCESS_PrepReload()
+		ACCESS_LoadFiles()
+		ACCESS_InitRanks()
+		hook.Call( "ExAccessReloaded" )
+	end
+	
+--[[ -----------------------------------
+	Function: ACCESS_LoadController
+	Description: Completely loads the rank controller.
+	----------------------------------- ]]
+	function ACCESS_LoadController()
+		ACCESS_PrepReload()
+		ACCESS_CreateDefaults()
+		ACCESS_LoadFiles()
+		ACCESS_InitRanks()
 	end
 	
 --[[ -----------------------------------
@@ -398,10 +358,10 @@ if SERVER then
 	Function: ACCESS_LoadFromULX
 	Description: Loads data from ULX
 	----------------------------------- ]]
-	function ACCESS_LoadFromULX( style )
+	function ACCESS_LoadFromULX( ply, style )
 		
 		if file.Exists( "Ulib/users.txt" ) and style == "users" then
-			exsto.Print( exsto_CONSOLE, "UCS --> Loading user information from ULX!" )
+			ply:Print( exsto_CLIENT, "UCS --> Loading user information from ULX!" )
 			
 			local data = file.Read( "Ulib/users.txt" )
 			local info = {}
@@ -481,18 +441,17 @@ if SERVER then
 				exsto.Print( exsto_CONSOLE_DEBUG, "Saving data for " .. name or "Unknown" .. "!" )
 			end
 			
-			exsto.Print( exsto_CONSOLE, "UCS --> Imported all ULX bans to Exsto!" )
+			ply:Print( exsto_CLIENT, "UCS --> Imported all ULX bans to Exsto!" )
 		end
 		
 	end
 	concommand.Add( "ACCESS_LoadFromULX", function( ply, _, arg )
 		if !ply:IsSuperAdmin() then exsto.Print( exsto_CLIENT, ply, "You are not an admin!" ) return end
-		ACCESS_LoadFromULX( arg[1]:Trim():lower() )
+		ACCESS_LoadFromULX( ply, arg[1]:Trim():lower() )
 	end)
 	
 	function ACCESS_RecreateRanks( ply )
-	
-		ply:Print( exsto_CONSOLE, "ACCESS --> Deleting and recreating the rank table!" )
+		ply:Print( exsto_CLIENT, "ACCESS --> Deleting and recreating the rank table!" )
 		FEL.Query( "DROP TABLE exsto_data_access;" )
 		
 		local tblInfo = FEL.CreatedTables["exsto_data_access"]
@@ -501,15 +460,13 @@ if SERVER then
 		
 		ACCESS_CreateDefaults()
 		ACCESS_LoadFiles()
-		
 	end
 	concommand.Add( "ACCESS_DeleteAllRanks", function( ply, _, arg )
 		if !ply:IsSuperAdmin() then ply:Print( exsto_CLIENT, ply, "You are not an admin!" ) return end
 		ACCESS_RecreateRanks( ply )
 	end )
 	
-	ACCESS_CreateDefaults()
-	ACCESS_LoadFiles()
+	ACCESS_LoadController()
 
 end
 
@@ -517,18 +474,16 @@ end
 
 if SERVER then
 
-	hook.Add( "AcceptStream", "exsto_AcceptDS", function( ply, handler, id ) return true end )
-
 --[[ -----------------------------------
 	Function: exsto.SetAccess
 	Description: Sets a player's rank.
 	----------------------------------- ]]
 	function exsto.SetAccess( ply, user, short )
 		
-		local rank = exsto.Levels[short]
+		local rank = exsto.Ranks[short]
 		
 		if !rank then
-			local closeRank = exsto.GetClosestString( short, exsto.Levels, "Short", ply, "Unknown rank" )
+			local closeRank = exsto.GetClosestString( short, exsto.Ranks, "Short", ply, "Unknown rank" )
 			return
 		end
 		
@@ -579,7 +534,7 @@ if SERVER then
 
 		local plydata = FEL.LoadUserInfo( ply )
 
-		ply:SetNetworkedString( "rank", plydata or "guest" )	
+		ply:SetRank( plydata or "guest" )	
 		
 		if !plydata then
 			-- Its his first time here!  Welcome him to the beautiful environment of Exsto.
@@ -602,8 +557,6 @@ if SERVER then
 				ply:Print( exsto_CHAT, COLOR.NORM, "exsto rank " .. ply:Name() .. " superadmin" )
 			end
 		end
-		
-		FEL.SaveUserInfo( ply )
 	
 	end
 	hook.Add( "exsto_InitSpawn", "exsto_AddUsersOnJoin", exsto.AddUsersOnJoin )
@@ -681,7 +634,7 @@ if SERVER then
 		if !plys then return false end
 		
 		for k,v in pairs( plys ) do
-			local rank = exsto.Levels[v.Rank]
+			local rank = exsto.Ranks[v.Rank]
 			
 			if rank then
 				if table.HasValue( rank.Flags, "issuperadmin" ) then return true end
@@ -774,7 +727,7 @@ end
 	Description: Returns the rank information based on short or name.
 	----------------------------------- ]]
 function exsto.GetRankData( rank )
-	for k,v in pairs( exsto.Levels ) do
+	for k,v in pairs( exsto.Ranks ) do
 		if v.Short == rank or v.Name == rank then return v end
 	end
 	return nil
@@ -785,7 +738,7 @@ end
 	Description: Returns the rank color, or white if there is none.
 	----------------------------------- ]]
 function exsto.GetRankColor( rank )
-	for k,v in pairs( exsto.Levels ) do
+	for k,v in pairs( exsto.Ranks ) do
 		if v.Short == rank or v.Name == rank then return v.Color end
 	end
 	return Color( 255, 255, 255, 255 )	
@@ -796,7 +749,7 @@ end
 	Description: Returns true if a rank exists
 	----------------------------------- ]]
 function exsto.RankExists( rank )
-	if exsto.Levels[rank] then return true end
+	if exsto.Ranks[rank] then return true end
 	return false
 end
 
@@ -815,14 +768,14 @@ function _R.Player:IsAllowed( flag, victim )
 	
 		local victimRank = exsto.GetRankData( victim:GetRank() )
 		if !rank.Immunity or !victimRank.Immunity then -- Just ignore it if they don't exist, we don't want to break Exsto.
-			if table.HasValue( rank.Flags, flag ) then return true end
+			if table.HasValue( rank.AllFlags, flag ) then return true end
 		elseif rank.Immunity <= victimRank.Immunity then
-			if table.HasValue( rank.Flags, flag ) then return true end
+			if table.HasValue( rank.AllFlags, flag ) then return true end
 		else
 			return false, "immunity"
 		end
 	else
-		if table.HasValue( rank.Flags, flag ) then return true end
+		if table.HasValue( rank.AllFlags, flag ) then return true end
 	end
 	
 	return false

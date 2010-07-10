@@ -33,8 +33,9 @@ local function LoadVariables()
 
 	exsto = {}
 	exsto.DebugEnabled = true
+	exsto.StartTime = SysTime()
 	
-	exsto.VERSION = 53
+	exsto.VERSION = 54
 end
 
 function exstoInit()
@@ -91,4 +92,3 @@ elseif CLIENT then
 	end
 	hook.Add( "OnEntityCreated", "ExSystemLoad", onEntCreated )
 end
-

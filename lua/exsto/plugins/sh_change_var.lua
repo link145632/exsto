@@ -12,6 +12,39 @@ PLUGIN:SetInfo({
 
 if SERVER then
 
+	function PLUGIN:CreateEnvVar( owner, dirty, value )
+		
+		-- If we are creating an existing one.
+		local existing = exsto.GetVar( dirty )
+		if existing then
+			
+			-- Check if it is an env var.  Update if it is.
+			if existing.EnvVar == true then
+				exsto.Variables[ dirty ].Value = value
+				exsto.Variables[ dirty ].DataType = type( value )
+				
+				return { owner, COLOR.NORM, "Updating existing env var ", COLOR.NAME, dirty, COLOR.NORM, " with value: ", COLOR.NAME, value, COLOR.NORM, "!" }
+			-- It is an existing Exsto hard-coded variable.  End it!
+			else
+				return { owner, COLOR.NORM, "An existing Exsto global variable already exists for ", COLOR.NAME, dirty, COLOR.NORM, "!" }
+			end
+			
+		end
+		
+		-- Create it.
+		exsto.AddEnvironmentVar( dirty, value )
+		return { COLOR.NAME, owner:Nick(), COLOR.NORM, " has created a new environment variable: ", COLOR.NAME, dirty, COLOR.NORM, "!" }
+			
+	end
+	PLUGIN:AddCommand( "createvar", {
+		Call = PLUGIN.CreateEnvVar,
+		Desc = "Allows users to create environment variables.",
+		Console = { "createenv" },
+		Chat = { "!createenv" },
+		ReturnOrder = "Variable-Value",
+		Args = {Variable = "STRING", Value = "STRING"},
+	})
+
 	function PLUGIN:ChangeVar( owner, var, value )
 	
 		local variable = exsto.GetVar( var )
@@ -31,9 +64,8 @@ if SERVER then
 	end
 	PLUGIN:AddCommand( "variable", {
 		Call = PLUGIN.ChangeVar,
-		Desc = "Changes a variable",
-		FlagDesc = "Allows users to change exsto variables.",
-		Console = { "cangevar" },
+		Desc = "Allows users to change exsto variables.",
+		Console = { "changevar" },
 		Chat = { "!setvariable" },
 		ReturnOrder = "Variable-Value",
 		Args = {Variable = "STRING", Value = "STRING"},
@@ -51,8 +83,7 @@ if SERVER then
 	end
 	PLUGIN:AddCommand( "getvariable", {
 		Call = PLUGIN.GetVar,
-		Desc = "Gets a variables value",
-		FlagDesc = "Allows users to view variable values.",
+		Desc = "Allows users to view variable values.",
 		Console = { "getvariable" },
 		Chat = { "!getvariable" },
 		ReturnOrder = "Variable",
@@ -111,7 +142,7 @@ elseif CLIENT then
 	end
 	exsto.UMHook( "ExRecVars", PLUGIN.RecieveVars )
 
-	Menu.CreatePage( {
+	--[[Menu.CreatePage( {
 		Title = "Variable Editor",
 		Short = "vareditor",
 		Flag = "vareditor",
@@ -240,7 +271,7 @@ elseif CLIENT then
 		
 		return "string"
 		
-	end
+	end]]
 	
 end
  

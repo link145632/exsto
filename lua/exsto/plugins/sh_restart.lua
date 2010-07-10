@@ -66,13 +66,13 @@ if SERVER then
 	end
 	PLUGIN:AddCommand( "changelvl", {
 		Call = PLUGIN.ChangeLevel,
-		Desc = "Changes the level",
-		FlagDesc = "Allows users to change the level.",
+		Desc = "Allows users to change the level.",
 		Console = { "changelevel" },
 		Chat = { "!changelevel" },
 		ReturnOrder = "Map-Delay",
 		Args = {Map = "STRING", Delay = "NUMBER"},
 		Optional = { Map = "gm_flatgrass", Delay = 0 },
+		Category = "Administration",
 	})
 
 	function PLUGIN:ReloadMap( owner )
@@ -82,11 +82,11 @@ if SERVER then
 	end
 	PLUGIN:AddCommand( "reloadmap", {
 		Call = PLUGIN.ReloadMap,
-		Desc = "Reloads the current map",
-		FlagDesc = "Allows users to reload the current level.",
+		Desc = "Allows users to reload the current level.",
 		Console = { "reloadmap" },
 		Chat = { "!reloadmap" },
 		Args = {},
+		Category = "Administration",
 	})
 	
 	function SendMaps( ply )
@@ -362,7 +362,7 @@ elseif CLIENT then
 			end
 	end
 	
-	Menu.CreatePage( {
+	--[[Menu.CreatePage( {
 		Title = "Maps List",
 		Short = "mapslist",
 		Flag = "mapslist",
@@ -373,7 +373,7 @@ elseif CLIENT then
 			
 		end
 	)
-	
+	]]
 end
 
 PLUGIN:Register()

@@ -48,30 +48,59 @@ function PLUGIN.JumpPower(self, ply, target, power)
 end
 PLUGIN:AddCommand( "runspeed", {
 	Call = PLUGIN.RunSpeed,
-	Desc = "Sets a player's run speed(def 500)",
-	FlagDesc = "Allows users to change player's run speed.",
-	Console = { "exsto_runspeed", "scoin_runspeed" },
-	Chat = { "!runspeed", "!scoin_runspeed" },
+	Desc = "Allows users to change player's run speed.",
+	Console = { "runspeed" },
+	Chat = { "!runspeed" },
 	ReturnOrder = "Target-Power",
 	Args = { Target = "PLAYER", Power = "NUMBER" },
+	Category = "Fun",
 })
+PLUGIN:RequestQuickmenuSlot( "runspeed", {
+	Power = {
+		{ Display = "200 units", Data = 200 },
+		{ Display = "250 units", Data = 250 },
+		{ Display = "500 units", Data = 500 },
+		{ Display = "750 units", Data = 750 },
+		{ Display = "1000 units", Data = 1000 },
+	},
+} )
+
 PLUGIN:AddCommand( "walkspeed", {
 	Call = PLUGIN.WalkSpeed,
-	Desc = "Sets a player's walk speed(def 250)",
-	FlagDesc = "Allows users to change player's walk speed.",
-	Console = { "exsto_walkspeed", "scoin_walkspeed" },
-	Chat = { "!walkspeed", "!scoin_walkspeed" },
+	Desc = "Allows users to change player's walk speed.",
+	Console = { "walkspeed" },
+	Chat = { "!walkspeed" },
 	ReturnOrder = "Target-Power",
 	Args = { Target = "PLAYER", Power = "NUMBER" },
+	Category = "Fun",
 })
+PLUGIN:RequestQuickmenuSlot( "walkspeed", {
+	Power = {
+		{ Display = "200 units", Data = 200 },
+		{ Display = "250 units", Data = 250 },
+		{ Display = "500 units", Data = 500 },
+		{ Display = "750 units", Data = 750 },
+		{ Display = "1000 units", Data = 1000 },
+	},
+} )
+
 PLUGIN:AddCommand( "jumppower", {
 	Call = PLUGIN.JumpPower,
-	Desc = "Sets a player's jump power(max 2000)",
-	FlagDesc = "Allows users to change player's jump power.",
-	Console = { "exsto_jumppower", "scoin_jumppower" },
-	Chat = { "!jumppower", "!scoin_jumppower" },
+	Desc = "Allows users to change player's jump power.",
+	Console = { "jumppower" },
+	Chat = { "!jumppower" },
 	ReturnOrder = "Target-Power",
 	Args = { Target = "PLAYER", Power = "NUMBER" },
+	Category = "Fun",
 })
+PLUGIN:RequestQuickmenuSlot( "jumppower", {
+	Power = {
+		{ Display = "200 units", Data = 200 },
+		{ Display = "250 units", Data = 250 },
+		{ Display = "500 units", Data = 500 },
+		{ Display = "750 units", Data = 750 },
+		{ Display = "1000 units", Data = 1000 },
+	},
+} )
 
 PLUGIN:Register()

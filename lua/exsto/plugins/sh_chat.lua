@@ -20,8 +20,7 @@ if SERVER then
 	end
 	PLUGIN:AddCommand( "togglechatanim", {
 		Call = PLUGIN.ToggleAnims,
-		Desc = "Toggles chat animations.",
-		FlagDesc = "Allows users to toggle chat animations on or off.",
+		Desc = "Allows users to toggle chat animations on or off.",
 		Console = { "togglechatanims" },
 		Chat = { "!chatanim" },
 		Args = { },
@@ -556,9 +555,7 @@ elseif CLIENT then
 						if text == ply:Nick() then
 							tmpData["Color"] = Color( r, g, b, a )
 						else
-						
-							print( string.sub( text, 3, 3 ), string.Explode( " ", text )[2]:gsub( "@", "" ):lower() )
-						
+
 							-- Check for "twitter" style messages.
 							if string.sub( text, 3, 3 ) == "@" and string.find( LocalPlayer():Nick():lower(), string.Explode( " ", text )[2]:gsub( "@", "" ):lower(), 1, true ) then
 								tmpData["Color"] = self.Colors.Twitter

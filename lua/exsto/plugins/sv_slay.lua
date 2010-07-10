@@ -23,12 +23,13 @@ function PLUGIN:Slay( owner, ply )
 end
 PLUGIN:AddCommand( "slay", {
 	Call = PLUGIN.Slay,
-	Desc = "Slays a player",
-	FlagDesc = "Allows users to slay a player.",
+	Desc = "Allows users to slay a player.",
+	Category = "Fun",
 	Console = { "slay" },
 	Chat = { "!slay" },
 	ReturnOrder = "Victim",
 	Args = {Victim = "PLAYER"},
 })
+PLUGIN:RequestQuickmenuSlot( "slay" )
 
 PLUGIN:Register()

@@ -19,10 +19,14 @@
 --[[ -----------------------------------
 	Category:  Script Loading/Resources
      ----------------------------------- ]]
-	resource.AddFile("materials/exstoLogo.vmt")
-	resource.AddFile("materials/exstoGradient.vmt" )
-	resource.AddFile("materials/exstoGenericAnim.vmt" )
-	resource.AddFile("materials/exstoErrorAnim.vmt" )
+	resource.AddFile( "materials/exstoLogo.vmt" )
+	resource.AddFile( "materials/exstoGradient.vmt" )
+	resource.AddFile( "materials/exstoGenericAnim.vmt" )
+	resource.AddFile( "materials/exstoErrorAnim.vmt" )
+	resource.AddFile( "materials/exstoButtonGlow.vmt" )
+	resource.AddFile( "materials/icon_locked.vmt" )
+	resource.AddFile( "materials/icon_on.vmt" )
+	resource.AddFile( "materials/icon_off.vmt" )
 
 	include( "exsto/sh_tables.lua" )
 	include( "exsto/sh_umsg.lua" )
@@ -37,6 +41,7 @@
 	AddCSLuaFile( "exsto/cl_derma.lua" )
 	AddCSLuaFile( "exsto/sh_data.lua" )
 	AddCSLuaFile( "exsto/sh_umsg.lua" )
+	AddCSLuaFile( "exsto/cl_menu_skin.lua" )
 	AddCSLuaFile( "exsto/cl_menu.lua" )
 	AddCSLuaFile( "exsto/sh_access.lua" )
 	AddCSLuaFile( "exsto/sh_print.lua" )
@@ -101,7 +106,7 @@ function exsto.FindPlayers( data, ply )
 	if data == "[ALL]" then return player.GetAll() end
 	
 	-- Check rank styles
-	for short, info in pairs( exsto.Levels ) do
+	for short, info in pairs( exsto.Ranks ) do
 		if data:Replace( "%", "" ) == short then
 			for _, ply in ipairs( player.GetAll() ) do
 				if ply:GetRank() == short then table.insert( players, ply ) end
@@ -113,6 +118,7 @@ function exsto.FindPlayers( data, ply )
 	for I = 1, #splits do
 		data = splits[I]
 		for _, ply in ipairs( player.GetAll() ) do
+			if ply:EntIndex() == tonumber( data ) then table.insert( players, ply ) end
 			if ply:UserID() == tostring( data ) then table.insert( players, ply ) end
 			if string.find( ply:Nick():lower(), data:lower(), 1, true ) then table.insert( players, ply ) end
 		end
@@ -141,3 +147,8 @@ end )
 
 	exsto.LoadFlags()
 	exsto.CreateFlagIndex()
+	
+	local seconds = SysTime() - exsto.StartTime
+	print( "----------------------------------------------" )
+	print( "Exsto started in " .. math.floor( seconds ) .. " seconds!" )
+	print( "----------------------------------------------" )

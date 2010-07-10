@@ -57,7 +57,7 @@ if SERVER then
 		
 		if !data then 
 			
-			for k,v in pairs( exsto.Levels ) do
+			for k,v in pairs( exsto.Ranks ) do
 				self.Restrictions[ v.Short ] = {
 					Rank = v.Short,
 					Props = {},
@@ -91,7 +91,7 @@ if SERVER then
 	function PLUGIN:LoadFileRestrictions()
 		local load = ""
 		for style, format in pairs( self.FileTypes ) do
-			for short, data in pairs( exsto.Levels ) do
+			for short, data in pairs( exsto.Ranks ) do
 				if file.Exists( "exsto_restrictions/exsto_" .. style .. "_restrict_" .. short .. ".txt" ) then
 					load = file.Read( "exsto_restrictions/exsto_" .. style .. "_restrict_" .. short .. ".txt" )
 					load = string.Explode( "\n", load )
@@ -156,7 +156,6 @@ if SERVER then
 	
 	function PLUGIN:CanTool( ply, trace, tool )
 		if table.HasValue( self.Restrictions[ ply:GetRank() ].Stools, tool ) then
-			if ply:HasNoRestrict() then return true end
 			ply:Print( exsto_CHAT, COLOR.NORM, "The tool ", COLOR.NAME, tool, COLOR.NORM, " is disabled for your rank!" )
 			return false
 		end
@@ -164,7 +163,6 @@ if SERVER then
 	
 	function PLUGIN:PlayerGiveSWEP( ply, class, wep )
 		if table.HasValue( self.Restrictions[ ply:GetRank() ].Sweps, class ) then
-			if ply:HasNoRestrict() then return true end
 			ply:Print( exsto_CHAT, COLOR.NORM, "The weapon ", COLOR.NAME, class, COLOR.NORM, " is disabled for your rank!" )
 			return false
 		end
@@ -172,7 +170,6 @@ if SERVER then
 	
 	function PLUGIN:PlayerSpawnProp( ply, prop )
 		if table.HasValue( self.Restrictions[ ply:GetRank() ].Props, prop ) then
-			if ply:HasNoRestrict() then return true end
 			ply:Print( exsto_CHAT, COLOR.NORM, "The prop ", COLOR.NAME, prop, COLOR.NORM, " is disabled for your rank!" )
 			return false
 		end
@@ -180,7 +177,6 @@ if SERVER then
 	
 	function PLUGIN:PlayerSpawnSENT( ply, class )
 		if table.HasValue( self.Restrictions[ ply:GetRank() ].Entities, class ) then
-			if ply:HasNoRestrict() then return true end
 			ply:Print( exsto_CHAT, COLOR.NORM, "The entity ", COLOR.NAME, class, COLOR.NORM, " is disabled for your rank!" )
 			return false
 		end
@@ -189,7 +185,7 @@ if SERVER then
 	function PLUGIN:AllowObject( owner, rank, object, data )
 		
 		if !self.Restrictions[ rank ] then
-			local closeRank = exsto.GetClosestString( rank, exsto.Levels, "Short", owner, "Unknown rank" )
+			local closeRank = exsto.GetClosestString( rank, exsto.Ranks, "Short", owner, "Unknown rank" )
 			return
 		end
 
@@ -234,7 +230,7 @@ if SERVER then
 	function PLUGIN:DenyObject( owner, rank, object, data )
 	
 		if !self.Restrictions[ rank ] then
-			local closeRank = exsto.GetClosestString( rank, exsto.Levels, "Short", owner, "Unknown rank" )
+			local closeRank = exsto.GetClosestString( rank, exsto.Ranks, "Short", owner, "Unknown rank" )
 			return
 		end
 		
@@ -274,8 +270,7 @@ if SERVER then
 	end
 	PLUGIN:AddCommand( "allowentity", {
 		Call = PLUGIN.AllowEntity,
-		Desc = "Removes a deny from a rank.",
-		FlagDesc = "Allows users to remove disallowed entities from a rank.",
+		Desc = "Allows users to remove disallowed entities from a rank.",
 		Console = { "allowentity" },
 		Chat = { "!allowentity" },
 		ReturnOrder = "Rank-Entity",
@@ -287,8 +282,7 @@ if SERVER then
 	end
 	PLUGIN:AddCommand( "denyentity", {
 		Call = PLUGIN.DenyEntity,
-		Desc = "Denies a rank to a entity",
-		FlagDesc = "Allows users to deny entities to ranks.",
+		Desc = "Allows users to deny entities to ranks.",
 		Console = { "denyentity" },
 		Chat = { "!denyentity" },
 		ReturnOrder = "Rank-Entity",
@@ -304,8 +298,7 @@ if SERVER then
 	end
 	PLUGIN:AddCommand( "allowprop", {
 		Call = PLUGIN.AllowProp,
-		Desc = "Removes a deny from a rank.",
-		FlagDesc = "Allows users to remove disallowed props from a rank.",
+		Desc = "Allows users to remove disallowed props from a rank.",
 		Console = { "allowprop" },
 		Chat = { "!allowprop" },
 		ReturnOrder = "Rank-Prop",
@@ -318,8 +311,7 @@ if SERVER then
 	end
 	PLUGIN:AddCommand( "denyprop", {
 		Call = PLUGIN.DenyProp,
-		Desc = "Denies a rank to a prop",
-		FlagDesc = "Allows users to deny props to ranks.",
+		Desc = "Allows users to deny props to ranks.",
 		Console = { "denyprop" },
 		Chat = { "!denyprop" },
 		ReturnOrder = "Rank-Prop",
@@ -334,8 +326,7 @@ if SERVER then
 	end
 	PLUGIN:AddCommand( "allowswep", {
 		Call = PLUGIN.AllowSwep,
-		Desc = "Removes a deny from a rank.",
-		FlagDesc = "Allows users to remove disallowed sweps from a rank.",
+		Desc = "Allows users to remove disallowed sweps from a rank.",
 		Console = { "allowswep" },
 		Chat = { "!allowswep" },
 		ReturnOrder = "Rank-Swep",
@@ -347,8 +338,7 @@ if SERVER then
 	end
 	PLUGIN:AddCommand( "denyswep", {
 		Call = PLUGIN.DenySwep,
-		Desc = "Denies a rank to a swep",
-		FlagDesc = "Allows users to deny sweps to ranks.",
+		Desc = "Allows users to deny sweps to ranks.",
 		Console = { "denyswep" },
 		Chat = { "!denyswep" },
 		ReturnOrder = "Rank-Swep",
@@ -363,8 +353,7 @@ if SERVER then
 	end
 	PLUGIN:AddCommand( "allowstool", {
 		Call = PLUGIN.AllowStool,
-		Desc = "Removes a deny from a rank.",
-		FlagDesc = "Allows users to remove disallowed stools from a rank.",
+		Desc = "Allows users to remove disallowed stools from a rank.",
 		Console = { "allowstool" },
 		Chat = { "!allowstool" },
 		ReturnOrder = "Rank-Stool",
@@ -376,8 +365,7 @@ if SERVER then
 	end
 	PLUGIN:AddCommand( "denystool", {
 		Call = PLUGIN.DenyStool,
-		Desc = "Denies a rank to a stool",
-		FlagDesc = "Allows users to deny stools to ranks.",
+		Desc = "Allows users to deny stools to ranks.",
 		Console = { "denystool" },
 		Chat = { "!denystool" },
 		ReturnOrder = "Rank-Stool",
@@ -421,16 +409,11 @@ if SERVER then
 	end
 	PLUGIN:AddCommand( "printrestrict", {
 		Call = PLUGIN.PrintRestrictions,
-		Desc = "Prints the rank restrictions.",
-		FlagDesc = "Allows users to print rank restrictions.",
+		Desc = "Allows users to print rank restrictions.",
 		Console = { "restrictions" },
 		Chat = { "!restrictions" },
 		Args = { },
 	})
-	
-	function _R.Player:HasNoRestrict()
-		if PLUGIN.Restrictions[ self:GetRank() ].NoLimits then return true end
-	end
 
 elseif CLIENT then
 
