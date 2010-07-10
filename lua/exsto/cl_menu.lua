@@ -91,6 +91,7 @@ function Menu:Initialize( key, rank, flagCount )
 		Menu:Create( rank, flagCount )
 	end
 end
+
 function Menu:Create( rank, flagCount )
 
 	self.Placement = {
@@ -590,6 +591,9 @@ function Menu:BuildPages( rank, flagCount )
 		
 	end
 	
+	-- If he can't see any pages, why bother?
+	if #self.ListIndex == 0 then return false end
+	
 	-- Set our current page and the ones near us.
 	for index, short in ipairs( self.ListIndex ) do
 		if self.List[ short ] then
@@ -606,7 +610,7 @@ function Menu:BuildPages( rank, flagCount )
 	
 	-- If there still isn't any default, set the default as the first index.
 	if !self.DefaultPage then
-		Menu.MoveToPage( self.CreatePages[ 1 ].Short )
+		Menu.MoveToPage( self.ListIndex[ 1 ] )
 		self.DefaultPage = self.CurrentPage
 		self.DefaultPage.Panel:SetVisible( true )
 	end

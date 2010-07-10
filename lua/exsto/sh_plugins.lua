@@ -77,6 +77,7 @@ function exsto.HookCall( name, gm, ... )
 				table.remove( data, 1 )
 				return unpack( data )
 			elseif !data[1] then -- It returned an error, catch it.
+				PrintTable( data )
 				exsto.ErrorNoHalt( "Hook '" .. name .. "' failed in plugin '" .. plug.ID .. "' error: " )
 				exsto.ErrorNoHalt( data[2] )
 				exsto.Plugins[ _ ].Disabled = true
