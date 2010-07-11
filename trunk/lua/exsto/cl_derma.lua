@@ -61,6 +61,8 @@ function exsto.CreateColorMixer( x, y, w, h, defaultColor, parent )
 	local mixer = vgui.Create( "DColorMixer", parent )
 		mixer:SetSize( w, h )
 		mixer:SetPos( x, y )
+		
+		mixer.niceColor = defaultColor
 		mixer:SetColor( defaultColor )
 		mixer.ColorCube:UpdateColor()
 		

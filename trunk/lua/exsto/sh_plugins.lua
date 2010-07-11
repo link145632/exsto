@@ -73,12 +73,14 @@ function exsto.HookCall( name, gm, ... )
 			-- data[2] == Error or First Return
 			-- data[3+] == Returns
 			
-			if data[1] and data[2] != nil then
+			-- If we are returning something...
+			if data[1] == true and data[2] != nil then
 				table.remove( data, 1 )
 				return unpack( data )
-			elseif !data[1] then -- It returned an error, catch it.
-				PrintTable( data )
+			elseif data[1] == false then -- It returned an error, catch it.
 				exsto.ErrorNoHalt( "Hook '" .. name .. "' failed in plugin '" .. plug.ID .. "' error: " )
+				PrintTable( data )
+				print( data[2] )
 				exsto.ErrorNoHalt( data[2] )
 				exsto.Plugins[ _ ].Disabled = true
 			end

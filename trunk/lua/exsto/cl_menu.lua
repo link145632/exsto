@@ -885,7 +885,7 @@ end
 
 --[[ -----------------------------------
 	Category: Exsto Tutorial
-	----------------------------------- ]]
+	----------------------------------- 
 local tutorialBackground = nil
 local tutorialLogo = nil
 local tutorialTitle = nil
@@ -1328,4 +1328,4 @@ CreateTutorial( "Bug Reporting", "bugs", BugReporting )
 
 BuildMainMenu()
 
-concommand.Add( "exstoTutorial", StartTutorial )
+concommand.Add( "exstoTutorial", StartTutorial )]]
