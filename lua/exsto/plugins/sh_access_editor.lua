@@ -357,11 +357,7 @@ elseif CLIENT then
 			
 		local colorExample = exsto.CreateLabel( "center", 5, "abc ABC 123", "exstoSecondaryButtons", colorColorPanel )
 			colorExample:SetTextColor( data.Color )
-			
-			colorMixer.ColorCube.OnUserChanged = function( self )
-				colorExample:SetTextColor( self:GetParent():GetColor() )
-			end
-			
+
 			local oldPress = colorMixer.ColorCube.OnMousePressed
 			colorMixer.ColorCube.OnMousePressed = function( self, ... )
 				oldPress( self, ... )
@@ -376,56 +372,49 @@ elseif CLIENT then
 			
 		local emptyFunc = function() end
 		
-		local valChanged = function( self, tbl )
-			local col = colorMixer:GetColor()
+		local valChange = function( self, tbl )
+			local col = colorMixer.niceColor
 			colorExample:SetTextColor( col )
 			
 			if !colorMixer.ColorCube.Updating then
+				print( "updating color tbl .. tbl ", self:GetValue() )
 				col[ tbl ] = self:GetValue()
-				colorMixer:SetColor( col )
+				PrintTable( col )
+				colorMixer.niceColor = Color( col.r, col.g, col.b, col.a )
+				colorMixer:SetColor( colorMixer.niceColor )
 			end
 		end
-			
+
 		local redSlider = exsto.CreateNumberWang( 0, 30, 32, 20, data.Color.r, 255, 0, colorColorPanel )
-			redSlider.OnValueChanged = function( self )
-				valChanged( self, "r" )
-			end
-			redSlider.TextEntry.OnTextChanged = function( self )	
-				valChanged( self, "r" )
-			end
+			print( redSlider )
+			redSlider.OnValueChanged = function( self ) valChange( self, "r" ) end
+			redSlider.TextEntry.OnTextChanged = function( self ) valChange( self, "r" ) end
+			
 			redSlider.Wanger.Paint = emptyFunc
 			redSlider:SetDecimals( 0 )
 			redSlider:MoveRightOf( colorMixer )
 			
 		local greenSlider = exsto.CreateNumberWang( 0, 55, 32, 20, data.Color.g, 255, 0, colorColorPanel )
-			greenSlider.OnValueChanged = function( self )
-				valChanged( self, "g" )
-			end
-			redSlider.TextEntry.OnTextChanged = function( self )
-				valChanged( self:GetParent(), "g" )
-			end
+			print( greenSlider )
+			greenSlider.OnValueChanged = function( self ) valChange( self, "g" ) end
+			greenSlider.TextEntry.OnTextChanged = function( self ) valChange( self, "g" ) end
+			
 			greenSlider.Wanger.Paint = emptyFunc
 			greenSlider:SetDecimals( 0 )
 			greenSlider:MoveRightOf( colorMixer )
 			
 		local blueSlider = exsto.CreateNumberWang( 0, 80, 32, 20, data.Color.b, 255, 0, colorColorPanel )
-			blueSlider.OnValueChanged = function( self )
-				valChanged( self, "b" )
-			end
-			redSlider.TextEntry.OnTextChanged = function( self )
-				valChanged( self:GetParent(), "b" )
-			end
+			blueSlider.OnValueChanged = function( self ) valChange( self, "b" ) end
+			blueSlider.TextEntry.OnTextChanged = function( self ) valChange( self, "b" ) end
+			
 			blueSlider.Wanger.Paint = emptyFunc
 			blueSlider:SetDecimals( 0 )
 			blueSlider:MoveRightOf( colorMixer )
 			
 		local alphaSlider = exsto.CreateNumberWang( 0, 105, 32, 20, data.Color.a, 255, 0, colorColorPanel )
-			alphaSlider.OnValueChanged = function( self )
-				valChanged( self, "a" )
-			end
-			redSlider.TextEntry.OnTextChanged = function( self )
-				valChanged( self:GetParent(), "a" )
-			end
+			alphaSlider.OnValueChanged = function( self ) valChange( self, "a" ) end
+			alphaSlider.TextEntry.OnTextChanged = function( self ) valChange( self, "a" ) end
+			
 			alphaSlider.Wanger.Paint = emptyFunc
 			alphaSlider:SetDecimals( 0 )
 			alphaSlider:MoveRightOf( colorMixer )
@@ -436,8 +425,10 @@ elseif CLIENT then
 			greenSlider:SetValue( col.g )
 			blueSlider:SetValue( col.b )
 			alphaSlider:SetValue( col.a )
-		end
 			
+			colorExample:SetTextColor( self:GetParent():GetColor() )
+		end
+
 		-- Flag Panel
 		local flagColorPanel = Menu:CreateColorPanel( 10, 0, ( mainColorPanel:GetWide() / 2 ) + 50, 195, panel )
 			flagColorPanel:MoveBelow( mainColorPanel, 10 )

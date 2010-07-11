@@ -90,6 +90,7 @@ exsto_ERROR = AddPrint(
 
 exsto_ERRORNOHALT = AddPrint( 
 	function( msg )
+		print( msg )
 		local send = exsto.ErrorStart .. " " .. msg .. "\n" 
 
 		if SERVER then
@@ -198,6 +199,7 @@ function exsto.Error( msg )
 end
 
 function exsto.ErrorNoHalt( msg )
+	print( msg )
 	exsto.Print( exsto_ERRORNOHALT, msg )
 end
 

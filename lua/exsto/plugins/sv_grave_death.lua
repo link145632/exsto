@@ -37,7 +37,13 @@ function PLUGIN:Init()
 end
 
 function PLUGIN:PlayerSpawn( ply )
-	if ply.HasGrave then ply.HasGrave:Remove() end
+	if ply.HasGrave then
+		if ply.HasGrave:IsValid() then
+			ply.HasGrave:Remove() 
+			ply.HasGrave = nil
+		end
+	end
+	
 	if ply.GraveData then
 		if ply.GraveData.Text:IsValid() then ply.GraveData.Text:Remove() end
 		if ply.GraveData.Ent:IsValid() then ply.GraveData.Ent:Remove() end
