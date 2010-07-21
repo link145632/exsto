@@ -62,25 +62,23 @@ end
 	Function: exsto.HookCall
 	Description: Calls hooks for plugins.
      ----------------------------------- ]]
-local data = {}
 function exsto.HookCall( name, gm, ... )
 	for _, plug in pairs( exsto.Plugins ) do
 		if type( plug.Object[ name ] ) == "function" and !plug.Disabled and plug.Object.Info.Initialized then
 
-			data = { pcall( plug.Object[ name ], plug.Object, ... ) }
+			local data = { pcall( plug.Object[ name ], plug.Object, ... ) }
 			
 			-- data[1] == Status
 			-- data[2] == Error or First Return
 			-- data[3+] == Returns
 			
 			-- If we are returning something...
+
 			if data[1] == true and data[2] != nil then
 				table.remove( data, 1 )
 				return unpack( data )
 			elseif data[1] == false then -- It returned an error, catch it.
 				exsto.ErrorNoHalt( "Hook '" .. name .. "' failed in plugin '" .. plug.ID .. "' error: " )
-				PrintTable( data )
-				print( data[2] )
 				exsto.ErrorNoHalt( data[2] )
 				exsto.Plugins[ _ ].Disabled = true
 			end

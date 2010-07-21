@@ -230,9 +230,11 @@ if SERVER then
 	
 	function exsto.BeginClientReceive( _ply, _, args )
 		id = args[1]
+		
 		if !dataHooks[ id ] then
 			dataHooks[ id ] = noFunc
 		end
+		
 		dataProcess[id] = { ply = _ply, data = "" }
 	end
 	concommand.Add( "_ExBeginSend", exsto.BeginClientReceive )
@@ -246,6 +248,8 @@ if SERVER then
 	function exsto.EndClientReceive( ply, _, args )
 		id = args[1]
 		local decode = glon.decode( dataProcess[ id ].data )
+		
+		if hook.Call( "ExClientData", nil, id, dataProcess[ id ].ply, decode ) == false then return end
 		dataHooks[ id ]( dataProcess[ id ].ply, decode )
 		dataProcess[ id ] = nil
 	end
@@ -254,10 +258,6 @@ if SERVER then
 	function exsto.ClientHook( id, func )
 		dataHooks[ id ] = func
 	end
-	
-	exsto.ClientHook( "TestHook", function( data )
-		PrintTable( data )
-	end )
 	
 end
 
@@ -277,11 +277,7 @@ if CLIENT then
 		
 		RunConsoleCommand( "_ExEndSend", hook )
 	end
-	
-	concommand.Add( "testSend", function()
-		exsto.SendToServer( "TestHook", "Hello Everyone!", { "I am", 1, true } )
-	end )
-	
+
 --[[ -----------------------------------
 	Function: exsto.UMHook
 	Description: Hooks into a usermessage that Receives data.

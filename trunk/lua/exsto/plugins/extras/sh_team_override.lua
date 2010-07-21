@@ -22,6 +22,10 @@ if SERVER then
 		local rank = ply:GetRank()
 		local info = self.Teams[rank]
 		
+		if ply:GetNWString( "ExRankHidden" ) != "" then
+			rank = ply:GetNWString( "ExRankHidden" )
+		end
+		
 		if !info then ply:SetTeam( 1 ) return end
 		
 		for k,v in pairs( self.Teams ) do

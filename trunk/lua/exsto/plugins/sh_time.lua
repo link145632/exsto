@@ -20,13 +20,13 @@ if SERVER then
 		}
 	)
 	
-	function PLUGIN:exsto_InitSpawn( ply, sid, uid )
+	function PLUGIN:ExInitSpawn( ply, sid, uid )
 
 		local nick = ply:Nick()
 		
-		local data = FEL.Query( "SELECT Time, Last FROM exsto_plugin_time WHERE SteamID = '" .. sid .. "';" );
+		local data = FEL.Query( "SELECT Time, Last FROM exsto_plugin_time WHERE SteamID = " .. FEL.Escape( sid ) .. ";" );
 
-		if !data then
+		if !data[1] then
 
 			FEL.AddData( "exsto_plugin_time", {
 				Look = {
@@ -52,8 +52,8 @@ if SERVER then
 			
 		else
 		
-			local LastDay = os.date( "%c", data.Last )
-			ply:SetFixedTime( data.Time )
+			local LastDay = os.date( "%c", data[1].Last )
+			ply:SetFixedTime( data[1].Time )
 			timer.Simple( 1, function()
 				exsto.Print( exsto_CHAT, ply, COLOR.NORM, "Welcome back ", COLOR.NAME, nick, COLOR.NORM, "!" )
 				exsto.Print( exsto_CHAT, ply, COLOR.NORM, "You last visited ", COLOR.RED, LastDay )
@@ -87,14 +87,14 @@ if SERVER then
 		
 	end
 	
-	function PLUGIN.Interval()
+	function PLUGIN:ShutDown()
+		PLUGIN.Interval()
+	end
 	
+	function PLUGIN.Interval()
 		for k,v in pairs( player.GetAll() ) do
-			
 			PLUGIN.PlayerDisconneced( PLUGIN, v )
-			
 		end
-		
 	end
 	timer.Create( "Time_IntervalSave", 60 * 5, 0, PLUGIN.Interval )
 	

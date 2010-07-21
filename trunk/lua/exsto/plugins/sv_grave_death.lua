@@ -56,7 +56,6 @@ end
 local function BuildWormsMessage( ent, ply )
 
 	if !ply.GraveData then
-		ply.HasGrave = nil
 		local text = ents.Create( "3dtext" )
 			text:SetPos( ent:GetPos() + Vector( 0, 0, ( ent.Height / 2 ) + 13 ) )
 			text:SetAngles( Angle( 0, 0, 0 ) )
@@ -127,12 +126,18 @@ end
 
 function PLUGIN:PlayerDisconnected( ply )
 	if ply.HasGrave then
-		ply.HasGrave:Remove()
+		if ply.HasGrave:IsValid() then
+			ply.HasGrave:Remove() 
+			ply.HasGrave = nil
+		end
 	end
 	
 	if ply.GraveData then
-		ply.GraveData.Ent:Remove()
-		ply.GraveData.Text:Remove()
+		if ply.GraveData.Text:IsValid() then ply.GraveData.Text:Remove() end
+		if ply.GraveData.Ent:IsValid() then ply.GraveData.Ent:Remove() end
+		if ply.GraveData.Message:IsValid() then ply.GraveData.Message:Remove() end
+		
+		ply.GraveData = nil
 	end
 end
 

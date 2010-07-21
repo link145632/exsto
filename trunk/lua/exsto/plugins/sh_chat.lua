@@ -191,9 +191,6 @@ elseif CLIENT then
 		if string.find( bind, "messagemode" ) then
 			self:Toggle( true, bind == "messagemode2" )
 			return true
-		elseif string.find( bind, "cancelselect" ) then
-			self:Toggle( false )
-			return true
 		end
 	end
 	
@@ -764,6 +761,8 @@ elseif CLIENT then
 	
 	local build, arg, data
 	function PANEL:AddAutoComplete( name, command )
+	
+		if !LocalPlayer():IsAllowed( command.ID ) then return end
 	
 		surface.SetFont( PLUGIN.Font )
 		data = { }

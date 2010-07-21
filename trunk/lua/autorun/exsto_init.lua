@@ -35,7 +35,7 @@ local function LoadVariables()
 	exsto.DebugEnabled = true
 	exsto.StartTime = SysTime()
 	
-	exsto.VERSION = 56
+	exsto.VERSION = 60
 end
 
 function exstoInit()

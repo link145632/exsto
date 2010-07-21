@@ -299,6 +299,7 @@ exsto.DefaultRanks = {
 			"slay",
 			"kick",
 			"kickid",
+			"plytitle",
 			"teleport",
 			"jail",
 			"ban",
@@ -344,6 +345,10 @@ exsto.DefaultRanks = {
 			"mapslist",
 			"send",
 			"quickmenu",
+			"unlimitedammo",
+			"nolimits",
+			"hideadmin",
+			"ragdoll",
 		}
 	},
 	
@@ -363,6 +368,8 @@ exsto.DefaultRanks = {
 			"updateownerrank",
 			"getvariable",
 			"helppage",
+			"title",
+			"mytitle",
 			"playerlist",
 			"checkversion",
 			"pluginlist",
