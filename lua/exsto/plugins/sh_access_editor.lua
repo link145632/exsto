@@ -48,7 +48,7 @@ if SERVER then
 		
 		-- Reload the rank editor.
 		timer.Create( "reload_" .. ply:EntIndex(), 1, 1, PLUGIN.SendData, PLUGIN, "ExRankEditor_Reload", ply )
-		
+		hook.Call( "ExOnRankCreate", nil, rank[3] )
 	end
 	exsto.ClientHook( "ExRecRankData", PLUGIN.CommitChanges )
 	
@@ -66,6 +66,14 @@ if SERVER then
 		} )
 	end
 	exsto.ClientHook( "ExRecImmuneChange", PLUGIN.RecieveImmunityData )
+	
+	function PLUGIN:ExClientData( hook, ply, data )
+		if hook == "ExRecImmuneChange" or hook == "ExRecRankData" then
+			print( "checking" )
+			print( ply:IsAllowed( "rankeditor" ) )
+			if !ply:IsAllowed( "rankeditor" ) then print( "DENIED" ) return false end
+		end		
+	end
 	
 	function PLUGIN:WriteAccess( name, desc, short, derive, color, flags )
 		FEL.AddData( "exsto_data_access", {
@@ -333,6 +341,10 @@ elseif CLIENT then
 			uidEntry.IsUID = true
 			uidEntry.OnTextChanged = ContentCheck
 			
+			if data.Short != "" then
+				uidEntry:SetEditable( false )
+			end
+			
 		-- Derive
 		local x, y = descEntry:GetPos()
 		local deriveLabel = exsto.CreateLabel( ( mainColorPanel:GetWide() / 2 ) + 20, y + 40, "Derive From", "exstoSecondaryButtons", mainColorPanel )
@@ -386,7 +398,6 @@ elseif CLIENT then
 		end
 
 		local redSlider = exsto.CreateNumberWang( 0, 30, 32, 20, data.Color.r, 255, 0, colorColorPanel )
-			print( redSlider )
 			redSlider.OnValueChanged = function( self ) valChange( self, "r" ) end
 			redSlider.TextEntry.OnTextChanged = function( self ) valChange( self, "r" ) end
 			
@@ -395,7 +406,6 @@ elseif CLIENT then
 			redSlider:MoveRightOf( colorMixer )
 			
 		local greenSlider = exsto.CreateNumberWang( 0, 55, 32, 20, data.Color.g, 255, 0, colorColorPanel )
-			print( greenSlider )
 			greenSlider.OnValueChanged = function( self ) valChange( self, "g" ) end
 			greenSlider.TextEntry.OnTextChanged = function( self ) valChange( self, "g" ) end
 			

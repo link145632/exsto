@@ -21,6 +21,12 @@ PLUGIN.FileTypes = {
 if SERVER then
 
 	function PLUGIN:Init()
+		local oldCount = _R.Player.GetCount
+		_R.Player.GetCount = function( self, ... )
+			if self.ExNoLimits then return -1 end
+			return oldCount( self, ... )
+		end
+		
 		-- Check to see if the server owners want to input their restrictions through the file library.
 		if !file.Exists( "exsto_restrictions/readme.txt" ) then
 			file.Write( "exsto_restrictions/readme.txt", [[
@@ -86,6 +92,46 @@ if SERVER then
 		
 		self:LoadFileRestrictions()
 		
+	end
+	
+	function PLUGIN:NoLimits( caller, ply )
+		local t = " has enabled limits on "
+		if !ply.ExNoLimits then
+			ply.ExNoLimits = true
+			t = " has disabled limits on "
+		else
+			ply.ExNoLimits = false
+		end
+		
+		return {
+			Activator = caller,
+			Player = ply, 
+			Wording = t,
+		}
+	end			
+	PLUGIN:AddCommand( "nolimits", {
+		Call = PLUGIN.NoLimits,
+		Desc = "Allows users to set nolimits on players.",
+		Console = { "nolimits" },
+		Chat = { "!nolimits" },
+		ReturnOrder = "Player",
+		Args = { Player = "PLAYER" },
+		Category = "Fun",
+	})
+	PLUGIN:RequestQuickmenuSlot( "nolimits" )
+	
+	function PLUGIN:ExOnRankCreate( short )
+		if self.Restrictions[ short ] then return end
+		
+		self.Restrictions[ short ] = {
+			Rank = short,
+			Props = {},
+			Stools = {},
+			Entities = {},
+			Sweps = {},
+		}
+					
+		self:SaveData( "all", short )
 	end
 	
 	function PLUGIN:LoadFileRestrictions()

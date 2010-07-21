@@ -325,8 +325,10 @@ function exsto.ParseArguments( ply, data, args )
 	if #args > #data.ReturnOrder then
 		local compile = ""
 		for I = #data.ReturnOrder, #args do
-			compile = compile .. args[ I ] .. " "
-			args[ I ] = nil
+			if args[ I ] then
+				compile = compile .. args[ I ] .. " "
+				args[ I ] = nil
+			end
 		end
 		
 		args[ #data.ReturnOrder ] = compile
@@ -426,8 +428,7 @@ local function ExstoParseCommand( ply, command, args, style )
 		if ( style == "chat" and table.HasValue( data.Chat, command ) ) or ( style == "console" and table.HasValue( data.Console, command ) ) then
 		
 			-- We found our command, continue.
-			hook.Call( "ExCommandCalled" )
-			
+		
 			-- First, parse the text for the arguments.
 			if style == "chat" then args = string.Implode( " ", args ) end
 			local argTable, activePlayers, playersSlot = exsto.ParseArguments( ply, data, args )
@@ -452,6 +453,12 @@ local function ExstoParseCommand( ply, command, args, style )
 				else
 					ply:Print( exsto_CHAT, COLOR.NORM, "You are not allowed to run ", COLOR.NAME, command, COLOR.NORM, "!" )
 				end
+				return ""
+			end
+			
+			local checkcall = { hook.Call( "ExCommandCalled", nil, ply, data.ID, argTable[1] ) }
+			if checkcall[1] == false then
+				ply:Print( exsto_CHAT, unpack( checkcall[2] ) )
 				return ""
 			end
 

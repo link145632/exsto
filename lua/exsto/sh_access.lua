@@ -508,13 +508,9 @@ if SERVER then
 	Description: Prints a users rank
 	----------------------------------- ]]
 	function exsto.PrintRank( ply, victim )
-	
-		if victim:IsPlayer() then
-			exsto.Print( exsto_CHAT, ply, COLOR.NAME, victim:Name(), COLOR.NORM, " is a ", COLOR.NAME, victim:GetRank(), COLOR.NORM, "!" )
-		else
-			exsto.Print( exsto_CHAT, ply, COLOR.NORM, "You are a ", COLOR.NAME, ply:GetRank(), COLOR.NORM, "!" )
-		end
-		
+		local rank = victim:GetNWString( "ExRankHidden" )
+		if rank == "" then rank = victim:GetRank() end
+		exsto.Print( exsto_CHAT, ply, COLOR.NAME, victim:Name(), COLOR.NORM, " is a ", COLOR.NAME, rank, COLOR.NORM, "!" )
 	end
 	exsto.AddChatCommand( "getrank", {
 		Call = exsto.PrintRank,
