@@ -31,3 +31,7 @@ exsto rank *USERNAME* superadmin
 
 
 It is that simple; you are now done with setting up your rank.
+
+==Immunity==
+
+Unlike other admin modifications, Exsto's immunity is inversed - that is to say that the lower the immunity, the more powerful. Say you're an admin, but your immunity is 0, this is the best, nobody can affect you, but if your immunity is 100, everyone can affect you.
