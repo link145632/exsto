@@ -7,6 +7,7 @@ PLUGIN:SetInfo({
 	ID = "cl-chat",
 	Desc = "A cool custom chat with supporting animations.",
 	Owner = "Prefanatic",
+	Disabled = true,
 })
 
 if SERVER then
@@ -82,6 +83,8 @@ if SERVER then
 	end
 	
 elseif CLIENT then
+
+	//local enabled = CreateClientConVar( )
 	
 	local colName = table.Copy( COLOR.NAME )
 	local colNorm = table.Copy( COLOR.NORM )

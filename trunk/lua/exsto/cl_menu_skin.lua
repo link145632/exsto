@@ -70,7 +70,7 @@ SKIN.colButtonTextDisabled              = Color( 255, 255, 255, 55 )
 SKIN.colButtonBorder                    = Color( 20, 20, 20, 255 )
 SKIN.colButtonBorderHighlight   = Color( 255, 255, 255, 50 )
 SKIN.colButtonBorderShadow              = Color( 0, 0, 0, 100 )
-SKIN.fontButton                                 = "Default"
+SKIN.fontButton                                 = "exstoListColumn"
 
 SKIN.ExstoButtonBorder		= Color( 194, 194, 194, 255 )
 SKIN.ExstoWhite				= Color( 255, 255, 255, 255 )
@@ -79,6 +79,10 @@ SKIN.ExstoTextEntryFill		= Color( 246, 246, 246, 255 )
 SKIN.ExstoScrollBG			= Color( 0, 0, 0, 12 )
 SKIN.ExstoComboHover		= Color( 231, 231, 231, 255 )
 SKIN.ExstoListLabel			= Color( 156, 156, 156, 255 )
+SKIN.ExstoPositiveText		= Color( 12, 176, 0, 255 )
+SKIN.ExstoDefaultText 		= Color( 0, 153, 176, 255 )
+SKIN.ExstoListHover			= Color( 12, 176, 0, 51 )
+SKIN.ExstoListSelected		= SKIN.ExstoButtonBorder
  
 /*---------------------------------------------------------
    DrawGenericBackground
@@ -177,22 +181,23 @@ function SKIN:PaintButton( panel )
 
 	if ( panel.m_bBackground ) then
 	
-		if !panel.GetStyle then return end
+		local style = ""
+		if panel.GetStyle then style = panel:GetStyle() end
 		
 		local gradHigh = panel.GradientHigh
 		local gradLow = panel.GradientLow
-		if panel.Hovered and panel:GetStyle() == "secondary" then
+		if panel.Hovered and style == "secondary" then
 			gradLow = panel.HoveredGradLow
 			gradHigh = panel.HoveredGradHigh
 		end
 		
-		local border = panel.BorderColor
+		local border = panel.BorderColor or self.ExstoButtonBorder
 		if panel.isEnabled then
-			border = panel.SelectedBorder
+			border = panel.SelectedBorder or self.ExstoButtonBorder
 		end
 
-		draw.RoundedBox( panel.Rounded, 0, 0, panel:GetWide(), panel:GetTall(), border )
-		if panel.Hovered or panel:GetStyle() == "secondary" then
+		draw.RoundedBox( panel.Rounded or 0, 0, 0, panel:GetWide(), panel:GetTall(), border )
+		if ( panel.Hovered or style == "secondary" ) and self.GetStyle then
 			surface.SetDrawColor( gradLow.r, gradLow.g, gradLow.b, gradLow.a )
 			surface.DrawRect( 1, 1, panel:GetWide() - 2, panel:GetTall() - 2 )
 			
@@ -200,7 +205,7 @@ function SKIN:PaintButton( panel )
 			surface.SetDrawColor( gradHigh.r, gradHigh.g, gradHigh.b, gradHigh.a )
 			surface.DrawTexturedRect( 1, 1, panel:GetWide() - 2, panel:GetTall() - 2 )
 		else
-			draw.RoundedBox( panel.Rounded, 1, 1, panel:GetWide() - 2, panel:GetTall() - 2, self.ExstoWhite )
+			draw.RoundedBox( panel.Rounded or 0, 1, 1, panel:GetWide() - 2, panel:GetTall() - 2, self.ExstoWhite )
 		end
 		
 		if panel.isEnabled then
@@ -208,10 +213,6 @@ function SKIN:PaintButton( panel )
 			surface.SetTexture( surface.GetTextureID( "exstoButtonGlow" ) )
 			surface.DrawTexturedRect( 0, 0, panel:GetWide(), panel:GetTall() )
 		end
-		
-		-- Draw the text
-		draw.SimpleText( panel.Text, panel.Font, panel:GetWide() / 2, panel:GetTall() / 2, panel.TextColor, 1, 1 )		
-   
 	end
  
 end
@@ -221,16 +222,16 @@ end
  
  
 function SKIN:SchemeButton( panel )
- 
-        panel:SetFont( self.fontButton )
-       
-        if ( panel:GetDisabled() ) then
-                panel:SetTextColor( self.colButtonTextDisabled )
-        else
-                panel:SetTextColor( self.colButtonText )
-        end
-       
-        DLabel.ApplySchemeSettings( panel )
+
+	panel:SetFont( panel.Font or self.fontButton )
+
+	if ( panel:GetDisabled() ) then
+		panel:SetTextColor( self.colButtonTextDisabled )
+	else
+		panel:SetTextColor( panel.TextColor or self.ExstoPositiveText )
+	end
+   
+	DLabel.ApplySchemeSettings( panel )
  
 end
  
@@ -479,19 +480,19 @@ end
  
 function SKIN:SchemeLabel( panel )
  
-        local col = nil
- 
-        if ( panel.Hovered && panel:GetTextColorHovered() ) then
-                col = panel:GetTextColorHovered()
-        else
-                col = panel:GetTextColor()
-        end
-       
-        if ( col ) then
-                panel:SetFGColor( col.r, col.g, col.b, col.a )
-        else
-                panel:SetFGColor( 200, 200, 200, 255 )
-        end
+	local col = nil
+
+	if ( panel.Hovered && panel:GetTextColorHovered() ) then
+		col = panel:GetTextColorHovered()
+	else
+		col = panel:GetTextColor()
+	end
+   
+	if ( col ) then
+		panel:SetFGColor( col.r, col.g, col.b, col.a )
+	else
+		panel:SetFGColor( 200, 200, 200, 255 )
+	end
  
 end
  
@@ -632,9 +633,9 @@ function SKIN:PaintListViewLine( panel )
 	local Col = nil
    
 	if ( panel:IsSelected() ) then
-		Col = self.ExstoComboHover
+		Col = self.ExstoListSelected
 	elseif ( panel.Hovered ) then
-		Col = self.listview_hover
+		Col = self.ExstoListHover
 	elseif ( panel.m_bAlt ) then
 		Col = self.ExstoScrollBG
 	else
@@ -653,7 +654,8 @@ end
 function SKIN:SchemeListViewLabel( panel )
  
         panel:SetTextInset( 3 )
-        panel:SetTextColor( self.ExstoListLabel )
+        panel:SetTextColor( self.ExstoDefaultText )
+		panel:SetFont( self.fontButton )
                
 end
  

@@ -321,6 +321,7 @@ if SERVER then
 		Chat = { "!allowentity" },
 		ReturnOrder = "Rank-Entity",
 		Args = { Rank = "STRING", Entity = "STRING" },
+		Category = "Restrictions",
 	})
 	
 	function PLUGIN:DenyEntity( owner, rank, entity )
@@ -333,6 +334,7 @@ if SERVER then
 		Chat = { "!denyentity" },
 		ReturnOrder = "Rank-Entity",
 		Args = { Rank = "STRING", Entity = "STRING" },
+		Category = "Restrictions",
 	})
 	
 --[[ -----------------------------------
@@ -349,6 +351,7 @@ if SERVER then
 		Chat = { "!allowprop" },
 		ReturnOrder = "Rank-Prop",
 		Args = { Rank = "STRING", Prop = "STRING" },
+		Category = "Restrictions",
 	})
 	
 	function PLUGIN:DenyProp( owner, rank, prop )
@@ -362,6 +365,7 @@ if SERVER then
 		Chat = { "!denyprop" },
 		ReturnOrder = "Rank-Prop",
 		Args = { Rank = "STRING", Prop = "STRING" },
+		Category = "Restrictions",
 	})
 	
 --[[ -----------------------------------
@@ -377,6 +381,7 @@ if SERVER then
 		Chat = { "!allowswep" },
 		ReturnOrder = "Rank-Swep",
 		Args = { Rank = "STRING", Swep = "STRING" },
+		Category = "Restrictions",
 	})
 	
 	function PLUGIN:DenySwep( owner, rank, swep )
@@ -389,6 +394,7 @@ if SERVER then
 		Chat = { "!denyswep" },
 		ReturnOrder = "Rank-Swep",
 		Args = { Rank = "STRING", Swep = "STRING" },
+		Category = "Restrictions",
 	})
 	
 --[[ -----------------------------------
@@ -404,6 +410,7 @@ if SERVER then
 		Chat = { "!allowstool" },
 		ReturnOrder = "Rank-Stool",
 		Args = { Rank = "STRING", Stool = "STRING" },
+		Category = "Restrictions",
 	})
 	
 	function PLUGIN:DenyStool( owner, rank, stool )
@@ -416,6 +423,7 @@ if SERVER then
 		Chat = { "!denystool" },
 		ReturnOrder = "Rank-Stool",
 		Args = { Rank = "STRING", Stool = "STRING" },
+		Category = "Restrictions",
 	})
 	
 	function PLUGIN:PrintRestrictions( owner )
@@ -459,6 +467,7 @@ if SERVER then
 		Console = { "restrictions" },
 		Chat = { "!restrictions" },
 		Args = { },
+		Category = "Restrictions",
 	})
 
 elseif CLIENT then

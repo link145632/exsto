@@ -245,6 +245,7 @@ function exsto.PrintReturns( data, I, multiplePeople )
 		-- Continue if he set us up to format his data.
 		if data.Activator and data.Activator:IsValid() and data.Wording then
 		
+			data.Player = data.Player or data.Object
 			local ply = data.Player
 			if data.Player and type( data.Player ) == "Player" then ply = data.Player:Nick() end
 			
@@ -305,6 +306,20 @@ function exsto.ParseStrings( text )
 	return data
 end
 
+--[[ -----------------------------------
+	Function: exsto.PatternArgs
+	Description: Parses arguments to replace regex patterns.
+     ----------------------------------- ]]
+function exsto.PatternArgs( ply, data, args )
+	for _, arg in ipairs( args ) do
+		if type( arg ) == "string" then
+			print( arg )
+			args[ _ ] = string.gsub( arg, "%[self%]", ply:Nick() )
+		end
+	end
+	return args
+end
+	 
 --[[ -----------------------------------
 	Function: exsto.ParseArguments
 	Description: Parses text and returns formatted and normal typed variables.
@@ -410,6 +425,9 @@ function exsto.ParseArguments( ply, data, args )
 		end
 	end
 	
+	-- Lets do a quick string replacement.
+	cleanedArguments = exsto.PatternArgs( ply, data, cleanedArguments )
+	
 	return cleanedArguments, activePlayers, playersSlot
 	
 end
@@ -455,12 +473,6 @@ local function ExstoParseCommand( ply, command, args, style )
 				end
 				return ""
 			end
-			
-			local checkcall = { hook.Call( "ExCommandCalled", nil, ply, data.ID, argTable[1] ) }
-			if checkcall[1] == false then
-				ply:Print( exsto_CHAT, unpack( checkcall[2] ) )
-				return ""
-			end
 
 			-- Run this command on a loop through all active player participents.
 			local newArgs, status, sentback, multiplePeopleToggle, alreadySaid
@@ -483,22 +495,33 @@ local function ExstoParseCommand( ply, command, args, style )
 				if playersSlot != 0 then
 					newArgs[ playersSlot + requiredAdditions ] = activePlayers[ I ]
 				end
-
-				-- Finally, call the function
-				status, sentback = pcall( data.Call, unpack( newArgs ) )
 				
-				-- If we didn't make it, oh god.
-				if !status then
-					ply:Print( exsto_CHAT, COLOR.NORM, "Something went wrong while executing that command!" )
-					exsto.ErrorNoHalt( "COMMAND --> " .. command .. " --> " .. sentback )
+				-- Call a hook.  If he returns false, then panic and print his reason.
+				local checkcall = { hook.Call( "ExCommandCalled", nil, data.ID, unpack( newArgs or {} ) ) }
+				if checkcall[1] == false then
+					ply:Print( exsto_CHAT, unpack( checkcall[2] ) )
 					return ""
+				elseif type( checkcall[1] ) == "table" then
+					exsto.PrintReturns( checkcall[1], I, multiplePeopleToggle )
+				elseif checkcall[1] != false and checkcall[2] != "no_run" then
+			
+					-- Finally, call the function
+					status, sentback = pcall( data.Call, unpack( newArgs ) )
+					
+					-- If we didn't make it, oh god.
+					if !status then
+						ply:Print( exsto_CHAT, COLOR.NORM, "Something went wrong while executing that command!" )
+						exsto.ErrorNoHalt( "COMMAND --> " .. command .. " --> " .. sentback )
+						return ""
+					end
+					
+					-- Call our hook!
+					hook.Call( "ExCommand-" .. data.ID, nil, newArgs )
+					
+					-- Print the return values.
+					exsto.PrintReturns( sentback, I, multiplePeopleToggle )
+					
 				end
-				
-				-- Call our hook!
-				hook.Call( "ExCommand-" .. data.ID, nil, newArgs )
-				
-				-- Print the return values.
-				exsto.PrintReturns( sentback, I, multiplePeopleToggle )
 
 			end
 			
@@ -706,4 +729,5 @@ exsto.AddChatCommand( "menu", {
 	Console = { "menu" },
 	Chat = { "!menu" },
 	Args = {},
+	Category = "Administration",
 })

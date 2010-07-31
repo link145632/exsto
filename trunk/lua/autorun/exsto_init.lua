@@ -19,13 +19,21 @@
 AddCSLuaFile( "autorun/exsto_init.lua" )
 
 local function PrintLoading()
-
+	print( [[
+-----------------------------------------
+---        Exsto by Prefanatic        ---
+---            Revision ]] .. tostring( exsto.VERSION ) .. [[            ---
+--- Please ignore all modules errors. ---
+-----------------------------------------
+]] )
+--[[
+	
 	print( "-----------------------------" )
 	print( "Exsto Loading" )
 	print( "Created by Prefanatic" )
 	print( "Revision " .. tostring( exsto.VERSION ) )
 	print( "Please ignore all errors about modules unless you have that module installed." )
-	print( "-----------------------------" )
+	print( "-----------------------------" )]]
 
 end
 
@@ -35,13 +43,13 @@ local function LoadVariables()
 	exsto.DebugEnabled = true
 	exsto.StartTime = SysTime()
 	
-	exsto.VERSION = 60
+	exsto.VERSION = 62
 end
 
 function exstoInit()
 	if exsto then
 		if exsto.Print then
-			exsto.Print( exsto_CHAT_ALL, COLOR.NORM, "Exsto is reloading the core!" )
+			exsto.Print( exsto_CHAT_ALL, COLOR.EXSTO, "Exsto", COLOR.NORM, " is reloading the core!" )
 		end
 		if exsto.Plugins and exsto.RemoveChatCommand then
 			exsto.UnloadAllPlugins()

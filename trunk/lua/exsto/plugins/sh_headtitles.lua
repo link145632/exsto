@@ -13,6 +13,8 @@ PLUGIN:SetInfo({
 
 if SERVER then
 
+	resource.AddFile( "glow2.vmt" )
+
 	exsto.CreateFlag( "displayheadtags", "Allows users to see tags above players heads." )
 	
 	-- Create the table.
@@ -22,7 +24,6 @@ if SERVER then
 	} )
 
 	function PLUGIN:ExInitSpawn( ply, sid )
-
 		-- Load their data.
 		local title = FEL.LoadData( "exsto_headtitle", "Title", "SteamID", sid )
 		
@@ -30,7 +31,7 @@ if SERVER then
 		if !title then return end
 		
 		-- If we have it, store it.
-		plyply:SetNWString( "title", title )
+		ply:SetNWString( "title", title )
 		
 	end
 	
@@ -44,6 +45,7 @@ if SERVER then
 			},
 			Data = {
 				Title = ply:GetNWString( "title" ),
+				SteamID = ply:SteamID(),
 			},
 			Options = {
 				Update = true,
@@ -60,7 +62,8 @@ if SERVER then
 		Chat = { "!plytitle" },
 		ReturnOrder = "Player-Title",
 		Args = { Player = "PLAYER", Title = "STRING" },
-		Optional = { Title = "I have no title." }
+		Optional = { Title = "I have no title." },
+		Category = "Fun",
 	})
 
 	function PLUGIN:SetTitle( caller, title )
@@ -73,6 +76,7 @@ if SERVER then
 			},
 			Data = {
 				Title = caller:GetNWString( "title" ),
+				SteamID = caller:SteamID(),
 			},
 			Options = {
 				Update = true,
@@ -93,7 +97,8 @@ if SERVER then
 		Chat = { "!title" },
 		ReturnOrder = "Title",
 		Args = { Title = "STRING" },
-		Optional = { Title = "I have no title." }
+		Optional = { Title = "I have no title." },
+		Category = "Fun",
 	})
 	
 	function PLUGIN:MyTitle( caller )
@@ -105,6 +110,7 @@ if SERVER then
 		Console = { "mytitle" },
 		Chat = { "!mytitle" },
 		Args = { },
+		Category = "Fun",
 	})
 	
 	function PLUGIN.ChatState( ply, _, args )
@@ -137,7 +143,9 @@ elseif CLIENT then
 	
 	local traceData = {}
 	local textColor = Color( 232, 232, 232, 255 )
+	local outlineCol = Color( 0, 0, 0, 255 )
 	local id = surface.GetTextureID( "gui/center_gradient" ) 
+	local id2 = surface.GetTextureID( "glow2" )
 	function PLUGIN:HUDPaint()
 		if !LocalPlayer():IsAllowed( "displayheadtags" ) then return end
 		
@@ -170,24 +178,19 @@ elseif CLIENT then
 					
 					if ply:GetNWBool( "ExChatState" ) then col = self:BlinkColor( col ) end
 					
+					surface.SetTexture( id2 )
 					surface.SetDrawColor( col.r, col.g, col.b, alpha )
-					surface.DrawRect( drawPos.x, drawPos.y, w, h)
-	
-					surface.SetTexture( id )
-					surface.SetDrawColor( math.Clamp( col.r + 13, 0, 255 ), math.Clamp( col.g + 13, 0, 255 ), math.Clamp( col.b + 13, 0, 255 ), alpha )
-					surface.DrawTexturedRect( drawPos.x, drawPos.y, w, h )
-					
-					surface.SetDrawColor( 124, 124, 124, alpha )
-					surface.DrawOutlinedRect( drawPos.x, drawPos.y, w, h )
+					surface.DrawTexturedRect( drawPos.x - 25, drawPos.y - 25, w + 50, h + 50 )
 					
 					textColor.a = alpha
+					outlineCol.a = alpha
 					
-					draw.SimpleText( ply:Nick(), "PlayerTagText", drawPos.x + w / 2, drawPos.y + 2, textColor, 1 )
+					draw.SimpleTextOutlined( ply:Nick(), "PlayerTagText", drawPos.x + w / 2, drawPos.y + 2, textColor, 1, 0, 1, outlineCol )
 					
 					-- if h is not 21, we have a title.  draw cool stuff.
 					if h != 21 then
 						surface.DrawLine( drawPos.x + 5, drawPos.y + 18, drawPos.x + w - 5, drawPos.y + 18 )
-						draw.SimpleText( ply:GetNWString( "title" ), "PlayerTagText", drawPos.x + w / 2, drawPos.y + 18, textColor, 1 )
+						draw.SimpleTextOutlined( ply:GetNWString( "title" ), "PlayerTagText", drawPos.x + w / 2, drawPos.y + 18, textColor, 1, 0, 1, outlineCol )
 					end
 				end
 			end

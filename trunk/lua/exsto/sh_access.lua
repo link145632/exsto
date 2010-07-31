@@ -479,6 +479,12 @@ if SERVER then
 	Description: Sets a player's rank.
 	----------------------------------- ]]
 	function exsto.SetAccess( ply, user, short )
+	
+		if short == "operator" then
+			ply:SetOperator()
+			exsto.Print( exsto_CHAT_ALL, COLOR.NORM, "Giving operator status to ", COLOR.NAME, user:Nick() )
+			return
+		end
 		
 		local rank = exsto.Ranks[short]
 		
@@ -487,7 +493,6 @@ if SERVER then
 			return
 		end
 		
-		exsto.Print( exsto_CONSOLE, "Setting " .. user:Nick() .. " as " .. rank.Name )
 		exsto.Print( exsto_CHAT_ALL, COLOR.NAME, user:Nick(), COLOR.NORM, " has been given rank ", COLOR.NAME, rank.Name )
 		
 		user:SetRank( rank.Short )
@@ -501,6 +506,8 @@ if SERVER then
 		ReturnOrder = "Victim-Rank",
 		Args = {Victim = "PLAYER", Rank = "STRING"},
 		Optional = {Rank = "guest"},
+		Category = "Administration",
+		DisallowOwner = true,
 	})
 	
 --[[ -----------------------------------
@@ -520,6 +527,7 @@ if SERVER then
 		ReturnOrder = "Victim",
 		Args = {Victim = "PLAYER"},
 		Optional = {Victim = nil},
+		Category = "Administration",
 	})
 	
 --[[ -----------------------------------
@@ -603,7 +611,8 @@ if SERVER then
 		Chat = { "!updateowner" },
 		ReturnOrder = "RCON-Location",
 		Args = { RCON = "STRING", Location = "STRING" },
-		Optional = { RCON = "", Location = "cfg/server.cfg" }
+		Optional = { RCON = "", Location = "cfg/server.cfg" },
+		Category = "Administration",
 	})
 	
 --[[ -----------------------------------
@@ -696,6 +705,7 @@ if SERVER then
 	Description: Sets a player's rank.
 	----------------------------------- ]]
 	function _R.Player:SetRank( rank )
+		if self:IsOperator() then self.ExOperator = false end
 		self:SetNetworkedString( "rank", rank )
 		FEL.SaveUserInfo( self )
 		hook.Call( "ExSetRank", nil, self, rank )
@@ -707,6 +717,22 @@ if SERVER then
 	----------------------------------- ]]
 	function _R.Player:SetUserGroup( rank )
 		self:SetRank( rank )
+	end
+	
+--[[ -----------------------------------
+	Function: player:SetOperator
+	Description: Gives a player operator status.
+	----------------------------------- ]]
+	function _R.Player:SetOperator()
+		self.ExOperator = true
+	end
+	
+--[[ -----------------------------------
+	Function: player:IsOperator
+	Description: Returns operator status.
+	----------------------------------- ]]
+	function _R.Player:IsOperator()
+		return self.ExOperator
 	end
 
 elseif CLIENT then
@@ -755,6 +781,7 @@ end
 	----------------------------------- ]]
 function _R.Player:IsAllowed( flag, victim )
 	if self:EntIndex() == 0 then return true end -- If we are console :3
+	if !CLIENT and self:IsOperator() then return true end -- If we are operatoring.
 
 	local rank = exsto.GetRankData( self:GetRank() )
 	
@@ -782,6 +809,7 @@ end
 	Description: Returns the rank of a player.
 	----------------------------------- ]]
 function _R.Player:GetRank()
+	if !CLIENT and self:IsOperator() then return "operator" end
 
 	local rank = self:GetNetworkedString( "rank" )
 	
@@ -797,6 +825,7 @@ end
 	Description: Returns true if the player is an admin
 	----------------------------------- ]]
 function _R.Player:IsAdmin()
+	if !CLIENT and self:IsOperator() then return true end
 	if self:EntIndex() == 0 then return true end -- If we are console :3
 	if self:IsAllowed( "isadmin" ) then return true end
 	if self:IsSuperAdmin() then return true end
@@ -808,6 +837,7 @@ end
 	Description: Returns true if the player is a superadmin
 	----------------------------------- ]]
 function _R.Player:IsSuperAdmin()
+	if !CLIENT and self:IsOperator() then return true end
 	if self:EntIndex() == 0 then return true end -- If we are console :3
 	if self:IsAllowed( "issuperadmin" ) then return true end
 	return false

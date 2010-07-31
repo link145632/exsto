@@ -37,41 +37,57 @@ end
 exsto_CHAT = AddPrint( 
 	function( ply, ... )
 		if CLIENT then return end
-		if ply:IsConsole() then return end
+		if {...} == nil then return end
+		if type( ply ) != "Player" and type( ply ) != "table" and type( ply ) != "string" then -- It seems like we are going console.
+			local str = ""
+			for I = 1, #arg do
+				if type( arg[I] ) == "string" then str = str .. arg[I] end
+			end
+			exsto.Print( exsto_CONSOLE, str )
+			return
+		end
 		
-		exsto.UMStart( "exsto_ChatPrint", ply, COLOR.EXSTO, "[Exsto] ", unpack( {...} ) )
+		exsto.UMStart( "exsto_ChatPrint", ply, {...} )
 	end, true
 )
+exsto_CHAT_NOLOGO = exsto_CHAT
 	
-exsto_CHAT_NOLOGO = AddPrint( 
+exsto_CHAT_LOGO = AddPrint( 
 	function( ply, ... )
 		if CLIENT then return end
-		if type( ply ) != "Player" then return end
 		
-		exsto.UMStart( "exsto_ChatPrint", ply, unpack( {...} ) )
+		exsto.Print( exsto_CHAT, ply, "[Exsto] ", unpack( {...} ) )
 	end, true
 )
 	
 exsto_CHAT_ALL = AddPrint( 
 	function( ... )
 		if CLIENT then return end
-		for k,v in pairs( player.GetAll() ) do
-			exsto.Print( exsto_CHAT, v, unpack( {...} ) )
-		end
+		exsto.Print( exsto_CHAT, "all", unpack( {...} ) )
+	end
+)
+
+exsto_CHAT_ALL_LOGO = AddPrint(
+	function( ... )
+		if CLIENT then return end
+		exsto.Print( exsto_CHAT_LOGO, "all", unpack( ... ) )
 	end
 )
 	
 exsto_CONSOLE = AddPrint( 
 	function( msg, extra )
+		print( msg )
+	end
+)
+exsto_CONSOLE_NOLOGO = exsto_CONSOLE
+
+exsto_CONSOLE_LOGO = AddPrint(
+	function( msg, extra )
 		print( exsto.TextStart .. msg )
 	end
 )
 	
-exsto_CONSOLE_DEBUG = AddPrint( 
-	function( msg )
-		if exsto.DebugEnabled then print( exsto.TextStart .. msg ) end
-	end
-)
+exsto_CONSOLE_DEBUG = exsto_CONSOLE
 	
 exsto_ERROR = AddPrint( 
 	function( msg )
@@ -103,38 +119,47 @@ exsto_ERRORNOHALT = AddPrint(
 		ErrorNoHalt( send )
 	end
 )
-		
-exsto_CLIENT_ALL = AddPrint( 
-	function( msg )
-		if CLIENT then return end
-		local send = exsto.TextStart .. " " .. msg .. "\n" 
-		
-		for k,v in pairs( player.GetAll() ) do
-			if v:IsSuperAdmin() then exsto.UMStart( "exsto_ClientMSG", v, send ) end
-		end
-		
-		print( send )
-	end
-)
 	
 exsto_CLIENT = AddPrint( 
 	function( ply, msg )
 		if CLIENT then return end
-		if type( ply ) != "Player" then return end
-		
-		local send = exsto.TextStart .. " " .. msg .. "\n" 
-		ply:PrintMessage( HUD_PRINTCONSOLE, send )
+		if type( ply ) != "Player" and type( ply ) != "table" then -- It seems like we are going console.
+			local str = ""
+			for I = 1, #arg do
+				str = str .. arg[I]
+			end
+			exsto.Print( exsto_CONSOLE, str )
+			return
+		end
+
+		ply:PrintMessage( HUD_PRINTCONSOLE, msg )
 	end, true
 )
+exsto_CLIENT_NOLOGO = exsto_CLIENT
 	
-exsto_CLIENT_NOLOGO = AddPrint( 
+exsto_CLIENT_LOGO = AddPrint( 
 	function( ply, msg )
 		if CLIENT then return end
-		if type( ply ) != "Player" then return end
-		
-		local send = msg .. "\n" 
-		ply:PrintMessage( HUD_PRINTCONSOLE, send )
+		exsto.Print( exsto_CLIENT, ply, exsto.TextStart .. " " .. msg .. "\n" )
 	end, true
+)
+
+exsto_CLIENT_ALL = AddPrint( 
+	function( msg )
+		if CLIENT then return end
+		for _, ply in ipairs( player.GetAll() ) do
+			exsto.Print( exsto_CLIENT, ply, msg )
+		end
+	end
+)
+
+exsto_CLIENT_ALL_LOGO = AddPrint( 
+	function( msg )
+		if CLIENT then return end
+		for _, ply in ipairs( player.GetAll() ) do
+			exsto.Print( exsto_CLIENT_LOGO, ply, msg )
+		end
+	end
 )
 	
 --[[ -----------------------------------
@@ -143,10 +168,10 @@ exsto_CLIENT_NOLOGO = AddPrint(
      ----------------------------------- ]]
 function exsto.Print( style, ... )
 	if exsto.Ignore_Prints then return true end
-	if style == nil then exsto.ErrorNoHalt( "Issue creating print command!" ) return end -- Weird bug?
+	if style == nil then return end
 	for k,v in pairs( exsto.PrintStyles ) do
 		if style == v.enum then	
-			hook.Call( "ExPrintCalled", nil, style )
+			//hook.Call( "ExPrintCalled", nil, style, {...} )
 			return v.func( ... )		
 		end	
 	end
@@ -199,7 +224,6 @@ function exsto.Error( msg )
 end
 
 function exsto.ErrorNoHalt( msg )
-	print( msg )
 	exsto.Print( exsto_ERRORNOHALT, msg )
 end
 
@@ -208,8 +232,8 @@ if CLIENT then
 --[[ -----------------------------------
 		Printing Helpers
      ----------------------------------- ]]
-	local function chatprint( ... )
-		chat.AddText( unpack( {...} ) )
+	local function chatprint( data )
+		chat.AddText( unpack( data ) )
 	end
 	exsto.UMHook( "exsto_ChatPrint", chatprint )
 	

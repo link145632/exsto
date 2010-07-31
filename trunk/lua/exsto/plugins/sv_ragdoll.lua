@@ -10,8 +10,8 @@ PLUGIN:SetInfo({
 	Owner = "Prefanatic",
 } )
 
-function PLUGIN:ExCommandCalled( ply, id, args )
-	if type( args[1] ) == "Player" and args[1].ExRagdolled then
+function PLUGIN:ExCommandCalled( id, plug, caller, ... )
+	if type( arg[1] ) == "Player" and arg[1].ExRagdolled then
 		if id == "jail" or id == "rocket" or id == "slay" or id == "slap" then return false, { COLOR.NAME, args[1]:Nick(), COLOR.NORM, " is ", COLOR.NAME, "ragdolled!" } end
 		if id == "kick" or id == "ban" then if ply.ExRagdoll and ply.ExRagdoll:IsValid() then ply.ExRagdoll:Remove() end end
 	end

@@ -184,6 +184,7 @@ PLUGIN:AddCommand( "checkversion", {
 	Console = { "version" },
 	Chat = { "!version" },
 	Args = {},
+	Category = "Utilities",
 })
 
 function PLUGIN:OnFinishDownloads( ply )
@@ -319,6 +320,7 @@ PLUGIN:AddCommand( "update", {
 	Console = { "update" },
 	Chat = { "!update" },
 	Args = {},
+	Category = "Utilities",
 })
 
 PLUGIN:Register()

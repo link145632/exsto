@@ -39,6 +39,7 @@ if SERVER then
 		ReturnOrder = "Target-Rank",
 		Args = { Target = "PLAYER", Rank = "STRING" },
 		Optional = { Rank = "" },
+		Category = "Administration",
 	})
 else
 	function PLUGIN:Init()

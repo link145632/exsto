@@ -144,7 +144,7 @@ function exsto.CreateButton( x, y, w, h, text, parent )
 
 	local button = vgui.Create("DButton", parent)
 	
-		button:SetText( "" )
+		button:SetText( text )
 		button:SetSize( w, h )
 		
 		if x == "center" then x = (parent:GetWide() / 2) - (button:GetWide() / 2) end
@@ -188,22 +188,7 @@ function exsto.CreateButton( x, y, w, h, text, parent )
 			button.Font = "exstoButtons"
 		end
 		
-		function button.SetText( self, text )
-			self.Text = text
-		end
-		
 		button:SetStyle( "neutral" )
-		
-		button.Text = text
-		
-		surface.SetFont( button.Font )
-		local w, h = surface.GetTextSize( text )
-		
-		if w > button:GetWide() then
-			button:SetSize( w + 10, button:GetTall() )
-			button:InvalidateLayout()
-			//print( "Exsto Derma --> " .. button.Text .. " -->  I recommend you fix the button width and height to match this new size... " .. button:GetWide() .. ", " .. button:GetTall() )
-		end
 
 	return button
 	
