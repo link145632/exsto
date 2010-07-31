@@ -23,7 +23,8 @@ PLUGIN:AddCommand( "luarun", {
 	Console = { "luarun" },
 	Chat = { "!lua" },
 	ReturnOrder = "Command",
-	Args = {Command = "STRING"}
+	Args = {Command = "STRING"},
+	Category = "Administration",
 } )
 
 function PLUGIN:CExec( owner, ply, command )
@@ -41,7 +42,8 @@ PLUGIN:AddCommand( "cexec", {
 	Console = { "cexec" },
 	Chat = { "!cexec" },
 	ReturnOrder = "Player-Command",
-	Args = {Player = "PLAYER", Command = "STRING"}
+	Args = {Player = "PLAYER", Command = "STRING"},
+	Category = "Administration",
 } )
 
 function PLUGIN:RunCommand( owner, command )
@@ -62,6 +64,7 @@ PLUGIN:AddCommand( "command", {
 	Chat = { "!command" },
 	ReturnOrder = "Command",
 	Args = {Command = "STRING"},
+	Category = "Administration",
 })
 
 PLUGIN:Register()

@@ -166,7 +166,11 @@ if SERVER then
 	Description: Main query, returns data from SQL query
      ----------------------------------- ]]
 	function FEL.Query( run, threaded, callback, printerror )
-		hook.Call( "ExFELQuery", nil, run, FEL.Settings["MySQL"], threaded, callback, printerror )
+		local h = { hook.Call( "ExFELQuery", nil, run, FEL.Settings["MySQL"], threaded, callback, printerror ) }
+		if h == false then
+			return h[2]
+		end
+		
 		if FEL.Settings["MySQL"] then
 			if !mysqloo then
 				exsto.Print( exsto_ERRORNOHALT, "FEL --> Couldn't locate MySQL library!  Falling back to SQL!" )
@@ -494,7 +498,7 @@ if SERVER then
 			steam = ply:SteamID()
 		end
 		
-		local banned_by = banned_by:Nick()
+		//local banned_by = banned_by:Nick()
 
 		FEL.AddData( "exsto_data_bans", {
 			Look = {
@@ -817,8 +821,6 @@ function FEL.LoadSettingsFile( id )
 		return tbl
 		
 	else
-		
-		exsto.ErrorNoHalt( "FEL --> Couldn't find '" .. id .. "' setting!" )
 		return {}
 	end
 	

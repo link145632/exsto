@@ -27,6 +27,7 @@ if SERVER then
 		Chat = { "!reloadplug" },
 		ReturnOrder = "Plug",
 		Args = { Plug = "STRING" },
+		Category = "Utilities",
 	})
 	
 	exsto.CreateFlag( "plugindisable", "Allows users to disable or enable plugins in the Plugin List page." )
@@ -36,8 +37,10 @@ if SERVER then
 		local plugins = {}
 		local commands = {}
 		for k,v in pairs( exsto.Plugins ) do
-			for k,v in pairs( v.Object.Commands ) do
-				table.insert( commands, { Chat = v.Chat, ID = v.ID } )
+			if v.Object.Commands then
+				for k,v in pairs( v.Object.Commands ) do
+					table.insert( commands, { Chat = v.Chat, ID = v.ID } )
+				end
 			end
 			table.insert( plugins, {
 				Name = v.Name,
@@ -97,7 +100,6 @@ elseif CLIENT then
 	function PLUGIN.RecievePlugins( data )
 		settings = data[1]
 		plugins = data[2]
-		Menu.EndLoad()
 	end
 	exsto.UMHook( "ExSendPlugs", PLUGIN.RecievePlugins )
 	
@@ -177,7 +179,7 @@ elseif CLIENT then
 				if LocalPlayer():IsSuperAdmin() then
 						obj.DoClick = function( self )
 							if !LocalPlayer().PlugChange then LocalPlayer().PlugChange = CurTime() end
-							if CurTime() < LocalPlayer().PlugChange then Menu.PushError( "Slow down, you are toggling plugins too fast!" ) return end
+							if CurTime() < LocalPlayer().PlugChange then Menu:PushError( "Slow down, you are toggling plugins too fast!" ) return end
 							
 							LocalPlayer().PlugChange = CurTime() + 1
 							

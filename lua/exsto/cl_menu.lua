@@ -20,7 +20,6 @@
 -- Clientside Menu, with adding functions
 
 Menu = {}
-	Menu.Dialog = {}
 	Menu.List = {}
 	Menu.ListIndex = {}
 	Menu.CreatePages = {}
@@ -33,8 +32,7 @@ Menu = {}
 	Menu.TabRequests = {}
 	Menu.CurrentIndex = 1
 	
-surface.CreateFont( "arial", 17, 700, true, false, "exstoTitleMenuBold" )
-surface.CreateFont( "arial", 17, 400, true, false, "exstoTitleMenu" )
+surface.CreateFont( "arial", 14, 500, true, false, "exstoListColumn" )
 surface.CreateFont( "arial", 26, 700, true, false, "exstoBottomTitleMenu" )
 surface.CreateFont( "arial", 18, 700, true, false, "exstoSecondaryButtons" )
 surface.CreateFont( "arial", 20, 700, true, false, "exstoButtons" )
@@ -195,13 +193,13 @@ function Menu:BuildMainHeader()
 		draw.SimpleText( self.Text, "exstoArrows", self:GetWide() / 2, self:GetTall() / 2, Menu.Colors.ArrowColor, 1, 1 )
 	end
 	
-	self.Header.MoveLeft = exsto.CreateButton( 0, 18, 20, 20, "<", self.Header )
+	self.Header.MoveLeft = exsto.CreateButton( 0, 18, 20, 20, "", self.Header )
 	self.Header.MoveLeft.Paint = paint
 	self.Header.MoveLeft.DoClick = function( self )
 		Menu.MoveToPage( Menu.PreviousPage.Short )
 	end
 	
-	self.Header.MoveRight = exsto.CreateButton( 0, 18, 20, 20, ">", self.Header )
+	self.Header.MoveRight = exsto.CreateButton( 0, 18, 20, 20, "", self.Header )
 	self.Header.MoveRight.Paint = paint
 	self.Header.MoveRight.DoClick = function( self )
 		Menu.MoveToPage( Menu.NextPage.Short )
@@ -634,12 +632,20 @@ function Menu:AddToList( info, panel )
 	table.insert( self.ListIndex, info.Short )
 end
 
+--[[ ----------------------------------- 
+	Function: Menu:GetPageData
+	Description: Grabs page data from the index.
+	----------------------------------- ]]
 function Menu:GetPageData( index )
 	local short = self.ListIndex[ index ]
 	if !short then return nil end
 	return self.List[ short ]
 end
 
+--[[ ----------------------------------- 
+	Function: Menu:SetTitle
+	Description: Sets the menu title.
+	----------------------------------- ]]
 function Menu:SetTitle( text )
 	self.Header.Title:SetText( text )
 	self.Header.Title:SizeToContents()
@@ -653,97 +659,142 @@ function Menu:SetTitle( text )
 end
 
 --[[ ----------------------------------- 
-	Function: Menu.CreateDialog
+	Function: Menu:CreateDialog
 	Description: Creates a small notification dialog.
 	----------------------------------- ]]
-function Menu.CreateDialog()
-	-- Create the Anim VGUI
-	Menu.Dialog.AnimBG = exsto.CreatePanel( 0, 0, Menu.Frame:GetWide(), Menu.Frame:GetTall(), Color( 255, 255, 255, 204 ), Menu.Frame )
-	Menu.Dialog.Anim = vgui.Create( "DImage", Menu.Dialog.AnimBG )
-		Menu.Dialog.Anim:SetImage( "exstoGenericAnim" )
-		Menu.Dialog.Anim:SetKeepAspect( true )
-		Menu.Dialog.Anim:SetSize( Menu.Frame:GetWide() - 100, 200 )
-		Menu.Dialog.Anim:SetPos( ( Menu.Frame:GetWide() / 2 ) - ( Menu.Dialog.Anim:GetWide() / 2 ), 10 )
-		
-	Menu.Dialog.Msg = exsto.CreateLabel( "center", Menu.Dialog.Anim:GetTall() + 40, "", "exstoBottomTitleMenu", Menu.Dialog.AnimBG )
-		Menu.Dialog.Msg:SetWrap( true )
+function Menu:CreateDialog()
+	print( "Creating Dialog" )
+	self.Dialog = {}
+		self.Dialog.Queue = {}
+		self.Dialog.Active = false
+		self.Dialog.IsLoading = false
 	
-	Menu.Dialog.OK = exsto.CreateButton( ( Menu.Frame:GetWide() / 2 ) - 100, Menu.Dialog.Anim:GetTall() + 70 + Menu.Dialog.Msg:GetTall(), 200, 40, "OK", Menu.Dialog.AnimBG )
-	Menu.Dialog.OK.DoClick = function()
-		Menu.Dialog.AnimBG:SetVisible( false )
+	self.Dialog.BG = exsto.CreatePanel( 0, 0, self.Frame:GetWide(), self.Frame:GetTall(), Color( 0, 0, 0, 190 ), self.Frame )
+		self.Dialog.BG:SetVisible( false )
+		
+	self.Dialog.Anim = exsto.CreateImage( 80, 20, self.Frame:GetWide() - 160, 200, "exstoGenericAnim", self.Dialog.BG )
+		self.Dialog.Anim:SetKeepAspect( true )
+		
+	self.Dialog.Msg = exsto.CreateLabel( 20, self.Dialog.Anim:GetTall() + 40, "", "exstoBottomTitleMenu", self.Dialog.BG )
+		self.Dialog.Msg:DockMargin( ( self.Dialog.BG:GetWide() / 2 ) - 200, self.Dialog.Anim:GetTall() + 40, ( self.Dialog.BG:GetWide() / 2 ) - 200, 0 )
+		self.Dialog.Msg:Dock( FILL )
+		self.Dialog.Msg:SetContentAlignment( 7 )
+		self.Dialog.Msg:SetWrap( true )
+		
+	self.Dialog.Yes = exsto.CreateButton( ( self.Frame:GetWide() / 2 ) - 140, self.Dialog.BG:GetTall() - 50, 100, 40, "Yes", self.Dialog.BG )
+		self.Dialog.Yes:SetStyle( "positive" )
+		self.Dialog.Yes.DoClick = function()
+			if self.Dialog.YesFunc then
+				self.Dialog.YesFunc()
+			end
+			sef:CleanDialog()
+		end
+	
+	self.Dialog.No = exsto.CreateButton( ( self.Frame:GetWide() / 2 ) + 40, self.Dialog.BG:GetTall() - 50, 100, 40, "No", self.Dialog.BG )
+		self.Dialog.No:SetStyle( "negative" )
+		self.Dialog.No.DoClick = function()
+			if self.Dialog.NoFunc then
+				self.Dialog.NoFunc()
+			end
+			self:CleanDialog()
+		end
+	
+	self.Dialog.OK = exsto.CreateButton( ( self.Frame:GetWide() / 2 ) - 50, self.Dialog.BG:GetTall() - 50, 100, 40, "OK", self.Dialog.BG )
+		self.Dialog.OK.DoClick = function()
+			self:CleanDialog()
+		end
+		
+	self:CleanDialog()
+		
+end
+	
+function Menu:CleanDialog()
+	if !self.Dialog then return end
+	
+	Menu:BringBackSecondaries()
+	
+	self.Dialog.BG:SetVisible( false )
+	self.Dialog.Msg:SetText( "" )
+	self.Dialog.OK:SetVisible( false )
+	self.Dialog.Yes:SetVisible( false )
+	self.Dialog.No:SetVisible( false )
+	
+	self.Dialog.IsLoading = false
+	self.Dialog.Active = false
+	
+	if self.Dialog.Queue[1] then
+		local data = self.Dialog.Queue[1]
+		self:PushGeneric( data.Text, data.Texture, data.Color, data.Type )
+		table.remove( self.Dialog.Queue, 1 )
 	end
-		
-	Menu.Dialog.AnimBG:SetVisible( false )
 end
-
---[[ -----------------------------------
-	Function: Menu.PushLoad
-	Description: Shows a loading screen
-	----------------------------------- ]]
-function Menu.PushLoad()
-	Menu.PushGeneric( "Loading...", nil, nil, true )
 	
-	-- Time out incase its "too" long.
-	timer.Create( "exstoLoadTimeout", 10, 1, function() if Menu.Dialog.IsLoading then Menu.PushError( "Error: Loading timed out!" ) end end )
+--[[ ----------------------------------- 
+	Function: Menu:PushLoad
+	Description: Shows a loading screen.
+	----------------------------------- ]]
+function Menu:PushLoad()
+	self:PushGeneric( "Loading...", nil, nil, "loading" )
+	timer.Create( "exstoLoadTimeout", 10, 1, function() if Menu.Dialog.IsLoading then Menu:EndLoad() Menu:PushError( "Loading timed out!" ) end end )
 end
 
---[[ -----------------------------------
-	Function: Menu.EndLoad
-	Description: Ends the active loading screen.
-	----------------------------------- ]]
-function Menu.EndLoad()
-	if !Menu.Frame then return end
-
-	if !Menu.Dialog.IsLoading then return end
+function Menu:EndLoad()
+	if !self.Frame then return end
+	if !self.Dialog then return end
+	if !self.Dialog.IsLoading then return end
 	
-	Menu.Dialog.AnimBG:SetVisible( false )
+	self:CleanDialog()
+end
+
+function Menu:PushError( msg )
+	self:PushGeneric( msg, "exstoErrorAnim", Color( 176, 0, 0, 255 ), "error" )
+end
+
+function Menu:PushNotify( msg )
+	self:PushGeneric( msg, nil, nil, "notify" )
+end
+
+function Menu:PushQuestion( msg, yesFunc, noFunc )
+	self:PushGeneric( msg, nil, nil, "question" )
+	self.Dialog.YesFunc = yesFunc
+	self.Dialog.NoFunc = noFunc
+end
+
+function Menu:PushGeneric( msg, imgTexture, textCol, type )
+	if !self.Dialog then
+		self:CreateDialog()
+	end
 	
-	Menu.Dialog.IsLoading = false
-end
-
---[[ -----------------------------------
-	Function: Menu.PushError
-	Description: Shows an error screen
-	----------------------------------- ]]
-function Menu.PushError( msg )
-	Menu.PushGeneric( msg, "exstoErrorAnim", Color( 170, 92, 92, 255 ) )
-end
-
---[[ -----------------------------------
-	Function: Menu.PushGeneric
-	Description: Shows a generic question screen
-	----------------------------------- ]]
-function Menu.PushGeneric( msg, imgTexture, textCol, loading )
-
-	if Menu.Dialog.AnimBG and Menu.Dialog.Anim and Menu.Dialog.Msg then
-		if Menu.Dialog.IsLoading and !loading then Menu.EndLoad() end
-		if !Menu.Dialog.IsLoading and loading then Menu.Dialog.IsLoading = loading end
-		
-		Menu.Dialog.Anim:SetImage( imgTexture or "exstoGenericAnim" )
-		Menu.Dialog.Msg:SetText( msg )
-		
-		surface.SetFont( "exstoBottomTitleMenu" )
-		local w, h = surface.GetTextSize( msg )
-		
-		Menu.Dialog.Msg:SetSize( w, h )
-		Menu.Dialog.Msg:SetPos( (Menu.Dialog.AnimBG:GetWide() / 2) - (Menu.Dialog.Msg:GetWide() / 2), Menu.Dialog.Anim:GetTall() + 40 )
-		Menu.Dialog.Msg:SetTextColor( Color( 109, 170, 92, 255 ) )
-		if textCol then
-			Menu.Dialog.Msg:SetTextColor( textCol )
-		end
-
-		if loading then
-			Menu.Dialog.OK:SetVisible( false )
-		else
-			Menu.Dialog.OK:SetVisible( true )
-		end
-		
-		Menu.Dialog.AnimBG:InvalidateLayout()
-		Menu.Dialog.AnimBG:SetVisible( true )
-		
+	if self.Dialog.Active and type != "loading" then
+		table.insert( self.Dialog.Queue, {
+			Text = msg, Texture = imgTexture, Color = textCol, Type = type }
+		)
 		return
+	elseif self.Dialog.Active and type == "loading" then
+		self:EndLoad()
 	end
-
+	
+	Menu:HideSecondaries()
+	
+	self.Dialog.Active = true
+	
+	self.Dialog.Anim:SetImage( imgTexture or "exstoGenericAnim" )
+	self.Dialog.Msg:SetText( msg )
+	self.Dialog.Msg:SetTextColor( textCol or Color( 12, 176, 0, 255 ) )
+	
+	if type == "notify" or type == "error" then
+		self.Dialog.OK:SetVisible( true )
+	elseif type == "question" then
+		self.Dialog.Yes:SetVisible( true )
+		self.Dialog.No:SetVisible( true )
+	elseif type == "input" then
+		self.Dialog.OK:SetVisible( true )
+		--self.Dialog.Input:SetVisible( true )
+	elseif type == "loading" then
+		self.Dialog.IsLoading = true
+	end
+	
+	self.Dialog.BG:SetVisible( true )
 end
 
 --[[ -----------------------------------

@@ -43,6 +43,7 @@ if SERVER then
 		Chat = { "!createenv" },
 		ReturnOrder = "Variable-Value",
 		Args = {Variable = "STRING", Value = "STRING"},
+		Category = "Variables",
 	})
 
 	function PLUGIN:ChangeVar( owner, var, value )
@@ -69,6 +70,7 @@ if SERVER then
 		Chat = { "!setvariable" },
 		ReturnOrder = "Variable-Value",
 		Args = {Variable = "STRING", Value = "STRING"},
+		Category = "Variables",
 	})
 	
 	function PLUGIN:GetVar( owner, var )
@@ -88,6 +90,7 @@ if SERVER then
 		Chat = { "!getvariable" },
 		ReturnOrder = "Variable",
 		Args = {Variable = "STRING"},
+		Category = "Variables",
 	})
 	
 	local function SendVars( ply )

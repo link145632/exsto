@@ -10,11 +10,41 @@ PLUGIN:SetInfo({
 	Owner = "Prefanatic",
 } )
 
+function PLUGIN:Init()
+	self.Categories = nil
+	self.Commands = nil
+end
+
+local function sort( a, b )
+	if !a.Console or !b.Console then return end
+	if !a.Console[1] or !b.Console[1] then return end
+	
+	return a.Console[1] < b.Console[1]
+end
+
 function PLUGIN:Search( ply, command )
+
+	if !self.Categories then
+		self.Categories = {}
+		for short, data in pairs( exsto.Commands ) do
+			if !table.HasValue( self.Categories, data.Category ) then
+				table.insert( self.Categories, data.Category )
+			end
+		end
+		table.sort( self.Categories )
+	end
+
+	if !self.Commands then
+		self.Commands = {}
+		for short, data in pairs( exsto.Commands ) do
+			table.insert( self.Commands, data )
+		end
+		table.sort( self.Commands, sort )
+	end
 	
 	local data = {}
 	-- Grab all the commands that contain the command
-	for k,v in pairs( exsto.Commands ) do
+	for k,v in pairs( self.Commands ) do
 		
 		-- Check chat.
 		for _, com in pairs( v.Chat ) do
@@ -30,50 +60,52 @@ function PLUGIN:Search( ply, command )
 	
 	-- Loop through the commands and send them to client print.
 	exsto.Print( exsto_CLIENT, ply, " ---- Printing Exsto commands to console! ----" )
-	exsto.Print( exsto_CLIENT, ply, " All console commands are proceded by 'exsto', I.E exsto rocket\n\n" )
-	
-	for k,v in pairs( data ) do
-		-- Print the ID of the plugin, and description.
-		exsto.Print( exsto_CLIENT_NOLOGO, ply, " Command ID: " .. k .. " - " .. v.Desc )
-		exsto.Print( exsto_CLIENT_NOLOGO, ply, " 	-- Flag Description: " .. v.FlagDesc )
+	exsto.Print( exsto_CLIENT, ply, " All console commands are proceded by 'exsto', I.E exsto rocket" )
+
+	for _, category in ipairs( self.Categories ) do
+		ply:Print( exsto_CLIENT, "\n\n--- Category: " .. category )
 		
-		-- Build the return order
-		local retorder = ""
-		local insert = ", "
-		for k, arg in ipairs( v.ReturnOrder ) do
-			if k == #v.ReturnOrder then insert = "" end
-			retorder = retorder .. arg .. insert
+		
+		-- kick, k (!kick, !k): Kicks a player.  Args: aisdfjsdhf
+		-- Loop through his stuff.
+		for _, data in ipairs( self.Commands ) do
+			if data.Category == category then
+				local console = ""
+				for _, com in ipairs( data.Console ) do
+					if _ == #data.Console then
+						console = console .. com
+					else
+						console = console .. com .. ", "
+					end
+				end
+				
+				local chat = ""
+				for _, com in ipairs( data.Chat ) do
+					if _ == #data.Chat then
+						chat = chat .. com
+					else
+						chat = chat .. com .. ", "
+					end
+				end
+				
+				-- Build the return order
+				local retorder = ""
+				local insert = ", "
+				for _, arg in ipairs( data.ReturnOrder ) do
+					if _ == #data.ReturnOrder then insert = "" end
+					retorder = retorder .. arg .. insert
+				end
+				
+				local endd = ". "
+				if string.Right( data.Desc, 1 ) == "." or string.Right( data.Desc, 1 ) == "!" then endd = " " end
+				
+				ply:Print( exsto_CLIENT, "\t" .. console .. " ( " .. chat .. " ): " .. data.Desc .. endd .. "Args: " .. retorder  )
+			end
 		end
-		
-		exsto.Print( exsto_CLIENT_NOLOGO, ply, " 	-- Argument Order: " .. retorder )
-		
-		-- Build console commands
-		local concommands = ""
-		local numCommands = " Command: "
-		local insert = ""
-		if table.Count( v.Console ) > 1 then numCommands = " Commands: " insert = " OR " end
-		for k, command in ipairs( v.Console ) do
-			if k == #v.Console then insert = "" end
-			concommands = concommands .. command .. insert
-		end
-		
-		exsto.Print( exsto_CLIENT_NOLOGO, ply, " 	-- Console" .. numCommands .. concommands )
-		
-		-- Build chat commands
-		local chatcommands = ""
-		local numCommands = " Command: "
-		local insert = ""
-		if table.Count( v.Chat ) > 1 then numCommands = " Commands: " insert = " OR " end
-		for k, command in ipairs( v.Chat ) do	
-			if k == #v.Chat then insert = "" end
-			chatcommands = chatcommands .. command .. insert
-		end
-		
-		exsto.Print( exsto_CLIENT_NOLOGO, ply, " 	-- Chat" .. numCommands .. chatcommands )
-		exsto.Print( exsto_CLIENT_NOLOGO, ply, "\n" )
 	end
+
 	
-	exsto.Print( exsto_CLIENT, ply, " ---- End of Exsto help ---- \n" )
+	exsto.Print( exsto_CLIENT, ply, " \n\n---- End of Exsto help ---- \n" )
 	
 	return { ply, COLOR.NORM, "Printing all commands to your ", COLOR.NAME, "console", COLOR.NORM, "!" }
 end
@@ -85,6 +117,7 @@ PLUGIN:AddCommand( "search", {
 	ReturnOrder = "Command",
 	Args = {Command = "STRING"},
 	Optional = {Command = ""},
+	Category = "Help",
 })
 
 PLUGIN:Register()

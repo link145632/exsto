@@ -47,7 +47,7 @@ if SERVER then
 		exsto.SendRank( player.GetAll(), rank[ 3 ] )
 		
 		-- Reload the rank editor.
-		timer.Create( "reload_" .. ply:EntIndex(), 1, 1, PLUGIN.SendData, PLUGIN, "ExRankEditor_Reload", ply )
+		//timer.Create( "reload_" .. ply:EntIndex(), 1, 1, PLUGIN.SendData, PLUGIN, "ExRankEditor_Reload", ply )
 		hook.Call( "ExOnRankCreate", nil, rank[3] )
 	end
 	exsto.ClientHook( "ExRecRankData", PLUGIN.CommitChanges )
@@ -69,9 +69,7 @@ if SERVER then
 	
 	function PLUGIN:ExClientData( hook, ply, data )
 		if hook == "ExRecImmuneChange" or hook == "ExRecRankData" then
-			print( "checking" )
-			print( ply:IsAllowed( "rankeditor" ) )
-			if !ply:IsAllowed( "rankeditor" ) then print( "DENIED" ) return false end
+			if !ply:IsAllowed( "rankeditor" ) then return false end
 		end		
 	end
 	
@@ -97,6 +95,8 @@ if SERVER then
 elseif CLIENT then
 
 	PLUGIN.Panel = nil
+	PLUGIN.Recieved = false
+	
 	local function reload()
 		PLUGIN:ReloadMenu( PLUGIN.Panel )
 	end
@@ -107,7 +107,8 @@ elseif CLIENT then
 		Short = "rankeditor", },
 		function( panel )
 			-- Request ranks.
-			if table.Count( exsto.Ranks ) == 0 then
+			if table.Count( exsto.Ranks ) == 0 or !PLUGIN.Recieved then
+				Menu:PushLoad()
 				RunConsoleCommand( "_ResendRanks" )
 			end
 			PLUGIN.Panel = panel
@@ -115,13 +116,17 @@ elseif CLIENT then
 		end
 	)
 	
+	function PLUGIN:ExRecievedRanks()
+		self.Recieved = true
+	end
+	
 	function PLUGIN:Main( panel )
-		if table.Count( exsto.Ranks ) == 0 then
+		if table.Count( exsto.Ranks ) == 0 or !self.Recieved then
 			timer.Simple( 1, PLUGIN.Main, self, panel )
 			return
 		end
 		
-		if table.Count( exsto.Flags ) == 0 then
+		if table.Count( exsto.Flags ) == 0  or !self.Recieved then
 			timer.Simple( 1, PLUGIN.Main, self, panel )
 			return
 		end
@@ -134,11 +139,15 @@ elseif CLIENT then
 			table.SortByMember( self.Flags, "Name", true )
 		end
 		
+		self.Recieved = false
+		Menu:EndLoad()
 		self:BuildMenu( panel )
 	end
 	
 	function PLUGIN:ReloadMenu( panel )
 		exsto.Ranks = {}
+		Menu:PushLoad()
+		self.Recieved = false
 		RunConsoleCommand( "_ResendRanks" )
 		self:Main( panel )
 	end
@@ -146,6 +155,7 @@ elseif CLIENT then
 	function PLUGIN:FormulateUpdate( name, short, desc, derive, col, flags )
 
 		-- Upload new rank data
+		Menu:PushLoad()
 		exsto.SendToServer( "ExRecRankData", name, desc, short, derive, col, flags )
 		
 		-- Send changes to immunity
@@ -155,6 +165,8 @@ elseif CLIENT then
 			end
 			self.ImmunityBox.Changed = {}
 		end
+		
+		self:ReloadMenu( self.Panel )
 		
 	end
 	
@@ -389,9 +401,9 @@ elseif CLIENT then
 			colorExample:SetTextColor( col )
 			
 			if !colorMixer.ColorCube.Updating then
-				print( "updating color tbl .. tbl ", self:GetValue() )
+				//print( "updating color tbl .. tbl ", self:GetValue() )
 				col[ tbl ] = self:GetValue()
-				PrintTable( col )
+				//PrintTable( col )
 				colorMixer.niceColor = Color( col.r, col.g, col.b, col.a )
 				colorMixer:SetColor( colorMixer.niceColor )
 			end
@@ -521,6 +533,11 @@ elseif CLIENT then
 		local save = exsto.CreateButton( panel:GetWide() - 80, panel:GetTall() - 40, 70, 27, "Save", panel )
 			save:SetStyle( "positive" )
 			save.DoClick = function( self )
+				if nameEntry:GetValue() == "" then Menu:PushError( "Please enter a name for the rank!" ) return end
+				if uidEntry:GetValue() == "" then Menu:PushError( "Please enter a UID for the rank!" ) return end
+				if descEntry:GetValue() == "" then descEntry:SetText( "None Provided" ) end
+				if deriveEntry.TextEntry:GetValue() == "" then Menu:PushError( "Please enter a valid derive!" ) return end
+				
 				PLUGIN:FormulateUpdate( nameEntry:GetValue(), uidEntry:GetValue(), descEntry:GetValue(), deriveEntry.TextEntry:GetValue(), colorMixer:GetColor(), data.Flags )
 			end
 			
@@ -529,6 +546,7 @@ elseif CLIENT then
 			delete:MoveLeftOf( save, 5 )
 			delete:SetVisible( data.CanRemove )
 			delete.DoClick = function( self )
+				Menu:PushLoad()
 				Menu.CallServer( "_DeleteRank", data.Short )
 			end
 			

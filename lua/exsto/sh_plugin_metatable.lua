@@ -194,8 +194,10 @@ function plugin:Unload()
 	end
 	
 	-- Remove chat commands
-	for k,v in pairs( self.Commands ) do
-		exsto.RemoveChatCommand( k )
+	if type( self.Commands ) == "table" then
+		for k,v in pairs( self.Commands ) do
+			exsto.RemoveChatCommand( k )
+		end
 	end
 	
 	local info = self.Info
@@ -245,6 +247,10 @@ function plugin:SendData( hook, ply, ... )
 	exsto.UMStart( hook, ply, ... )
 end
 
+function plugin:DataHook( hook )
+	exsto.UMHook( hook, function( ... ) self[ hook ]( self, ... ) end )
+end
+
 function plugin:RequestQuickmenuSlot( commandName, _data )
 	table.insert( self.QuickmenuRequests, { name = commandName, data = _data } )
 end
@@ -252,7 +258,7 @@ end
 --[[ -----------------------------------
 	Function: plugin:AddHook
 	Description: Adds a hook to a plugin
-     ----------------------------------- ]]
+     ----------------------------------- 
 function plugin:AddHook( name, func )
 	-- Construct the unique name.
 	local id = self.Info.ID .. "-" .. name
@@ -263,25 +269,7 @@ function plugin:AddHook( name, func )
 	
 	hook.Add( name, id, func )
 	exsto.Print( exsto_CONSOLE_DEBUG, "PLUGIN --> " .. self.Info.ID .. " --> Adding " .. name .. " hook!" )
-end
-
---[[ -----------------------------------
-	Function: plugin:CreateGamemodeHooks
-	Description: Creates a collection of pre-determined hooks for the plugin based on gamemode hooks.
-     ----------------------------------- ]]
-function plugin:CreateGamemodeHooks()
-	local funcName = ""
-	for k,v in pairs( self ) do
-		if type( v ) == "function" and string.Left( k, 2 ) == "On" then
-			-- Hopefully it is a hook.  He has that On prefix.
-			funcName = string.sub( k, 3 )
-			self.Hooks[ funcName ] = v
-			self.HookID[ funcName ] = "ExPlug_" .. tostring( exsto.NumberHooks )
-			hook.Add( funcName, self.HookID[ funcName ], self.Hooks[ funcName ] )
-			exsto.NumberHooks = exsto.NumberHooks + 1
-		end
-	end
-end
+end]]
 
 function plugin:Init()
 end

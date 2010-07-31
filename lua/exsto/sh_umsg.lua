@@ -68,6 +68,7 @@ if SERVER then
 		for k,v in pairs( exsto.Ranks ) do
 			exsto.SendRank( ply, k )
 		end
+		exsto.UMStart( "ExRecievedRanks", ply )
 	end
 	
 --[[ -----------------------------------
@@ -188,7 +189,7 @@ if SERVER then
      ----------------------------------- ]]
 	function exsto.UMStart( name, ply, ... )
 		if type( name ) != "string" then exsto.ErrorNoHalt( "No name to send usermessage to!" ) return end
-		if type( ply ) != "Player" and type( ply ) != "table" and type( ply ) != "CRecipientFilter" then exsto.ErrorNoHalt( "No player to send usermessage to!" ) return end
+		if type( ply ) != "Player" and type( ply ) != "table" and type( ply ) != "string" and type( ply ) != "CRecipientFilter" then exsto.ErrorNoHalt( "No player to send usermessage to!" ) return end
 		
 		hook.Call( "ExDataSend", nil, name, ply )
 
@@ -205,6 +206,8 @@ if SERVER then
 			for _, ply in ipairs( ply ) do
 				rp:AddPlayer( ply )
 			end
+		elseif type( ply ) == "string" and ply == "all" then
+			rp:AddAllPlayers()
 		end
 
 		umsg.Start( name, rp )
@@ -435,6 +438,10 @@ if CLIENT then
 		exsto.LoadedRanks = {}
 	end
 	exsto.UMHook( "ExClearRanks", exsto.ClearRanks )
+	
+	function exsto.RecievedRanks()
+	end
+	exsto.UMHook( "ExRecievedRanks", exsto.RecievedRanks )
 	
 --[[ -----------------------------------
 	Function: receive

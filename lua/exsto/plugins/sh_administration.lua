@@ -15,6 +15,10 @@ if SERVER then
 
 	//if !gatekeeper then require( "gatekeeper" ) end
 	gatekeeper = nil
+	
+	function PLUGIN:Init()
+		self.Bans = FEL.LoadTable( "exsto_data_bans" ) or {}
+	end
 
 	function PLUGIN:Kick( owner, ply, reason )
 		local nick = ply:Nick()
@@ -141,6 +145,15 @@ if SERVER then
 			end
 		end
 		
+		table.insert( self.Bans, {
+			Name = nick,
+			SteamID = ply:SteamID(),
+			Reason = reason,
+			Length = len,
+			BannedBy = owner:Nick(),
+			BannedAt = os.time(),
+		} )
+		
 		self:ResendToAll()
 		
 		return {
@@ -188,6 +201,10 @@ if SERVER then
 		if !gatekeeper then game.ConsoleCommand( "removeid " .. steamid .. ";writeid\n" ) end
 		FEL.RemoveData( "exsto_data_bans", "SteamID", steamid )
 		
+		for _, data in ipairs( self.Bans ) do
+			if data.SteamID == steamid then self.Bans[ _ ] = nil end
+		end
+		
 		self:ResendToAll()
 
 		return {
@@ -226,120 +243,103 @@ if SERVER then
 	function PLUGIN.RequestBans( ply )
 		
 		exsto.Print( exsto_CONSOLE, ply:Nick() .. " requested data send of the bans table." )
-		local bans = FEL.LoadTable( "exsto_data_bans" )
 		
 		-- Make a nice formatted table.
 		local send = {}
-		if bans then
-			for k,v in pairs( bans ) do
+		if PLUGIN.Bans then
+			for k,v in pairs( PLUGIN.Bans ) do
 				send[v.SteamID] = v
 			end
 		end
+		
+		print( "Sending" )
 
-		exsto.UMStart( "ExRecBans", ply, send )
+		PLUGIN:SendData( "ExRecBans", ply, send )
 	
 	end
 	concommand.Add( "_ResendBans", PLUGIN.RequestBans )
 
-		
 elseif CLIENT then
 
-	--[[local bans = {}
-	local Recieved = false
-	local banlist
-
-	function PLUGIN.RecieveBans( b )
-	
-		bans = b or {}
-		Recieved = true
-		
-		if banlist then banlist.UpdatePlayers() end
-		
+	function PLUGIN:ExRecBans( bans )
+		if bans == nil then return end
+		self.Bans = bans or {}
+		Menu:EndLoad()
+		if self.List then self.List:Update() end
 	end
-	exsto.UMHook( "ExRecBans", PLUGIN.RecieveBans )
+	PLUGIN:DataHook( "ExRecBans" )
+	
+	function PLUGIN:ReloadList( panel )
+		if !self.List then return end
+		
+		Menu:PushLoad()
+		self.Bans = nil
+		RunConsoleCommand( "_ResendBans" )
+	end
 
-	Menu:CreatePage( {
-		Title = "Ban List",
-		Short = "banlist",
-	},
-		function( panel )
-			
-			Menu.PushLoad()
-			RunConsoleCommand( "_ResendBans" )
-			PLUGIN.Main( panel )	
+	function PLUGIN:GetSelected( column )
+		if self.List:GetSelected()[1] then
+			return self.List:GetSelected()[1]:GetValue( column or 1 )
 		end
-	)
+	end
 	
-	function PLUGIN.Main( panel )
-	
-		if !Recieved then
-			timer.Simple( 1, PLUGIN.Main, panel )
+	function PLUGIN:Build( panel )
+		self.List = exsto.CreateListView( 10, 10, panel:GetWide() - 20, panel:GetTall() - 60, panel )
+			self.List:AddColumn( "Player" )
+			self.List:AddColumn( "SteamID" )
+			self.List:AddColumn( "Reason" )
+			self.List:AddColumn( "Banned By" )
+			self.List:AddColumn( "Unban Date" )
+			
+			self.List.Update = function()
+				self.List:Clear()
+				for _, data in pairs( self.Bans ) do
+					local time = os.date( "%c", data.BannedAt + data.Length )
+					if data.Length == 0 then time = "permanent" end
+					
+					self.List:AddLine( data.Name, data.SteamID, data.Reason, data.BannedBy, time )
+				end
+			end
+			self.List:Update()
+			
+			self.unbanButton = exsto.CreateButton( ( (panel:GetWide() / 2) - ( 74 / 2 ) ) + 50, panel:GetTall() - 40, 74, 27, "Remove", panel )
+				self.unbanButton.DoClick = function( button )
+					local id = self:GetSelected( 2 )
+					if id then
+						RunConsoleCommand( "exsto", "unban", tostring( id ) )
+						self:ReloadList( panel )
+					end
+				end
+				self.unbanButton:SetStyle( "positive" )
+			
+			self.refreshButton = exsto.CreateButton( ( (panel:GetWide() / 2) - ( 74 / 2 ) ) - 50, panel:GetTall() - 40, 74, 27, "Refresh", panel )
+				self.refreshButton.DoClick = function( button )
+					self:ReloadList( panel )
+				end	
+	end
+
+	function PLUGIN:Ping( panel )
+		if type( self.Bans ) != "table" then
+			timer.Simple( 1, self.Ping, PLUGIN, panel )
 			return
 		end
-
-		PLUGIN.Build( panel )
-		
+		Menu:EndLoad()
+		self:Build( panel )
 	end
 	
-	function PLUGIN.ReloadList( panel )
-		Recieved = false
-		RunConsoleCommand( "_ResendBans" )
-		
-		local function wait()
-			if !Recieved then
-				timer.Simple( 1, wait )
+	Menu:CreatePage({
+		Title = "Ban List",
+		Short = "banlist",
+	},	function( panel )
+			if type( PLUGIN.Bans ) != "table" then
+				Menu:PushLoad()
+				RunConsoleCommand( "_ResendBans" )
+				PLUGIN:Ping( panel )
 				return
 			end
-			
-			banlist.UpdatePlayers()
+			PLUGIN:Build( panel )
 		end
-	end
-	
-	function PLUGIN.Build( panel )
-		banlist = exsto.CreateListView( 10, 10, panel:GetWide() - 20, panel:GetTall() - 60, panel )
-		
-			banlist:AddColumn( "Player" )
-			banlist:AddColumn( "SteamID" )
-			banlist:AddColumn( "Length" )
-			banlist:AddColumn( "Reason" )
-			banlist:AddColumn( "Banned By" )
-			
-			for k,v in pairs( bans ) do
-				banlist:AddLine( v.Name, v.SteamID, v.Length, v.Reason, v.BannedBy )
-			end
-			
-			banlist.UpdatePlayers = function()
-				banlist:Clear()
-			
-				for k,v in pairs( bans ) do
-					banlist:AddLine( v.Name, v.SteamID, v.Length, v.Reason, v.BannedBy )
-				end
-			end
-			
-		local function GetSelected( column )
-			column = column or 1
-			if banlist:GetSelected()[1] then
-				if banlist:GetSelected()[1]:GetValue(column) then
-					return banlist:GetSelected()[1]:GetValue(column)
-				else return nil end
-			else return nil end
-		end
-		
-		local unbanButton = exsto.CreateButton( ( (panel:GetWide() / 2) - ( 74 / 2 ) ) + 50, panel:GetTall() - 40, 74, 27, "Remove", panel )
-			unbanButton.DoClick = function( button )
-				local steam = GetSelected( 2 )
-				if steam then
-					RunConsoleCommand( "exsto", "unban", tostring( steam ) )
-					PLUGIN.ReloadList()
-				end
-			end
-			
-		local refreshButton = exsto.CreateButton( ( (panel:GetWide() / 2) - ( 74 / 2 ) ) - 50, panel:GetTall() - 40, 74, 27, "Refresh", panel )
-			refreshButton.DoClick = function( button )
-				PLUGIN.ReloadList()
-			end
-
-	end]]
+	)
 
 end
 

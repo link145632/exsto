@@ -79,13 +79,19 @@ if SERVER then
 			Arguments around * * are required.  Arguments within [ ] can be repeated as much as possible.
 			
 			exsto_CHAT -- *player*, [string OR color table]
-			exsto_CHAT_ALL -- [string OR color table]
-			exsto_CONSOLE -- string
-			exsto_CONSOLE_DEBUG -- string
-			exsto_ERROR -- string
-			exsto_ERRORNOHALT -- string
-			exsto_CLIENT -- *player*, string
-			exsto_CLIENT_ALL -- string
+			exsto_CHAT_LOGO -- *player*, [string OR color table] (displays the Exsto logo at start)
+			exsto_CHAT_ALL -- [string OR color table] (sends to all clients)
+			exsto_CHAT_ALL_LOGO -- [string OR color table] (sends to all clients and displays logo)
+			
+			exsto_CONSOLE -- string (prints to the server console)
+			
+			exsto_ERROR -- string (involks error and sends error to superadmins)
+			exsto_ERRORNOHALT -- string (involks error and sends error to superadmins)
+			
+			exsto_CLIENT -- *player*, string (normal print)
+			exsto_CLIENT_LOGO -- *player, string (displays logo)
+			exsto_CLIENT_ALL -- string (sends to all players)
+			exsto_CLIENT_ALL_LOGO -- string (sends to all players and displays logo)
 		]]
 		
 		-- Right here, we are sending a chat message to the command involker, with "We are adding " the number " to " the other number.
@@ -103,8 +109,9 @@ if SERVER then
 			num = number - extra
 		end
 		
+		-- You can also use metatable printing with Exsto.  owner:Print( exsto_CHAT, COLOR.NORM, ... )
 		exsto.Print( exsto_CHAT, owner, COLOR.NORM, "We are " .. type, COLOR.NAME, number, COLOR.NORM, " to ", COLOR.NAME, extra )
-		
+	
 		-- Remember that FEL table we made?  Lets save this new number into that database.  All we need to do, is run FEL.AddData.
 		FEL.AddData( "exsto_data_skeleton", { -- First argument is the table name, that we created up near the top of the plugin.
 			Look = { -- The data we want to look for if it already exists.  If it exists, FEL automatically updates the data with the new data.
@@ -115,7 +122,8 @@ if SERVER then
 				Number = num, -- Add this data into the number column!
 			},
 			Options = {
-				Update = true,
+				Update = true, -- Makes it so we update if the data exists.
+				Threaded = true, -- Makes it so we thread if on mysqloo.
 			}
 		})			
 
@@ -126,7 +134,7 @@ if SERVER then
 		
 	end
 	--[[
-		Heres where the awesome coding comes in.  This function allows you as the developer to not worry about anything, other than your plugin.
+		Here is where the awesome coding comes in.  This function allows you as the developer to not worry about anything, other than your plugin.
 		EVERYTHING is handled by Exsto that involves command and chat parsing.  Automatically converting values, notifying players, the works.
 		The first argument of PLUGIN:AddCommand is the ID of the plugin, the second is the table filled with information.
 	]]

@@ -1,3 +1,4 @@
+
 -- Prefan Access Controller
 -- ULX Style Printing
 
@@ -22,7 +23,8 @@ PLUGIN:AddCommand( "chatnotify", {
 	Chat = { "@@" },
 	ReturnOrder = "Text",
 	Args = { Text = "STRING" },
-	Optional = { }
+	Optional = { },
+	Category = "Chat",
 })
 
 function PLUGIN:AdminSay( ply, text )
@@ -40,7 +42,8 @@ PLUGIN:AddCommand( "adminsay", {
 	Chat = { "@", "!admin" },
 	ReturnOrder = "Text",
 	Args = { Text = "STRING" },
-	Optional = { }
+	Optional = { },
+	Category = "Chat",
 })
 
 PLUGIN:Register()
