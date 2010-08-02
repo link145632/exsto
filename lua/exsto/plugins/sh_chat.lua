@@ -7,7 +7,7 @@ PLUGIN:SetInfo({
 	ID = "cl-chat",
 	Desc = "A cool custom chat with supporting animations.",
 	Owner = "Prefanatic",
-	Disabled = true,
+	-- Disabled = true, (re-enable once that feature does something, right now it breaks chat from loading)
 })
 
 if SERVER then
