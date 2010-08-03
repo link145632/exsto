@@ -13,7 +13,7 @@ PLUGIN:SetInfo({
 
 if SERVER then
 
-	resource.AddFile( "glow2.vmt" )
+	resource.AddFile( "materials/glow2.vmt" )
 
 	exsto.CreateFlag( "displayheadtags", "Allows users to see tags above players heads." )
 	
