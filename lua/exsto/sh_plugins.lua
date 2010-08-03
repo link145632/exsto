@@ -17,8 +17,8 @@
 ]]
 
 -- Plugin Man
-include( "exsto/sh_plugin_metatable.lua" )
-if SERVER then AddCSLuaFile( "exsto/sh_plugin_metatable.lua" ) end
+exstoInclude( "exsto/sh_plugin_metatable.lua" )
+if SERVER then exstoAddCSLuaFile( "exsto/sh_plugin_metatable.lua" ) end
 
 -- Variables
 exsto.NumberHooks = 0
@@ -114,14 +114,14 @@ function exsto.InitPlugins()
 		
 			prefix = string.Left( v, prefixFind - 1 )
 			
-			-- If we are running as the client, only include plugins that are shared or clientside
+			-- If we are running as the client, only exstoInclude plugins that are shared or clientside
 			if CLIENT and ( prefix == "sh" or prefix == "cl" ) then
-				include( exsto.PlugLocation .. v )
+				exstoInclude( exsto.PlugLocation .. v )
 			elseif SERVER then
 			
-				-- If the prefix is shared, include and add please.
-				if prefix == "sh" or prefix == "cl" then AddCSLuaFile( exsto.PlugLocation .. v ) end
-				if prefix == "sh" or prefix == "sv" then include( exsto.PlugLocation .. v ) end
+				-- If the prefix is shared, exstoInclude and add please.
+				if prefix == "sh" or prefix == "cl" then exstoAddCSLuaFile( exsto.PlugLocation .. v ) end
+				if prefix == "sh" or prefix == "sv" then exstoInclude( exsto.PlugLocation .. v ) end
 				
 			end
 			

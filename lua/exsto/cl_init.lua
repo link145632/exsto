@@ -20,15 +20,15 @@
 	Category:  Script Loading
      ----------------------------------- ]]
 	 
-	include( "exsto/cl_derma.lua" )
-	include( "exsto/sh_tables.lua" )
-	include( "exsto/sh_umsg.lua" )
-	include( "exsto/sh_print.lua" )
-	include( "exsto/sh_data.lua" )
-	include( "exsto/cl_menu_skin.lua" )
-	include( "exsto/cl_menu.lua" )
-	include( "exsto/sh_access.lua" )
-	include( "exsto/sh_plugins.lua" )
+	exstoInclude( "exsto/cl_derma.lua" )
+	exstoInclude( "exsto/sh_tables.lua" )
+	exstoInclude( "exsto/sh_umsg.lua" )
+	exstoInclude( "exsto/sh_print.lua" )
+	exstoInclude( "exsto/sh_data.lua" )
+	exstoInclude( "exsto/cl_menu_skin.lua" )
+	exstoInclude( "exsto/cl_menu.lua" )
+	exstoInclude( "exsto/sh_access.lua" )
+	exstoInclude( "exsto/sh_plugins.lua" )
 	
 	-- Init clientside items.
 	exsto.LoadPlugins()
