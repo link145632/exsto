@@ -55,7 +55,7 @@ exsto.UMHook( "exsto_Menu", exsto.Menu )
 
 function Menu:WaitForRanks( key, rank, flagCount )
 	if !exsto.Ranks or table.Count( exsto.Ranks ) == 0 then
-		timer.Simple( Menu.WaitForRanks, Menu, key, rank, flagCount )
+		timer.Simple( 1, Menu.WaitForRanks, Menu, key, rank, flagCount )
 		return
 	end
 
