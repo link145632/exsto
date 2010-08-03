@@ -19,7 +19,7 @@
 if !glon then require( "glon" ) end
 if !datastream then require( "datastream" ) end
 
-exstoAddCSLuaFile( "autorun/exsto_init.lua" )
+AddCSLuaFile( "autorun/exsto_init.lua" )
 
 local function PrintLoading()
 	print( [[
