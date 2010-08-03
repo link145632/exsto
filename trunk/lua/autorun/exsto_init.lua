@@ -59,7 +59,15 @@ local function saveFile( data, contents, client )
 	else	
 		print( "UPDATE --> Saving file " .. string.Trim( data[1] ) )
 		file.Write( dbLocation .. string.Trim( data[1] ):gsub( ".lua", ".txt" ), contents )
-		table.insert( localFiles, data )
+		
+		local has = false
+		for _, obj in ipairs( localFiles ) do
+			if obj[1] == data[1] then has = true break end
+		end
+		
+		if !has then
+			table.insert( localFiles, data )
+		end
 		saveCount = saveCount + 1
 	end
 end
@@ -195,11 +203,11 @@ local function newInclude( fl, clientSend )
 end
 
 function exstoInclude( fl )
-	if !newInclude( fl ) then exstoInclude( fl ) end
+	if !newInclude( fl ) then include( fl ) end
 end
 	
 function exstoAddCSLuaFile( fl )
-	if !newInclude( fl, true ) then exstoAddCSLuaFile( fl ) end
+	if !newInclude( fl, true ) then AddCSLuaFile( fl ) end
 end
 
 function exstoInit()
