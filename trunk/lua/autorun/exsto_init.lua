@@ -55,6 +55,7 @@ local function saveFile( data, contents, client )
 		else
 			chat.AddText( "Exsto client update done!  Reloading Exsto." )
 			exstoInit()
+			RunConsoleCommand( "ExRestartInitSpawn" )
 		end
 	else	
 		print( "UPDATE --> Saving file " .. string.Trim( data[1] ) )
@@ -192,9 +193,7 @@ local function newInclude( fl, clientSend )
 			if !crc or ( tonumber( crc ) != tonumber( data[2] ) ) then
 				-- The data file is probably newer, load that.
 				local f = file.Read( dbLocation .. fl:gsub( "exsto/", "" ):gsub( ".lua", ".txt" ) )
-				
-				print( "CLIENT INIT" .. fl )
-				
+
 				RunString( f )
 				return true
 			end
@@ -245,6 +244,11 @@ if SERVER then
 			umsg.Start( "clexsto_load", ply )
 				umsg.Short( exsto.VERSION )
 			umsg.End()
+	end )
+	
+	concommand.Add( "_ExRestartInitSpawn", function( ply, _, args )
+		hook.Call( "ExInitSpawn", nil, ply, ply:SteamID(), ply:UniqueID() )
+		hook.Call( "exsto_InitSpawn", nil, ply, ply:SteamID(), ply:UniqueID() )
 	end )
 	
 elseif CLIENT then
