@@ -86,7 +86,7 @@ elseif CLIENT then
 	local colName = table.Copy( COLOR.NAME )
 	local colNorm = table.Copy( COLOR.NORM )
 	
-	surface.CreateFont( "coolvetica", ScreenScale( 11 ), 400, true, false, "ChatText" )
+	surface.CreateFont( "coolvetica", 20, 400, true, false, "ChatText" )
 	
 	function PLUGIN:Init()
 	
