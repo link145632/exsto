@@ -349,6 +349,7 @@ exsto.DefaultRanks = {
 			"nolimits",
 			"hideadmin",
 			"ragdoll",
+			"say",
 		}
 	},
 	

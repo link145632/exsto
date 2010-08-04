@@ -40,12 +40,11 @@ function PLUGIN:SendPlayer( ply, victim, force )
 	trace.start = pos + Vector( 0, 0, 32 )
 	trace.filter = { victim, ply }
 
-	local data
+	local TraceData
 	for I = 1, #locations do
 		trace.endpos = pos + Angle( 0, locations[ I ], 0 ):Forward() * 47
-		
-		data = util.TraceEntity( trace, ply )
-		if !data.Hit then return data.HitPos end
+		TraceData = util.TraceEntity( trace, Entity(1) )
+		if !TraceData.Hit then return TraceData.HitPos end
 	end
 	
 	if force then
@@ -71,7 +70,7 @@ PLUGIN:AddCommand( "teleport", {
 })
 
 function PLUGIN:Send( owner, victim, to, force )
-	
+    victim = victim[1]  -- Victim seems to be returning a table, so just take the player out.
 	if owner:GetMoveType() == MOVETYPE_NOCLIP then force = true end
 	
 	local pos = self:SendPlayer( victim, to, force )
