@@ -7,7 +7,6 @@ PLUGIN:SetInfo({
 	ID = "cl-chat",
 	Desc = "A cool custom chat with supporting animations.",
 	Owner = "Prefanatic",
-	-- Disabled = true, (re-enable once that feature does something, right now it breaks chat from loading)
 })
 
 if SERVER then
@@ -83,20 +82,19 @@ if SERVER then
 	end
 	
 elseif CLIENT then
-
-	//local enabled = CreateClientConVar( )
 	
 	local colName = table.Copy( COLOR.NAME )
 	local colNorm = table.Copy( COLOR.NORM )
 	
-	surface.CreateFont( "coolvetica", 20, 400, true, false, "ChatText" )
+	surface.CreateFont( "coolvetica", ScreenScale( 11 ), 400, true, false, "ChatText" )
 	
 	function PLUGIN:Init()
 	
 		-- Create variables.
 		self.GlobalX = CreateClientConVar( "ExChat_PosX", 35, true )
 		self.GlobalYOffset = CreateClientConVar( "ExChat_OffsetY", 310, true )
-		
+		self.GlobalEnabled = CreateClientConVar( "ExChat_Enable", 1, true )
+				
 		self.Font = "ChatText"
 		
 		self.ChatLabelDefault = "Chat"
@@ -132,6 +130,8 @@ elseif CLIENT then
 		
 		self.Panel:SetPos( self.X, self.Y )
 		self.Panel:SetSize( self.Panel.W + 20, self.Panel.H )
+		
+		chat.AddText( COLOR.NORM, "Don't like the chat? ", COLOR.NAME, "Disable", COLOR.NORM, " it by typing '", COLOR.NAME, "ExChat_Enable 0", COLOR.NORM, "' in console!" )
 
 	end
 	
@@ -177,20 +177,21 @@ elseif CLIENT then
 	end
 	
 	function PLUGIN:OnPlayerChat( ply, text, team, dead )
+		//if self.GlobalEnabled:GetInt() == 0 then return end
 		if ply:EntIndex() == 0 then
 			chat.AddText( colName, "Console", colNorm, ": " .. text )
-			return true
 		end
 	end
 
 	function PLUGIN:ChatText( index, nick, msg, type )	
+		//if self.GlobalEnabled:GetInt() == 0 then return end
 		if type == "none" then
 			chat.AddText( msg )
 		end
-		return true
 	end
 
 	function PLUGIN:PlayerBindPress( ply, bind, pressed )
+		if self.GlobalEnabled:GetInt() == 0 then return end
 		if string.find( bind, "messagemode" ) then
 			self:Toggle( true, bind == "messagemode2" )
 			return true
@@ -220,6 +221,7 @@ elseif CLIENT then
 	
 	local split, selected
 	function PLUGIN:OnChatTab( text )
+		if self.GlobalEnabled:GetInt() == 0 then return end
 	
 		for _, ply in ipairs( player.GetAll() ) do
 			split = string.Explode( " ", text )
@@ -356,13 +358,15 @@ elseif CLIENT then
 	end
 	
 	function PLUGIN:HUDShouldDraw( name )
+		if self.GlobalEnabled:GetInt() == 0 then return end
 		if name == "CHudChat" then return false end
 	end
 	
 	-- Commonly used variables for paint
 	local line, x, y, lineHeight, _
-	function PLUGIN:HUDPaint()
-	
+	function PLUGIN:HUDPaint()	
+		if self.GlobalEnabled:GetInt() == 0 then return end
+		
 		surface.SetFont( self.Font )
 		_, lineHeight = surface.GetTextSize( "H" )
 		
@@ -385,6 +389,7 @@ elseif CLIENT then
 	-- Commonly used variables in think
 	local x, y, w, h
 	function PLUGIN:Think()
+		if self.GlobalEnabled:GetInt() == 0 then return end
 		
 		-- Monitor fading stuff here.
 		if self.Open then
@@ -471,7 +476,9 @@ elseif CLIENT then
 	exsto_PLUGINADDTEXT = exsto_PLUGINADDTEXT or chat.AddText
 	local data, colOpen, col, ply, arg
 	function chat.AddText( ... )
+		if !PLUGIN.Font then return exsto_PLUGINADDTEXT( ... ) end
 		if exsto.Plugins[ PLUGIN.Info.ID ] and exsto.Plugins[ PLUGIN.Info.ID ].Disabled then return exsto_PLUGINADDTEXT( ... ) end
+		if PLUGIN.GlobalEnabled and PLUGIN.GlobalEnabled:GetInt() == 0 then return exsto_PLUGINADDTEXT( ... ) end
 		
 		ply = nil
 		data = ""

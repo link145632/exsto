@@ -213,7 +213,7 @@ if SERVER then
      ----------------------------------- ]]
 	function FEL.Escape( str )
 		if FEL.Settings["MySQL"] then
-			return "'" .. str .. "'"
+			return "'" .. FEL.Database:escape( str ) .. "'"
 		else
 			return SQLStr( str )
 		end

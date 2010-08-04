@@ -715,12 +715,15 @@ function exsto.StringDist( s, t )
 		return d[#d]
 end
 
-function exsto.OpenMenu( ply )
+function exsto.OpenMenu( ply, _, args )
 
 	local menuAuthKey = math.random( -1000, 1000 )
 	ply.MenuAuthKey = menuAuthKey
 	
-	exsto.UMStart( "exsto_Menu", ply, menuAuthKey, ply:GetRank(), #exsto.GetRankData( ply:GetRank() ).Flags )
+	local bindPressed = nil
+	if args and args[1] then bindPressed = args[1] end
+	
+	exsto.UMStart( "exsto_Menu", ply, menuAuthKey, ply:GetRank(), #exsto.GetRankData( ply:GetRank() ).Flags, bindPressed )
 	
 end
 exsto.AddChatCommand( "menu", {
@@ -731,3 +734,5 @@ exsto.AddChatCommand( "menu", {
 	Args = {},
 	Category = "Administration",
 })
+
+concommand.Add( "_ExPingMenuData", exsto.OpenMenu )
