@@ -16,8 +16,8 @@ PLUGIN:SetInfo({
 } )
 
 function PLUGIN:Clear( owner, targ, clr, show )
--- Only works for Falco's Prop Protection at the moment.
-    if FPP then
+-- Only works for FPP and SPP.
+    if FPP or SPropProtection then
         targ = string.lower(targ)
         ply = exsto.FindPlayer(targ)
         entz = string.Explode(",",targ)
@@ -66,10 +66,18 @@ function PLUGIN:Clear( owner, targ, clr, show )
             end
                 if(string.Left(clr,4) ~= "mdl-") then
                     for i,e in pairs(ents.GetAll()) do
-                        if ValidEnt(e) && (e.Owner == ply || targ == "all"|| (wld && not e.Owner)) then
-                            if(string.match(e:GetClass(),clr) or clr == "" or clr == "all") && (not e:IsWeapon() || (clr == "weapon" || wld)) then
-                                e:Remove()
+                        if FPP then
+                            if ValidEnt(e) && (e.Owner == ply || targ == "all"|| (wld && not e.Owner)) then
+                                if(string.match(e:GetClass(),clr) or clr == "" or clr == "all") && (not e:IsWeapon() || (clr == "weapon" || wld)) then
+                                    e:Remove()
+                                end
                             end
+                        else
+                            if ValidEnt(e) && (e:GetNWEntity("OwnerObj") == ply || targ == "all") then
+                                if(string.match(e:GetClass(),clr) or clr == "" or clr == "all") && (not e:IsWeapon() || (clr == "weapon" || wld)) then
+                                    e:Remove()
+                                end
+                            end                        
                         end
                     end
                     
@@ -91,7 +99,7 @@ function PLUGIN:Clear( owner, targ, clr, show )
             end
         end
     else
-        return { owner,COLOR.NORM,"Sorry, this command only works for Falco's Prop Protection atm." }
+        return { owner,COLOR.NORM,"Sorry, this command only works for FPP and SPP." }
     end
 end
 
