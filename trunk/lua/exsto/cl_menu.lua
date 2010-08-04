@@ -48,21 +48,32 @@ surface.CreateFont( "arial", 40, 400, true, false, "exstoTutorialContent" )
 	Function: exsto.Menu
 	Description: Opens up the Exsto menu.
 	----------------------------------- ]]
-function exsto.Menu( key, rank, flagCount )
-	Menu:WaitForRanks( key, rank, flagCount )
+function exsto.Menu( key, rank, flagCount, bindOpen )
+	Menu:WaitForRanks( key, rank, flagCount, bindOpen or false )
 end
 exsto.UMHook( "exsto_Menu", exsto.Menu )
 
-function Menu:WaitForRanks( key, rank, flagCount )
+local function toggleOpenMenu( ply, _, args )
+	-- We need to ping the server for any new data possible.
+	RunConsoleCommand( "_ExPingMenuData" )
+end
+concommand.Add( "+ExMenu", toggleOpenMenu )
+
+local function toggleCloseMenu( ply, _, args )
+	Menu.Frame.btnClose.DoClick( btnClose )
+end
+concommand.Add( "-ExMenu", toggleCloseMenu )
+
+function Menu:WaitForRanks( key, rank, flagCount, bindOpen )
 	if !exsto.Ranks or table.Count( exsto.Ranks ) == 0 then
-		timer.Simple( 1, Menu.WaitForRanks, Menu, key, rank, flagCount )
+		timer.Simple( 1, Menu.WaitForRanks, Menu, key, rank, flagCount, bindOpen )
 		return
 	end
 
-	self:Initialize( key, rank, flagCount )
+	self:Initialize( key, rank, flagCount, bindOpen )
 end
 
-function Menu:Initialize( key, rank, flagCount )
+function Menu:Initialize( key, rank, flagCount, bindOpen )
 	Menu.AuthKey = key
 
 	-- If we are valid, just open up.
@@ -82,11 +93,13 @@ function Menu:Initialize( key, rank, flagCount )
 			Menu.LastRank = rank
 		end
 			
+		if bindOpen then Menu.Frame:ShowCloseButton( false ) end
 		Menu.Frame:SetVisible( true )
 		Menu:BringBackSecondaries()
 	else
 		Menu.LastRank = LocalPlayer():GetRank()
 		Menu:Create( rank, flagCount )
+		if bindOpen then Menu.Frame:ShowCloseButton( false ) end
 	end
 end
 
