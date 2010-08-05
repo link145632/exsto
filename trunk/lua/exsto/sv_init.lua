@@ -95,13 +95,14 @@ end
 function exsto.FindPlayers( data, ply )
 
 	local players = {}
-	
+	if data == "me" then return ply end
 	if data == "*" then return player.GetAll() end
 	if data == "*-" and ply then
 		players = player.GetAll()
 		for _, _ply in ipairs( players ) do
 			if _ply == ply then table.remove( players, _ ) break end
 		end
+        return players
 	end
 	if data == "[ALL]" then return player.GetAll() end
 	
@@ -118,13 +119,25 @@ function exsto.FindPlayers( data, ply )
 	for I = 1, #splits do
 		data = splits[I]
 		for _, ply in ipairs( player.GetAll() ) do
-			if ply:EntIndex() == tonumber( data ) then table.insert( players, ply ) end
-			if ply:UserID() == tostring( data ) then table.insert( players, ply ) end
-			if string.find( ply:Nick():lower(), data:lower(), 1, true ) then table.insert( players, ply ) end
+            if not table.HasValue(players,ply) then
+                if ply:Name() == tostring( data ) && tonumber(#splits) == 1 then return ply end
+                if ply:EntIndex() == tonumber( data ) && string.Left(data,1) != "0" then table.insert( players, ply ) end
+                if ply:UserID() == tostring( data ) then table.insert( players, ply ) end
+                if string.find( ply:Nick():lower(), data:lower(), 1, true ) then table.insert( players, ply ) end
+            end
 		end
 	end
-	
-	return players
+    
+    if #splits == 1 then
+        return players[1]
+    else
+        local splPlayers = {}
+        for I=1,#splits do
+            local splPly = players[I]
+            table.insert(splPlayers,splPly)
+        end
+        return splPlayers
+    end
 	
 end
 
