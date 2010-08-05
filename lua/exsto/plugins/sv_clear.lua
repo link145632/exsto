@@ -17,9 +17,9 @@ PLUGIN:SetInfo({
 
 function PLUGIN:Clear( owner, targ, clr, show )
 -- Only works for FPP and SPP.
-    if FPP or SPropProtection then
+    if FPP or SPropProtection or targ == "all" then
         targ = string.lower(targ)
-        ply = exsto.FindPlayer(targ)
+        ply = targ ~= "all" and exsto.FindPlayer(targ)
         entz = string.Explode(",",targ)
         ent = Entity( tonumber( string.Replace(tostring(entz[1]),"+","") ) ) -- Removes entity ID 'targ' and + does    v
         that = targ == "that" || targ == "that+"  -- 'that' will remove the aimed entity and 'that+' includes constrained entities.
@@ -40,7 +40,7 @@ function PLUGIN:Clear( owner, targ, clr, show )
                         else Entity(e):Remove() end
                     end 
                 end
-                return { COLOR.NAME,owner,COLOR.NORM, " just removed entit"..((table.Count(entz) > 1) and "ies " or "y "),COLOR.NAME,targ }
+                return { COLOR.NAME,owner,COLOR.NORM, " removed entit"..((table.Count(entz) > 1) and "ies " or "y "),COLOR.NAME,targ }
                 
         elseif that then
             local e = owner:GetEyeTraceNoCursor().Entity
@@ -56,7 +56,7 @@ function PLUGIN:Clear( owner, targ, clr, show )
             local show = show or 1
             if show > 0 then
                 clr = targ
-                return { COLOR.NAME,owner,COLOR.NORM, " just removed ",COLOR.NAME,tostring(e) }
+                return { COLOR.NAME,owner,COLOR.NORM, " removed ",COLOR.NAME,tostring(e) }
             end
             
         else
@@ -95,11 +95,11 @@ function PLUGIN:Clear( owner, targ, clr, show )
         local show = show or 1
             if show > 0 then
                 if clr == "" then clr = "stuff" end
-                    return { COLOR.NAME,owner,COLOR.NORM, " just removed ",COLOR.NAME,ply or targ,COLOR.NORM,type(ply)=="Player" and "'s " or " ",COLOR.NAME,clr }
+                    return { COLOR.NAME,owner,COLOR.NORM, " removed ",COLOR.NAME,ply or targ,COLOR.NORM,type(ply)=="Player" and "'s " or " ",COLOR.NAME,clr }
             end
         end
     else
-        return { owner,COLOR.NORM,"Sorry, this command only works for FPP and SPP." }
+        return { owner,COLOR.NORM,"Sorry, this command only works for FPP and SPP unless using ",COLOR.NAME,"!clear all." }
     end
 end
 
