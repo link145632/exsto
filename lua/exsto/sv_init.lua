@@ -129,7 +129,8 @@ function exsto.FindPlayers( data, ply )
 	end
     
     if #splits == 1 then
-        return players[1]
+        players = { players[1] }
+        return players
     else
         local splPlayers = {}
         for I=1,#splits do

@@ -25,9 +25,9 @@ function PLUGIN:Clear( owner, targ, clr, show )
         that = targ == "that" || targ == "that+"  -- 'that' will remove the aimed entity and 'that+' includes constrained entities.
         wld = targ == "world"
         
-        if (ply == owner && not string.match(string.lower(owner:Name()),targ)) || 
+        if (ply == nil || ply == owner && not string.match(string.lower(owner:Name()),targ)) || 
             targ == "" || type(ply) ~= "Player" && not (targ == "all" || wld || that || ent) then
-                return { owner,COLOR.NORM,"Player ",COLOR.NAME,ply,COLOR.NORM," not found." }
+                return { owner,COLOR.NORM,"Player ",COLOR.NAME,targ,COLOR.NORM," not found." }
                 
         elseif ent && ValidEnt(ent) then
                 for cnt,e in pairs(entz) do
@@ -57,45 +57,46 @@ function PLUGIN:Clear( owner, targ, clr, show )
             if show > 0 then
                 clr = targ
                 return { COLOR.NAME,owner,COLOR.NORM, " removed ",COLOR.NAME,tostring(e) }
-            end
-            
+            end            
         else
             for c,l in pairs(Shortcuts) do
                 local expl = string.Explode(",",Shortcuts[c])
-                if clr == expl[1] then clr = expl[2] end
+                if clr == expl[1] then -- Check shortcuts
+                    clr = expl[2]
+                end
             end
-                if(string.Left(clr,4) ~= "mdl-") then
-                    for i,e in pairs(ents.GetAll()) do
-                        if FPP then
-                            if ValidEnt(e) && (e.Owner == ply || targ == "all"|| (wld && not e.Owner)) then
-                                if(string.match(e:GetClass(),clr) or clr == "" or clr == "all") && (not e:IsWeapon() || (clr == "weapon" || wld)) then
-                                    e:Remove()
-                                end
-                            end
-                        else
-                            if ValidEnt(e) && (e:GetNWEntity("OwnerObj") == ply || targ == "all") then
-                                if(string.match(e:GetClass(),clr) or clr == "" or clr == "all") && (not e:IsWeapon() || (clr == "weapon" || wld)) then
-                                    e:Remove()
-                                end
-                            end                        
-                        end
-                    end
-                    
-                else
-                    clr = string.sub(clr,5) or ""
+            if(string.Left(clr,4) ~= "mdl-") then
                 for i,e in pairs(ents.GetAll()) do
-                    if ValidEnt(e) && (e.Owner == ply || targ == "all"|| (wld && not e.Owner)) then
-                        if(string.match(e:GetModel() or "",clr) or clr == "") && (not e:IsWeapon() || (clr == "weapon" || wld)) then
-                            e:Remove()
+                    if FPP then
+                        if ValidEnt(e) && (e.Owner == ply || targ == "all"|| (wld && not e.Owner)) then
+                            if(string.match(e:GetClass(),clr) or clr == "" or clr == "all") && (not e:IsWeapon() || (clr == "weapon" || wld)) then
+                                e:Remove()
+                            end
                         end
+                    else
+                        if ValidEnt(e) && (e:GetNWEntity("OwnerObj") == ply || targ == "all") then
+                            if(string.match(e:GetClass(),clr) or clr == "" or clr == "all") && (not e:IsWeapon() || (clr == "weapon" || wld)) then
+                                e:Remove()
+                            end
+                        end                        
+                    end
+                end
+                
+            else
+                clr = string.sub(clr,5) or ""
+            for i,e in pairs(ents.GetAll()) do
+                if ValidEnt(e) && (e.Owner == ply || targ == "all"|| (wld && not e.Owner)) then
+                    if(string.match(e:GetModel() or "",clr) or clr == "") && (not e:IsWeapon() || (clr == "weapon" || wld)) then
+                        e:Remove()
                     end
                 end
             end
+        end
             
         local show = show or 1
-            if show > 0 then
-                if clr == "" then clr = "stuff" end
-                    return { COLOR.NAME,owner,COLOR.NORM, " removed ",COLOR.NAME,ply or targ,COLOR.NORM,type(ply)=="Player" and "'s " or " ",COLOR.NAME,clr }
+        if show > 0 then
+            if clr == "" then clr = "stuff" end
+            return { COLOR.NAME,owner,COLOR.NORM, " removed ",COLOR.NAME,ply or targ,COLOR.NORM,type(ply)=="Player" and "'s " or " ",COLOR.NAME,clr }
             end
         end
     else
@@ -115,37 +116,48 @@ PLUGIN:AddCommand( "clear", {
 	Category = "Administration",
 })
 
+local Included = {
+    "prop_",
+    "gmod_"
+}
+        
 function ValidEnt( entity )
        -- Exlcludes essentials
     if entity:IsValid() then
         cl = entity:GetClass()
-        if (
-            string.Left(cl,5) != "class" &&
-            string.Left(cl,4) != "env_" &&
-            string.Left(cl,5) != "func_" &&
-            string.Left(cl,5) != "info_" &&
-            cl != "beam" &&
-            cl != "bodyque" &&
-            cl != "darkrp_console" &&
-            cl != "gmod_camera" &&
-            cl != "gmod_tool" &&
-            cl != "laserpointer" &&
-            cl != "light_dynamic" &&
-            cl != "network" &&
-            cl != "physgun_beam" &&
-            cl != "prop_door_rotating" &&
-            cl != "phys_bone_follower" &&
-            cl != "player" &&
-            cl != "player_manager" &&
-            cl != "point_camera" &&
-            cl != "predicted_viewmodel" &&
-            cl != "prop_dynamic" &&
-            cl != "soundent" &&
-            cl != "scene_manager" &&
-            cl != "viewmodel" &&
-            cl != "worldspawn"
-            ) then return true
+                
+        for I in pairs(Included) do
+            if string.find(cl,Included[I]) then return 1 end
         end
+        return false
+        -- Old exclude system.
+        -- if (
+            -- string.Left(cl,5) != "class" &&
+            -- string.Left(cl,4) != "env_" &&
+            -- string.Left(cl,5) != "func_" &&
+            -- string.Left(cl,5) != "info_" &&
+            -- cl != "beam" &&
+            -- cl != "bodyque" &&
+            -- cl != "darkrp_console" &&
+            -- cl != "gmod_camera" &&
+            -- cl != "gmod_tool" &&
+            -- cl != "laserpointer" &&
+            -- cl != "light_dynamic" &&
+            -- cl != "network" &&
+            -- cl != "physgun_beam" &&
+            -- cl != "prop_door_rotating" &&
+            -- cl != "phys_bone_follower" &&
+            -- cl != "player" &&
+            -- cl != "player_manager" &&
+            -- cl != "point_camera" &&
+            -- cl != "predicted_viewmodel" &&
+            -- cl != "prop_dynamic" &&
+            -- cl != "soundent" &&
+            -- cl != "scene_manager" &&
+            -- cl != "viewmodel" &&
+            -- cl != "worldspawn"
+            -- ) then return true
+        -- end
     end
 end
 

@@ -152,7 +152,7 @@ function PLUGIN:IsMuted( ply )
 end
 
 function PLUGIN:PlayerCanHearPlayersVoice( listen, talker )
-	return self:IsGagged( talker ) end
+	return self:IsGagged( talker )
 end
 
 function PLUGIN:PlayerSay( ply, text )
