@@ -78,6 +78,7 @@ function _R.Player:RocketExplode()
 end
 
 function _R.Player:RocketPrep()
+	self:SetMoveType(MOVETYPE_WALK)  -- We want him to actually move.
 	-- Set his pos just high enough so we can smooth launch.
 	self:SetVelocity( Vector( 0, 0, 0 ) )
 	self:EmitSound( "buttons/button1.wav" )

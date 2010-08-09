@@ -11,6 +11,7 @@ PLUGIN:SetInfo({
 } )
 
 local function Slap( ply, damage )
+	ply:SetMoveType(MOVETYPE_WALK)
 	if !ply:Alive() then timer.Create( "exsto_WhipDelay"..ply:Nick(), 0.1, 1, function() end ) return end
 	local xspeed = math.random( -500, 500 )
 	local yspeed = math.random( -500, 500 ) 
