@@ -38,12 +38,13 @@ exsto_CHAT = AddPrint(
 	function( ply, ... )
 		if CLIENT then return end
 		if {...} == nil then return end
-		if type( ply ) != "Player" and type( ply ) != "table" and type( ply ) != "string" then -- It seems like we are going console.
-			local str = ""
-			for I = 1, #arg do
-				if type( arg[I] ) == "string" then str = str .. arg[I] end
-			end
-			exsto.Print( exsto_CONSOLE, str )
+		if type( ply ) == "Entity" then -- It seems like we are going console.
+			-- local str = ""
+			-- for I = 1, #arg do
+				-- if type( arg[I] ) == "string" then str = str .. arg[I] end
+			-- end
+			-- exsto.Print( exsto_CONSOLE, str )
+			ply:Print( exsto_CHAT, ... )
 			return
 		end
 		

@@ -17,7 +17,7 @@ PLUGIN:SetInfo({
 
 function PLUGIN:Clear( owner, targ, clr, show )
 -- Only works for FPP and SPP.
-    if FPP or SPropProtection or targ == "all" then
+    if FPP or SPropProtection or targ == "all" or string.find(targ,"that") then
         targ = string.lower(targ)
         ply = targ ~= "all" and exsto.FindPlayer(targ)
         entz = string.Explode(",",targ)
@@ -25,8 +25,7 @@ function PLUGIN:Clear( owner, targ, clr, show )
         that = targ == "that" || targ == "that+"  -- 'that' will remove the aimed entity and 'that+' includes constrained entities.
         wld = targ == "world"
         
-        if (ply == nil || ply == owner && not string.match(string.lower(owner:Name()),targ)) || 
-            targ == "" || type(ply) ~= "Player" && not (targ == "all" || wld || that || ent) then
+        if (targ == "" || ply == nil && not (targ == "all" || wld || that || ent:IsValid())) then
                 return { owner,COLOR.NORM,"Player ",COLOR.NAME,targ,COLOR.NORM," not found." }
                 
         elseif ent && ValidEnt(ent) then
@@ -47,10 +46,14 @@ function PLUGIN:Clear( owner, targ, clr, show )
             if targ == "that" then
                 if ValidEnt(e) then
                     e:Remove()
+                else
+                    return { owner,COLOR.NORM,"Invalid object." }           
                 end
             else
                 for _,const in pairs (constraint.GetAllConstrainedEntities(e)) do
-                    const:Remove()
+                    if ValidEnt(const) then
+                        const:Remove()          
+                    end
                 end
             end
             local show = show or 1
@@ -100,7 +103,7 @@ function PLUGIN:Clear( owner, targ, clr, show )
             end
         end
     else
-        return { owner,COLOR.NORM,"Sorry, this command only works for FPP and SPP unless using ",COLOR.NAME,"!clear all." }
+        return { owner,COLOR.NORM,"Sorry, this command only works for FPP and SPP unless using ",COLOR.NAME,"!clear all/that." }
     end
 end
 

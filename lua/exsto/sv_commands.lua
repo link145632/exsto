@@ -243,19 +243,18 @@ function exsto.PrintReturns( data, I, multiplePeople )
 		end
 		
 		-- Continue if he set us up to format his data.
-		if data.Activator and data.Activator:IsValid() and data.Wording then
-		
+		if data.Activator and (data.Activator:IsValid() or data.Activator:EntIndex() == 0) and data.Wording then
 			data.Player = data.Player or data.Object
 			local ply = data.Player
-			if data.Player and type( data.Player ) == "Player" then ply = data.Player:Nick() end
-			
+			if data.Player and type( data.Player ) == "Player" then ply = data.Player end
+            
 			-- Change to himself if the acting player is the victim
-			if ply == data.Activator:Nick() then ply = "him/herself" end
+			if ply == data.Activator then ply = "him/herself" end
 			
 			-- Format any [self] requests.
 			data.Wording = data.Wording:gsub( "%[self%]%", data.Activator:Nick() )
 			
-			local talk = { unpack( style ), COLOR.NAME, data.Activator:Name(), COLOR.NORM, data.Wording }
+			local talk = { unpack( style ), COLOR.NAME, data.Activator:EntIndex() == 0 and "Console" or data.Activator, COLOR.NORM, data.Wording }
 			
 			if ply then 
 				table.insert( talk, COLOR.NAME )
@@ -437,7 +436,6 @@ end
 	Description: Main thread that parses commands and runs them.
      ----------------------------------- ]]
 local function ExstoParseCommand( ply, command, args, style )
-
 	for _, splice in ipairs( args ) do
 		args[ _ ] = splice:Trim()
 	end
@@ -524,6 +522,12 @@ local function ExstoParseCommand( ply, command, args, style )
 				end
 
 			end
+            
+        -- Console printing
+        if type(args) == "string" then Extra = args
+        else Extra = table.concat(args," ")
+        end
+        print("[EXSTO] "..ply:Name().." ~ "..command.." "..Extra)
 			
 			return ""
 		end
