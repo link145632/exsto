@@ -375,6 +375,7 @@ exsto.DefaultRanks = {
 			"checkversion",
 			"pluginlist",
 			"printrestrict",
+			"pm",
 		}
 	}
 }
