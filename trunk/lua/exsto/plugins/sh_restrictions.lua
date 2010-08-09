@@ -213,6 +213,12 @@ if SERVER then
 			return false
 		end
 	end
+	function PLUGIN:PlayerSpawnSWEP( ply, class, wep )
+		if self.Restrictions[ ply:GetRank() ] and table.HasValue( self.Restrictions[ ply:GetRank() ].Sweps, class ) then
+			ply:Print( exsto_CHAT, COLOR.NORM, "The weapon ", COLOR.NAME, class, COLOR.NORM, " is disabled for your rank!" )
+			return false
+		end
+	end
 	
 	function PLUGIN:PlayerSpawnProp( ply, prop )
 		if self.Restrictions[ ply:GetRank() ] and table.HasValue( self.Restrictions[ ply:GetRank() ].Props, prop ) then
