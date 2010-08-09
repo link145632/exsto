@@ -65,10 +65,10 @@ function PLUGIN:ExCommandCalled( id, plug, caller, ... )
 end
 
 function PLUGIN:Player( ply )
-    if ply:EntIndex ~= 0 then
-        return ply:Nick() .. "(" .. ply:SteamID() .. ")"
-    else
+    if ply:EntIndex() == 0 then
         return "CONSOLE"
+    else
+        return ply:Nick() .. "(" .. ply:SteamID() .. ")"
     end
 end
 
