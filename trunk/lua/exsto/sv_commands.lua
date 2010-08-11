@@ -230,7 +230,9 @@ end
 	Function: exsto.PrintReturns
 	Description: Does a format print of the return values given by plugins.
      ----------------------------------- ]]
-function exsto.PrintReturns( data, I, multiplePeople )
+function exsto.PrintReturns( data, I, multiplePeople, hide )
+
+	local hide = hide or 0
 
 	local style = { exsto_CHAT_ALL }
 	
@@ -242,6 +244,9 @@ function exsto.PrintReturns( data, I, multiplePeople )
 			style = { exsto_CHAT, data[1] }
 		end
 		
+		-- Don't bother if he wants the feedback hidden
+		if hide > 0 then return end
+		
 		-- Continue if he set us up to format his data.
 		if data.Activator and (data.Activator:IsValid() or data.Activator:EntIndex() == 0) and data.Wording then
 			data.Player = data.Player or data.Object
@@ -249,7 +254,7 @@ function exsto.PrintReturns( data, I, multiplePeople )
 			if data.Player and type( data.Player ) == "Player" then ply = data.Player end
             
 			-- Change to himself if the acting player is the victim
-			if ply == data.Activator then ply = "him/herself" end
+			if ply == data.Activator then ply = "themself" end
 			
 			-- Format any [self] requests.
 			data.Wording = data.Wording:gsub( "%[self%]%", data.Activator:Nick() )
@@ -436,9 +441,17 @@ end
 	Description: Main thread that parses commands and runs them.
      ----------------------------------- ]]
 local function ExstoParseCommand( ply, command, args, style )
+	local hide = string.find(command,"#") or 0
+	
+	-- Remove the hide-feedback sign
+	if style == "chat" then
+		command = string.gsub(command,"#","")
+	end
+
 	for _, splice in ipairs( args ) do
 		args[ _ ] = splice:Trim()
 	end
+	
 	
 	for k, data in pairs( exsto.Commands ) do
 		if ( style == "chat" and table.HasValue( data.Chat, command ) ) or ( style == "console" and table.HasValue( data.Console, command ) ) then
@@ -517,7 +530,7 @@ local function ExstoParseCommand( ply, command, args, style )
 					hook.Call( "ExCommand-" .. data.ID, nil, newArgs )
 					
 					-- Print the return values.
-					exsto.PrintReturns( sentback, I, multiplePeopleToggle )
+					exsto.PrintReturns( sentback, I, multiplePeopleToggle, hide )
 					
 				end
 
@@ -527,12 +540,13 @@ local function ExstoParseCommand( ply, command, args, style )
         if type(args) == "string" then Extra = args
         else Extra = table.concat(args," ")
         end
-        print("[EXSTO] "..ply:Name().." ~ "..command.." "..Extra)
+        print("[EXSTO] "..(hide > 0 and "<Hidden> " or "")..ply:Name().." ~ "..command.." "..Extra)
 			
 			return ""
 		end
 	end
 	
+	-- I don't think we found anything?
 	-- I don't think we found anything?
 	if string.sub( command, 0, 1 ) == "!" and exsto.GetVar( "spellingcorrect" ).Value and style != "console" then
 		local data = { Max = 100, Com = "" } // Will a command ever be more than 100 chars?

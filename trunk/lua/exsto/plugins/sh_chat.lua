@@ -258,11 +258,9 @@ elseif CLIENT then
 		if split[1]:sub( 1, 1 ) == "@" then 
 			self.ChatLabel = "PM"
 			self.Panel:Resize()
-		
+            	
 		-- If we are going to run an Exsto command.
 		elseif split[1]:sub( 1, 1 ) == "!" then
-			self.ChatLabel = "Exsto"
-			self.Panel:Resize()
 			
 			if !exsto.Commands then return end
 			
@@ -277,8 +275,17 @@ elseif CLIENT then
 					end
 				end
 			end
+            
 			self.Panel:BuildAutoComplete()
+            
+			self.ChatLabel = self.Panel.AutoComplete.Width == 0 and self.ChatLabelDefault or "Exsto"
+			self.Panel:Resize()
 			
+		-- If it's team chat.
+        elseif PLUGIN.TeamMode then
+			self.ChatLabel = "[TEAM] Chat"
+			self.Panel:Resize()
+            	
 		else
 			
 			if self.ChatLabel != self.ChatLabelDefault then
@@ -449,7 +456,7 @@ elseif CLIENT then
 		if table.Count( self.Lines ) > 30 then
 			table.remove( self.Lines, 1 )
 		end
-		
+		        
 	end
 	
 	local newCol
@@ -663,8 +670,17 @@ elseif CLIENT then
 	end
 
 	-- Chatbox Panel
+    
+    local function ScrollUp( )
+			if PLUGIN.ScrollSelection + PLUGIN.MaxLines + 1 < #PLUGIN.Lines then PLUGIN.ScrollSelection = PLUGIN.ScrollSelection + 1 end
+	end
+    
+    local function ScrollDown( )
+			if PLUGIN.ScrollSelection >= 1 then PLUGIN.ScrollSelection = PLUGIN.ScrollSelection - 1 end
+	end
+    
 	local PANEL = {}
-	
+    
 	function PANEL:Init()
 		
 		self.X = 35
@@ -711,8 +727,8 @@ elseif CLIENT then
 			if code == KEY_ENTER then
 				RunConsoleCommand( PLUGIN.TeamMode and "say_team" or "say", text )
 				PLUGIN:Toggle( false )
-			elseif code == KEY_BACKSPACE and text == "" then
-				PLUGIN:Toggle( false )
+			-- elseif code == KEY_BACKSPACE and text == "" then
+				-- PLUGIN:Toggle( false )
 			elseif code == KEY_ESCAPE then
 				PLUGIN:Toggle( false )
 			elseif code == KEY_TAB then
@@ -751,13 +767,9 @@ elseif CLIENT then
 		self.Scrollup = exsto.CreateSysButton( self.Label:GetWide() + 10 + self.Entry:GetWide() + 2, 0, 15, 10, "up", self )
 		self.Scrolldown = exsto.CreateSysButton( self.Label:GetWide() + 10 + self.Entry:GetWide() + 2, 10, 15, 10, "down", self )
 		
-		self.Scrollup.DoClick = function( self )
-			if PLUGIN.ScrollSelection < PLUGIN.MaxLines + #PLUGIN.Lines then PLUGIN.ScrollSelection = PLUGIN.ScrollSelection + 1 end
-		end
-		
-		self.Scrolldown.DoClick = function( self )
-			if PLUGIN.ScrollSelection >= 1 then PLUGIN.ScrollSelection = PLUGIN.ScrollSelection - 1 end
-		end
+        self.Scrollup.DoClick = ScrollUp
+        
+		self.Scrolldown.DoClick = ScrollDown
 		
 		local function paintButton( self )
 			draw.RoundedBox( 4, 0, 0, self:GetWide(), self:GetTall(), PLUGIN:ColorAlpha( PLUGIN.Colors.Scroll, PLUGIN.Fade ) )
@@ -768,6 +780,12 @@ elseif CLIENT then
 		self.Scrolldown.Paint = paintButton
 
 	end
+        
+    function PANEL:OnMouseWheeled( d )
+        if d > 0 then ScrollUp()
+        else ScrollDown()
+        end
+    end
 	
 	local build, arg, data
 	function PANEL:AddAutoComplete( name, command )

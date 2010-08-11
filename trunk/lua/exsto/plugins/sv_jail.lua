@@ -77,21 +77,29 @@ end
 
 function PLUGIN:PlayerDisconnected( ply )
 	if ply:Jailed() then
-		table.insert( self.JailedLeavers, { SteamID = ply:SteamID(), JailPos = ply.JailedPos, JailWalls = ply.JailWalls, OldWeapons = ply.Weapons } )
+		table.insert( self.JailedLeavers, { SteamID = ply:SteamID(), JailPos = ply.JailedPos, OldWeapons = ply.Weapons, Time = ply.JailTime } ) --JailWalls = ply.JailWalls, 
+		ply:RemoveJail()
 	end
 end
 
 function PLUGIN:PlayerInitialSpawn( ply )
-	PrintTable( self.JailedLeavers )
+	-- PrintTable( self.JailedLeavers )
 	for _, obj in ipairs( self.JailedLeavers ) do
 		if ply:SteamID() == obj.SteamID then
-			ply.IsJailed = true
-			ply:SetPos( obj.JailPos )
+			-- ply.IsJailed = true
+			print(obj.Time)
 			
+			timer.Simple(0.1,function()
+				ply:SetPos(obj.JailPos)
+				ply:CreateJail(obj.Time)
+				exsto.Print(exsto_CHAT_ALL,COLOR.NAME,ply,COLOR.NORM," previously jailed, rejailing for ",COLOR.NAME,tostring(obj.Time),COLOR.NORM," seconds.")
+			end )
+			
+			-- ply:CreateJail()
 			ply.Weapons = obj.OldWeapons
-			ply:StripWeapons()
+			-- ply:StripWeapons()
 			
-			ply.JailWalls = obj.JailWalls
+			-- ply.JailWalls = obj.JailWalls
 			
 			table.remove( self.JailedLeavers, _ )
 			break
@@ -135,7 +143,7 @@ function _R.Player:JailReturn()
 	end
 end
 
-function _R.Player:CreateJail()
+function _R.Player:CreateJail(time)
 	self:JailStrip()
 
 	if self:InVehicle() then
@@ -173,9 +181,13 @@ function _R.Player:CreateJail()
 	self.IsJailed = true
 	self.JailedPos = pos
 	
+	if time > 0 then timer.Simple(time,function() self:RemoveJail() end) end
+	self.JailTime = time
+	
 end
 
 function _R.Player:RemoveJail()
+	if self:EntIndex() == 0 then return end
 	if type( self.JailWalls ) == "table" then
 		for _, ent in ipairs( self.JailWalls ) do
 			if ent:IsValid() then ent:Remove() end
@@ -187,15 +199,16 @@ function _R.Player:RemoveJail()
 	self.IsJailed = false
 end
 	
-function PLUGIN:Jail( owner, ply )
+function PLUGIN:Jail( owner, ply, time )
 
 	if !ply.IsJailed then
-		ply:CreateJail()
-		return {
-			Activator = owner,
-			Player = ply,
-			Wording = " has jailed ",
-		}
+		ply:CreateJail(time)
+		if time > 0 then 
+			return { exsto_CHAT,COLOR.NAME,owner,COLOR.NORM," has jailed ",COLOR.NAME,ply,
+				COLOR.NORM," for ", COLOR.NAME,tostring(time),COLOR.NORM, " seconds." }
+		else
+			return { exsto_CHAT,COLOR.NAME,owner,COLOR.NORM," has jailed ",COLOR.NAME,ply,COLOR.NORM,"!" }		
+		end
 	else
 		ply:RemoveJail()
 		return {
@@ -211,8 +224,9 @@ PLUGIN:AddCommand( "jail", {
 	Desc = "Allows users to put other users in jail.",
 	Console = { "jail", "unjail" },
 	Chat = { "!jail", "!unjail" },
-	ReturnOrder = "Victim",
-	Args = {Victim = "PLAYER"},
+	ReturnOrder = "Victim-Time",
+	Args = {Victim = "PLAYER", Time = "NUMBER"},
+	Optional = { Time = 0 },
 	Category = "Fun",
 })
 PLUGIN:RequestQuickmenuSlot( "jail" )
