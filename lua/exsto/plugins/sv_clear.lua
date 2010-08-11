@@ -16,13 +16,15 @@ PLUGIN:SetInfo({
 } )
 
 function PLUGIN:Clear( owner, targ, clr, show )
+Return = {}
+if show == 1 and clr == "0" then show = 0 end -- Skip clr
 -- Only works for FPP and SPP.
     if FPP or SPropProtection or targ == "all" or string.find(targ,"that") then
         targ = string.lower(targ)
         ply = targ ~= "all" and exsto.FindPlayer(targ)
         entz = string.Explode(",",targ)
         ent = Entity( tonumber( string.Replace(tostring(entz[1]),"+","") ) ) -- Removes entity ID 'targ' and + does    v
-        that = targ == "that" || targ == "that+"  -- 'that' will remove the aimed entity and 'that+' includes constrained entities.
+        that = (targ == "that" || targ == "that+")  -- 'that' will remove the aimed entity and 'that+' includes constrained entities.
         wld = targ == "world"
         
         if (targ == "" || ply == nil && not (targ == "all" || wld || that || ent:IsValid())) then
@@ -39,7 +41,7 @@ function PLUGIN:Clear( owner, targ, clr, show )
                         else Entity(e):Remove() end
                     end 
                 end
-                return { COLOR.NAME,owner,COLOR.NORM, " removed entit"..((table.Count(entz) > 1) and "ies " or "y "),COLOR.NAME,targ }
+                Return = { COLOR.NAME,owner,COLOR.NORM, " removed entit"..((#entz > 1) and "ies " or "y "),COLOR.NAME,targ }
                 
         elseif that then
             local e = owner:GetEyeTraceNoCursor().Entity
@@ -56,11 +58,7 @@ function PLUGIN:Clear( owner, targ, clr, show )
                     end
                 end
             end
-            local show = show or 1
-            if show > 0 then
-                clr = targ
-                return { COLOR.NAME,owner,COLOR.NORM, " removed ",COLOR.NAME,tostring(e) }
-            end            
+			Return = { COLOR.NAME,owner,COLOR.NORM, " removed ",COLOR.NAME,tostring(e) }
         else
             for c,l in pairs(Shortcuts) do
                 local expl = string.Explode(",",Shortcuts[c])
@@ -87,20 +85,21 @@ function PLUGIN:Clear( owner, targ, clr, show )
                 
             else
                 clr = string.sub(clr,5) or ""
-            for i,e in pairs(ents.GetAll()) do
-                if ValidEnt(e) && (e.Owner == ply || targ == "all"|| (wld && not e.Owner)) then
-                    if(string.match(e:GetModel() or "",clr) or clr == "") && (not e:IsWeapon() || (clr == "weapon" || wld)) then
-                        e:Remove()
-                    end
-                end
-            end
+				for i,e in pairs(ents.GetAll()) do
+					if ValidEnt(e) && (e.Owner == ply || targ == "all"|| (wld && not e.Owner)) then
+						if(string.match(e:GetModel() or "",clr) or clr == "") && (not e:IsWeapon() || (clr == "weapon" || wld)) then
+							e:Remove()
+						end
+					end
+				end
+			end
         end
-            
         local show = show or 1
         if show > 0 then
+			if #Return>0 then return Return end
+			
             if clr == "" then clr = "stuff" end
             return { COLOR.NAME,owner,COLOR.NORM, " removed ",COLOR.NAME,ply or targ,COLOR.NORM,type(ply)=="Player" and "'s " or " ",COLOR.NAME,clr }
-            end
         end
     else
         return { owner,COLOR.NORM,"Sorry, this command only works for FPP and SPP unless using ",COLOR.NAME,"!clear all/that." }
@@ -115,13 +114,14 @@ PLUGIN:AddCommand( "clear", {
 	Chat = { "!clear" },
 	ReturnOrder = "Player-Clearing-Show",
 	Args = { Player = "STRING", Clearing = "STRING", Show = "NUMBER" },
-    Optional = {Player = nil, Clearing = "", Show = 1},
+    Optional = {Clearing = "", Show = 1},
 	Category = "Administration",
 })
 
 local Included = {
     "prop_",
-    "gmod_"
+    "gmod_",
+    "3dtext"
 }
         
 function ValidEnt( entity )

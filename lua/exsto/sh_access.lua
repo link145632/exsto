@@ -493,6 +493,11 @@ if SERVER then
 			return
 		end
 		
+        local SelfIm = ply:EntIndex() > 0 and tonumber(exsto.Ranks[ply:GetRank()].Immunity) or -1
+        local RankIm  = tonumber(rank.Immunity)
+		
+		if SelfIm > RankIm then return { ply,COLOR.NORM,"You cannot set yourself a higher rank" } end
+		
 		exsto.Print( exsto_CHAT_ALL, COLOR.NAME, user:Nick(), COLOR.NORM, " has been given rank ", COLOR.NAME, rank.Name )
 		
 		user:SetRank( rank.Short )
@@ -505,7 +510,7 @@ if SERVER then
 		Chat = { "!rank" },
 		ReturnOrder = "Victim-Rank",
 		Args = {Victim = "PLAYER", Rank = "STRING"},
-		Optional = {Rank = "guest"},
+		Optional = { },
 		Category = "Administration",
 		DisallowOwner = true,
 	})
