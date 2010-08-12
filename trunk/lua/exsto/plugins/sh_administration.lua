@@ -147,7 +147,7 @@ if SERVER then
 		
 		table.insert( self.Bans, {
 			Name = nick,
-			SteamID = ply:SteamID(),
+			SteamID = (type(ply)=="Player" and ply:SteamID() or ply.SteamID),
 			Reason = reason,
 			Length = len,
 			BannedBy = owner:Nick(),

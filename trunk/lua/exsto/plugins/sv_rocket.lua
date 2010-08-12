@@ -56,6 +56,13 @@ function PLUGIN:CanNoclip( ply )
 	if ply.IsRocket then return false end
 end
 
+function PLUGIN:PlayerDeath(victim,inflictor,killer)
+-- print(tostring(victim).." died.") -- Hook's dead.
+	if victim.IsRocket then
+		victim:RocketExplode()
+	end
+end
+
 function _R.Player:RocketExplode()
 	self.Stage = 3
 	local explode = ents.Create( "env_explosion" )

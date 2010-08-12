@@ -220,6 +220,7 @@ end
 	Description: Checks if a command handles players in any way
      ----------------------------------- ]]
 function exsto.CommandRequiresImmunity( data )
+	if data.ID == "pm" then return false end
 	for _, argument in ipairs( data.ReturnOrder ) do
 		if data.Args[ argument ] == "PLAYER" then return _ end
 	end
@@ -540,7 +541,7 @@ local function ExstoParseCommand( ply, command, args, style )
         if type(args) == "string" then Extra = args
         else Extra = table.concat(args," ")
         end
-        print("[EXSTO] "..(hide > 0 and "<Hidden> " or "")..ply:Name().." ~ "..command.." "..Extra)
+        Msg("[EXSTO] "..(hide > 0 and "<Hidden> " or "")..ply:Name().." ~ "..command.." "..Extra.."\n")
 			
 			return ""
 		end
@@ -577,6 +578,12 @@ function exsto.ChatMonitor( ply, text )
 	if args[1] then command = args[1]:lower() end
 	
 	table.remove( args, 1 )
+	
+	if string.Left(command,1) == "@" and #command > 1 then
+		table.insert(args,1,string.sub( command,2 ))
+		print(string.sub( command,2 ))
+		command = "!pm"
+	end
 
 	return ExstoParseCommand( ply, command, args, "chat" )
 end
