@@ -249,6 +249,7 @@ elseif CLIENT then
 	local split
 	function PLUGIN:OnChatChange( text )
 		split = string.Explode( " ", text )
+		split[1] = string.gsub(split[1],"#","")
 		
 		if self.Panel:AutoCompleteBuilt() and split[1]:sub( 1, 1 ) != "!" then
 			self.Panel:ClearAutoComplete()
@@ -729,6 +730,10 @@ elseif CLIENT then
 				PLUGIN:Toggle( false )
 			-- elseif code == KEY_BACKSPACE and text == "" then
 				-- PLUGIN:Toggle( false )
+			elseif code == KEY_UP then
+				ScrollUp()
+			elseif code == KEY_DOWN then
+				ScrollDown()
 			elseif code == KEY_ESCAPE then
 				PLUGIN:Toggle( false )
 			elseif code == KEY_TAB then
