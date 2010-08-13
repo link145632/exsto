@@ -27,6 +27,20 @@ PLUGIN:AddCommand( "chatnotify", {
 	Category = "Chat",
 })
 
+function PLUGIN:ChatNotify2( ply, text )
+	PrintMessage(HUD_PRINTCENTER,text)
+end
+PLUGIN:AddCommand( "chatnotify2", {
+	Call = PLUGIN.ChatNotify2,
+	Desc = "Allows users to talk to do a chat notify on all players (Middle of the screen).",
+	Console = { "chatnotify2" },
+	Chat = { "@@2" },
+	ReturnOrder = "Text",
+	Args = { Text = "STRING" },
+	Optional = { },
+	Category = "Chat",
+})
+
 function PLUGIN:AdminSay( ply, text )
 	for k,v in pairs( player.GetAll() ) do
 		if v:IsAdmin() or v:IsSuperAdmin() then
