@@ -220,7 +220,7 @@ end
 	Description: Checks if a command handles players in any way
      ----------------------------------- ]]
 function exsto.CommandRequiresImmunity( data )
-	if data.ID == "pm" then return false end
+	if data.ID == "pm" then return false end  -- Allow pm to be ran on anyone
 	for _, argument in ipairs( data.ReturnOrder ) do
 		if data.Args[ argument ] == "PLAYER" then return _ end
 	end
@@ -548,7 +548,6 @@ local function ExstoParseCommand( ply, command, args, style )
 	end
 	
 	-- I don't think we found anything?
-	-- I don't think we found anything?
 	if string.sub( command, 0, 1 ) == "!" and exsto.GetVar( "spellingcorrect" ).Value and style != "console" then
 		local data = { Max = 100, Com = "" } // Will a command ever be more than 100 chars?
 		local dist
@@ -578,10 +577,10 @@ function exsto.ChatMonitor( ply, text )
 	if args[1] then command = args[1]:lower() end
 	
 	table.remove( args, 1 )
-	
-	if string.Left(command,1) == "@" and #command > 1 then
+    
+    -- Allow PM with @name
+	if string.Left(command,1) == "@" and #command > 1 and string.sub(command,2,2) ~= "@" then
 		table.insert(args,1,string.sub( command,2 ))
-		print(string.sub( command,2 ))
 		command = "!pm"
 	end
 

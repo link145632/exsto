@@ -342,6 +342,7 @@ exsto.DefaultRanks = {
 			"ignite",
 			"adminsay",
 			"chatnotify",
+			"chatnotify2",
 			"mapslist",
 			"send",
 			"quickmenu",
@@ -350,6 +351,8 @@ exsto.DefaultRanks = {
 			"hideadmin",
 			"ragdoll",
 			"say",
+            "clear",
+            "lookup",
 		}
 	},
 	

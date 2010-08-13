@@ -180,6 +180,7 @@ elseif CLIENT then
 		//if self.GlobalEnabled:GetInt() == 0 then return end
 		if ply:EntIndex() == 0 then
 			chat.AddText( colName, "Console", colNorm, ": " .. text )
+			return true
 		end
 	end
 
