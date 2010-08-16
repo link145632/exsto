@@ -43,7 +43,7 @@ function PLUGIN:SendPlayer( ply, victim, force )
 	local TraceData
 	for I = 1, #locations do
 		trace.endpos = pos + Angle( 0, locations[ I ], 0 ):Forward() * 47
-		TraceData = util.TraceEntity( trace, Entity(1) )
+		TraceData = util.TraceEntity( trace, victim )
 		if !TraceData.Hit then return TraceData.HitPos end
 	end
 	
