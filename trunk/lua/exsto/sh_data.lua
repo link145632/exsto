@@ -498,7 +498,7 @@ if SERVER then
 			steam = ply:SteamID()
 		end
 		
-		//local banned_by = banned_by:Nick()
+		local banned_by = banned_by:Nick()
 
 		FEL.AddData( "exsto_data_bans", {
 			Look = {
