@@ -541,7 +541,7 @@ local function ExstoParseCommand( ply, command, args, style )
         if type(args) == "string" then Extra = args
         else Extra = table.concat(args," ")
         end
-        Msg("[EXSTO] "..(hide > 0 and "<Hidden> " or "")..ply:Name().." ~ "..command.." "..Extra.."\n")
+        -- Msg("[EXSTO] "..(hide > 0 and "<Hidden> " or "")..ply:Name().." ~ "..command.." "..Extra.."\n")
 			
 			return ""
 		end

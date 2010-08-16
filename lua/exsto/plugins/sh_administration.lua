@@ -245,8 +245,10 @@
                             ply = user
 						end
 					else
-						if string.find(string.lower(user.Name),string.lower(data)) then
+						if string.lower(user.Name) == string.lower(data) then
                             ply = user
+						elseif string.find(string.lower(user.Name),string.lower(data)) then
+                            ply = ply[1] and ply or user
 						end						
 					end
                  end
@@ -265,9 +267,19 @@
 					{"Last Joined: "..os.date( "%c", LastTime )},
 					{"Total Time : "..timeToStr(UserTime)}
 				}
+                
+                local BanInfo = FEL.Query( "SELECT BannedAt, Length, Reason FROM exsto_data_bans WHERE SteamID = " .. FEL.Escape(ply.SteamID) .. ";" ) 
+                if BanInfo then
+                    BInfo = BanInfo[1]
+                    table.insert(info,{" ~User is banned"})
+                    table.insert(info,{"Banned at: "..os.date("%c",BInfo.BannedAt)})
+                    table.insert(info,{"Banned to: "..(tonumber(BInfo.Length) > 0 and os.date("%c",BInfo.BannedAt + BInfo.Length) or "Permanent")})
+                    table.insert(info,{"Reason :   "..(BInfo.Reason or "No reason.")})
+                end
 				 
 				 for v,k in ipairs(info) do
-					owner:Print(exsto_CLIENT,unpack(info[v]))
+                    if owner:EntIndex() == 0 then owner:Print(exsto_CHAT,unpack(info[v]))
+                    else owner:Print(exsto_CLIENT,unpack(info[v])) end
 				 end
                 RColor = exsto.GetRankColor(ply.Rank)
                  return { owner,COLOR.NORM,"Player: ",RColor,ply.Name,COLOR.NORM," looked up, check console for info." }
@@ -285,6 +297,7 @@
         PLUGIN:RequestQuickmenuSlot( "lookup" )
          
         function timeToStr( time )
+           if !time then return "Permanent." end
             local tmp = time
             local s = tmp % 60
             tmp = math.floor( tmp / 60 )
