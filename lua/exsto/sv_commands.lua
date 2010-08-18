@@ -252,15 +252,15 @@ function exsto.PrintReturns( data, I, multiplePeople, hide )
 		if data.Activator and (data.Activator:IsValid() or data.Activator:EntIndex() == 0) and data.Wording then
 			data.Player = data.Player or data.Object
 			local ply = data.Player
-			if data.Player and type( data.Player ) == "Player" then ply = data.Player end
+			if data.Player and type( data.Player ) == "Player" then ply = data.Player:Nick() end
             
 			-- Change to himself if the acting player is the victim
-			if ply == data.Activator then ply = "themself" end
+			if ply == data.Activator:Nick() then ply = "themself" end
 			
 			-- Format any [self] requests.
 			data.Wording = data.Wording:gsub( "%[self%]%", data.Activator:Nick() )
 			
-			local talk = { unpack( style ), COLOR.NAME, data.Activator:EntIndex() == 0 and "Console" or data.Activator, COLOR.NORM, data.Wording }
+			local talk = { unpack( style ), COLOR.NAME, data.Activator:EntIndex() == 0 and "Console" or data.Activator:Nick(), COLOR.NORM, data.Wording }
 			
 			if ply then 
 				table.insert( talk, COLOR.NAME )
