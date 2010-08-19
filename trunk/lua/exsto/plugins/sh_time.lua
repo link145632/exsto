@@ -13,10 +13,13 @@ PLUGIN:SetInfo({
 if SERVER then
 
 	PLUGIN:CreateTable( "exsto_plugin_time", {
-		Player = "varchar(255)",
-		SteamID = "varchar(255)",
-		Time = "int",
-		Last = "int"
+			Player = "varchar(255)",
+			SteamID = "varchar(255)",
+			Time = "int",
+			Last = "int"
+		},
+		{
+			PrimaryKey = "SteamID",
 		}
 	)
 	

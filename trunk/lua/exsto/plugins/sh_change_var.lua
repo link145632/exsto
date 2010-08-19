@@ -45,6 +45,30 @@ if SERVER then
 		Args = {Variable = "STRING", Value = "STRING"},
 		Category = "Variables",
 	})
+	
+	function PLUGIN:DeleteEnvVar( owner, dirty )
+		
+		-- If we are an existing one.
+		local existing = exsto.GetVar( dirty )
+		if existing then
+			exsto.Variables[ dirty ] = nil
+			
+			FEL.RemoveData( "exsto_data_variables", "Dirty", dirty )
+			return { COLOR.NAME, owner:Nick(), COLOR.NORM, " has deleted environmental variable: ", COLOR.NAME, dirty, COLOR.NORM, "!" }
+		end
+		
+		return { owner, COLOR.NORM, "No existing environmental variable for ", COLOR.NAME, dirty, COLOR.NORM, "!" }
+		
+	end
+	PLUGIN:AddCommand( "deletevar", {
+		Call = PLUGIN.DeleteEnvVar,
+		Desc = "Allows users to delete environment variables.",
+		Console = { "deleteenv" },
+		Chat = { "!deleteenv" },
+		ReturnOrder = "Variable",
+		Args = {Variable = "STRING"},
+		Category = "Variables",
+	})
 
 	function PLUGIN:ChangeVar( owner, var, value )
 	
@@ -104,6 +128,7 @@ if SERVER then
 				Data.DataType = v.DataType
 				Data.Description = v.Description
 				Data.Possible = v.Possible
+				Data.EnvVar = v.EnvVar
 				
 			table.insert( Send, Data )
 		end
@@ -120,161 +145,172 @@ if SERVER then
 	
 elseif CLIENT then
 
-	local title;
-	local list;
-	local ClientVars = {}
-	
-	local function RefreshClientView()
-	
-		list:Clear()
-	
-		for k,v in pairs( ClientVars ) do
-
-			list:AddLine( v.Pretty, v.Dirty, v.Value ):SetTooltip( v.Description or "No Description Provided" )
-			
-		end
-		
+	function PLUGIN:ExRecVars( vars )
+		if !vars then return end
+		self.Vars = vars
+		Menu:EndLoad()
+		if self.List then self.List:Refresh() end
 	end
+	PLUGIN:DataHook( "ExRecVars" )
 	
-	function PLUGIN.RecieveVars( vars )
-	
-		ClientVars = vars
-		RefreshClientView()
-		Menu.EndLoad()
-		
-	end
-	exsto.UMHook( "ExRecVars", PLUGIN.RecieveVars )
-
-	--[[Menu.CreatePage( {
-		Title = "Variable Editor",
-		Short = "vareditor",
-		Flag = "vareditor",
-		}, 
-		function( panel )
-	
-		local curVar;
-		local curLine;
-
-		list = exsto.CreateListView( 5, 5, panel:GetWide() - 10, 400, panel )
-			list.Color = Color( 224, 224, 224, 255 )
+	function PLUGIN:Build( panel )
+		self.List = exsto.CreateListView( 10, 10, panel:GetWide() - 20, panel:GetTall() - 80, panel )
+			self.List:AddColumn( "Name" )
+			self.List:AddColumn( "ID" )
+			self.List:AddColumn( "Value" )
+			self.List:AddColumn( "Data Type" )
 			
-			list.HoverColor = Color( 229, 229, 229, 255 )
-			list.SelectColor = Color( 149, 227, 134, 255 )
-			
-			list:SetHeaderHeight( 40 )
-			list.Round = 8
-			list.ColumnFont = "exstoPlyColumn"
-			list.ColumnTextCol = Color( 140, 140, 140, 255 )
-
-			list.LineFont = "exstoDataLines"
-			list.LineTextCol = Color( 164, 164, 164, 255 )
-			
-			list:AddColumn( "Pretty" )
-			list:AddColumn( "Dirty" ):SetFixedWidth( 200 )
-			list:AddColumn( "Value" ):SetFixedWidth( 45 )
-			
-		Menu.PushLoad()
-		RunConsoleCommand( "_RequestVars" )
-		
-		local PrettyPanel = exsto.CreateLabeledPanel( 5, 415, (panel:GetWide() / 2) - 20, 40, "Name", Color( 232, 232, 232, 255 ), panel )
-		local PrettyEntry = exsto.CreateTextEntry( 5, 10, PrettyPanel:GetWide() - 10, 20, PrettyPanel )
-			PrettyEntry:SetEditable( false )
-			PrettyPanel.Label:SetFont( "labeledPanelFont" )
-		
-		local DirtyPanel = exsto.CreateLabeledPanel( 5, 475, (panel:GetWide() / 2) - 20, 40, "Short", Color( 232, 232, 232, 255 ), panel )
-		local DirtyEntry = exsto.CreateTextEntry( 5, 10, DirtyPanel:GetWide() - 10, 20, DirtyPanel )
-			DirtyEntry:SetEditable( false )
-			DirtyPanel.Label:SetFont( "labeledPanelFont" )
-		
-		local ValuePanel = exsto.CreateLabeledPanel( (panel:GetWide() / 2), 475, (panel:GetWide() / 2) - 20, 40, "Value", Color( 232, 232, 232, 255 ), panel )
-		local ValueEntry = exsto.CreateTextEntry( 5, 10, ValuePanel:GetWide() - 10, 20, ValuePanel )
-		local NCValueEntry = exsto.CreateMultiChoice( 5, 10, ValuePanel:GetWide() - 10, 20, ValuePanel )
-			NCValueEntry:SetVisible( false )
-			NCValueEntry:SetEditable( false )
-			ValuePanel.Label:SetFont( "labeledPanelFont" )
-		
-		local TypePanel = exsto.CreateLabeledPanel( (panel:GetWide() / 2), 415, (panel:GetWide() / 2) - 20, 40, "Data Type", Color( 232, 232, 232, 255 ), panel )
-		local TypeEntry = exsto.CreateTextEntry( 5, 10, TypePanel:GetWide() - 10, 20, TypePanel )
-			TypeEntry:SetEditable( false )
-			TypePanel.Label:SetFont( "labeledPanelFont" )
-			
-		local RefreshButton = exsto.CreateButton( 5, 525, 112, 27, "Refresh Vars", panel )
-		local UpdateButton = exsto.CreateButton( 120, 525, 107, 27, "Update Vars", panel )
-		
-		RefreshButton.DoClick = function() Menu.PushLoad() RunConsoleCommand( "_RequestVars" ) end
-		UpdateButton.DoClick = function() exsto.SendToServer( "ExRecVarChange", list:GetSelected()[1]:GetValue( 2 ), list:GetSelected()[1]:GetValue( 3 ) ) end
-		
-		local oldClick = list.OnClickLine
-		list.OnClickLine = function( parent, line, selected )
-			oldClick( parent, line, selected )
-			
-			local varTable = -1
-			
-			for k,v in pairs( ClientVars ) do
-				if v.Pretty == line:GetValue(1) then varTable = ClientVars[k] end
+			self.List.Refresh = function( lst )
+				lst:Clear()
+				for _, data in ipairs( self.Vars ) do
+					lst:AddLine( data.Pretty, data.Dirty, data.Value, data.DataType )
+				end
 			end
+			self.List:Refresh()
 			
-			if varTable == -1 then return end
-			curVar = varTable
-			curLine = line
-			
-			PrettyEntry:SetText( tostring( varTable.Pretty ) )
-			DirtyEntry:SetText( tostring( varTable.Dirty ) )
-			TypeEntry:SetText( tostring( PLUGIN.ParseType( varTable.Value ) ) )
-			NCValueEntry:Clear()
-			
-			if #varTable.Possible >= 1 then
+			self.List.OnRowSelected = function( lst, line )
+				self.CurrentLine = lst:GetLine( line )
+				self.ShortBox:SetText( self.CurrentLine:GetValue( 2 ) )
+				self.ShortBox:SetEditable( false )
 				
-				NCValueEntry:SetText( tostring( varTable.Value ) )
-
-				for k,v in pairs( varTable.Possible ) do
-
-					NCValueEntry:AddChoice( tostring( v ) )
-
+				self.PossibleBox:Clear()
+				
+				for _, data in ipairs( self.Vars ) do
+					if data.Dirty == self.CurrentLine:GetValue( 2 ) then
+						if table.Count( data.Possible ) > 1 then
+							-- He has possibles.
+							self.PossibleBox:SetVisible( true )
+							self.ValueBox:SetVisible( false )
+							
+							self.PossibleBox:SetText( tostring( self.CurrentLine:GetValue( 3 ) ) )
+							
+							for _, possible in ipairs( data.Possible ) do
+								self.PossibleBox:AddChoice( tostring( possible ) )
+							end
+						else
+							self.ValueBox:SetText( tostring( self.CurrentLine:GetValue( 3 ) ) )
+							self.ValueBox:SetVisible( true )
+							self.PossibleBox:SetVisible( false )
+						end
+						break
+					end
 				end
 				
-				ValueEntry:SetVisible( false )
-				NCValueEntry:SetVisible( true )
+				self.DeleteVar:SetVisible( false )
 				
-			else
-			
-				ValueEntry:SetText( tostring( varTable.Value ) )
-				ValueEntry:SetVisible( true )
-				NCValueEntry:SetVisible( false )
+				local found = false
+				for _, data in ipairs( self.Vars ) do
+					if data.Dirty == self.CurrentLine:GetValue( 2 ) then found = data break end
+				end
 				
+				print( found )
+				if type( found ) == "table" then PrintTable( found ) end
+				
+				if !found or tobool( found.EnvVar ) == true then
+					-- Give him a delete option.
+					self.DeleteVar:SetVisible( true )
+				end
 			end
 			
+		local function hideOnSelect( entry )
+			if !entry.hideAble then return end
+			entry:SetText( "" )
+			entry.hideAble = false
 		end
-		
-		local function PerformSelect( entry )
-		
-			if !curVar or !curLine then return end
-			if type( entry ) == "string" then entry = entry else entry = entry:GetValue() end
 			
-			curLine:SetValue( 3, entry )
-			TypeEntry:SetText( PLUGIN.ParseType( entry ) )
+		self.ShortLabel = exsto.CreateLabel( 10, self.List:GetTall() + 20, "ID:", "arial", panel )
+		self.ShortBox = exsto.CreateTextEntry( 30, self.List:GetTall() + 20, 140, 20, panel )
+			self.ShortBox.OnMousePressed = hideOnSelect
+			self.ShortBox.OnTextChanged = function( entry )
+				self.CurrentLine:SetValue( 1, "envvar_" .. entry:GetValue() )
+				self.CurrentLine:SetValue( 2, entry:GetValue() )
+			end
 			
+		self.ValueLabel = exsto.CreateLabel( 10, self.List:GetTall() + 50, "Value:", "arial", panel )
+		self.ValueBox = exsto.CreateTextEntry( 50, self.List:GetTall() + 50, 120, 20, panel )
+			self.ValueBox.OnMousePressed = hideOnSelect
+			self.ValueBox.OnTextChanged = function( entry )
+				self.CurrentLine:SetValue( 3, entry:GetValue() )
+			end
+		self.PossibleBox = exsto.CreateMultiChoice( 50, self.List:GetTall() + 50, 120, 20, panel )
+			self.PossibleBox:SetVisible( false )
+			self.PossibleBox:SetEditable( false )
+			self.PossibleBox.OnSelect = function( index, value, data )
+				self.CurrentLine:SetValue( 3, data )
+			end
+		
+		self.ChangeButton = exsto.CreateButton( panel:GetWide() - 80, panel:GetTall() - 40, 74, 27, "Change", panel )
+			self.ChangeButton:SetStyle( "positive" )
+			self.ChangeButton.OnClick = function( button )
+				local short = self.CurrentLine:GetValue( 2 )
+				local done = false
+				for _, data in ipairs( self.Vars ) do
+					if data.Dirty == short then
+						RunConsoleCommand( "exsto", "changevar", data.Dirty, tostring( self.CurrentLine:GetValue( 3 ) ) )
+						done = true
+						break
+					end
+				end 
+				if done then return end
+				
+				-- Apparently, its an new var
+				RunConsoleCommand( "exsto", "createenv", short, self.CurrentLine:GetValue( 3 ) )
+			end
+			
+		self.CreateVar = exsto.CreateButton( 0, panel:GetTall() - 40, 94, 27, "Create Var", panel )
+			self.CreateVar:MoveLeftOf( self.ChangeButton, 15 )
+			self.CreateVar:SetStyle( "positive" )
+			self.CreateVar.OnClick = function( button )
+				self.ShortBox.hideAble = true
+				self.ValueBox.hideAble = true
+				
+				local line = self.List:AddLine( "envvar_create_new", "create_new", "value", "string" )
+				self.List:OnClickLine( line, true )
+				
+				self.ShortBox:SetText( "create_new" )
+				self.ShortBox:SetEditable( true )
+				self.ValueBox:SetText( "value" )
+				self.ValueBox:SetVisible( true )
+				self.PossibleBox:SetVisible( false )
+			end
+			
+		self.Refresh = exsto.CreateButton( 0, panel:GetTall() - 40, 74, 27, "Refresh", panel )
+			self.Refresh:MoveLeftOf( self.CreateVar, 15 )
+			self.Refresh.OnClick = function()
+				self:RefreshVars( panel )
+			end
+			
+		self.DeleteVar = exsto.CreateButton( 0, panel:GetTall() - 40, 74, 27, "Delete", panel )
+			self.DeleteVar:MoveLeftOf( self.Refresh, 15 )
+			self.DeleteVar:SetVisible( false )
+			self.DeleteVar.OnClick = function()
+				RunConsoleCommand( "exsto", "deleteenv", self.CurrentLine:GetValue( 2 ) )
+				self:RefreshVars( panel )
+			end
+	end
+	
+	function PLUGIN:RefreshVars( panel )
+		Menu:PushLoad()
+		RunConsoleCommand( "_RequestVars" )
+		self.Vars = nil
+		self:Ping( panel )
+	end 
+	
+	function PLUGIN:Ping( panel )
+		if type( self.Vars ) != "table" then
+			timer.Simple( 0.1, PLUGIN.Ping, PLUGIN, panel )
+			return
 		end
-		ValueEntry.OnTextChanged = PerformSelect
-		NCValueEntry.OnSelect = function( index, value, data ) PerformSelect( data ) end
-
+		if self.List then return end
+		self:Build( panel )
+	end
+	
+	Menu:CreatePage({
+		Title = "Variable Editor",
+		Short = "vareditor",
+	}, function( panel )
+		PLUGIN:RefreshVars( panel )
 	end )
-	
-	function PLUGIN.ParseType( text )
-	
-		if type( text ) == "boolean" then return "boolean" end
-		if type( text ) == "number" then return "integer" end
-		
-		if type( text ) != "string" then return "unknown" end
-	
-		text = text:lower():Trim()
-	
-		if text == "true" or text == "false" then return "boolean" end
-		if tonumber( text ) then return "integer" end
-		
-		return "string"
-		
-	end]]
 	
 end
  

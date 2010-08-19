@@ -27,7 +27,7 @@ FEL.MakeTable( "exsto_data_variables", {
 	Description = "varchar(255)",
 	Possible = "varchar(255)",
 	EnvVar = "boolean",
-	}
+	}, { PrimaryKey = "Dirty" }
 )
 
 exsto.Variables = {}

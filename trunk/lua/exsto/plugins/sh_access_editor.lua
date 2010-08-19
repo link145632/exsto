@@ -193,11 +193,14 @@ elseif CLIENT then
 		
 		local immunityData = {}
 		for short, data in pairs( exsto.Ranks ) do
-			local page = self.Tabs:CreatePage( panel )
-			self:FormPage( page, data )
-			self.Tabs:AddItem( data.Name, page )
-			
-			table.insert( immunityData, { Name = data.Name, Immunity = data.Immunity, Short = data.Short } )
+			print( short )
+			if short != "owner" then
+				local page = self.Tabs:CreatePage( panel )
+				self:FormPage( page, data )
+				self.Tabs:AddItem( data.Name, page )
+				
+				table.insert( immunityData, { Name = data.Name, Immunity = data.Immunity, Short = data.Short } )
+			end
 		end
 		
 		local page = self.Tabs:CreatePage( panel )
@@ -239,7 +242,7 @@ elseif CLIENT then
 
 		local immunityRaise = exsto.CreateButton( 10, self.Secondary:GetTall() - 33, 60, 27, "Raise", self.Secondary )
 			immunityRaise:SetStyle( "positive" )
-			immunityRaise.DoClick = function( self )
+			immunityRaise.OnClick = function( self )
 				local selected = PLUGIN.ImmunityBox.m_pSelected
 				if selected then
 					if selected.Immunity == 0 then return end
@@ -253,7 +256,7 @@ elseif CLIENT then
 			
 		local immunityLower = exsto.CreateButton( self.Secondary:GetWide() - 70, self.Secondary:GetTall() - 33, 60, 27, "Lower", self.Secondary )
 			immunityLower:SetStyle( "negative" )
-			immunityLower.DoClick = function( self )
+			immunityLower.OnClick = function( self )
 				local selected = PLUGIN.ImmunityBox.m_pSelected
 				if selected then				
 					PLUGIN.ImmunityBox.Changed[ selected.Short ] = selected.Immunity + 1
@@ -532,7 +535,7 @@ elseif CLIENT then
 		-- Commit Buttons
 		local save = exsto.CreateButton( panel:GetWide() - 80, panel:GetTall() - 40, 70, 27, "Save", panel )
 			save:SetStyle( "positive" )
-			save.DoClick = function( self )
+			save.OnClick = function( self )
 				if nameEntry:GetValue() == "" then Menu:PushError( "Please enter a name for the rank!" ) return end
 				if uidEntry:GetValue() == "" then Menu:PushError( "Please enter a UID for the rank!" ) return end
 				if descEntry:GetValue() == "" then descEntry:SetText( "None Provided" ) end
@@ -545,7 +548,7 @@ elseif CLIENT then
 			delete:SetStyle( "negative" )
 			delete:MoveLeftOf( save, 5 )
 			delete:SetVisible( data.CanRemove )
-			delete.DoClick = function( self )
+			delete.OnClick = function( self )
 				Menu:PushLoad()
 				Menu.CallServer( "_DeleteRank", data.Short )
 			end
@@ -553,7 +556,7 @@ elseif CLIENT then
 		local refresh = exsto.CreateButton( 0, panel:GetTall() - 40, 75, 27, "Refresh", panel )
 			refresh:SetStyle( "neutral" )
 			refresh:MoveLeftOf( delete, 5 )
-			refresh.DoClick = function( self )
+			refresh.OnClick = function( self )
 				PLUGIN:ReloadMenu( PLUGIN.Panel )
 			end
 	end

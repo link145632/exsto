@@ -74,6 +74,7 @@ SKIN.fontButton                                 = "exstoListColumn"
 
 SKIN.ExstoButtonBorder		= Color( 194, 194, 194, 255 )
 SKIN.ExstoWhite				= Color( 255, 255, 255, 255 )
+SKIN.ExstoHoveredWhite		= Color( 194, 194, 194, 255 )
 SKIN.ExstoTextEntryBorder   = Color( 100, 180, 94, 255 )
 SKIN.ExstoTextEntryFill		= Color( 246, 246, 246, 255 )
 SKIN.ExstoScrollBG			= Color( 0, 0, 0, 12 )
@@ -184,6 +185,8 @@ function SKIN:PaintButton( panel )
 		local style = ""
 		if panel.GetStyle then style = panel:GetStyle() end
 		
+		local white = self.ExstoWhite
+		
 		local gradHigh = panel.GradientHigh
 		local gradLow = panel.GradientLow
 		if panel.Hovered and style == "secondary" then
@@ -197,7 +200,7 @@ function SKIN:PaintButton( panel )
 		end
 
 		draw.RoundedBox( panel.Rounded or 0, 0, 0, panel:GetWide(), panel:GetTall(), border )
-		if ( panel.Hovered or style == "secondary" ) and self.GetStyle then
+		if ( panel.Hovered or style == "secondary" ) and panel.GetStyle then
 			surface.SetDrawColor( gradLow.r, gradLow.g, gradLow.b, gradLow.a )
 			surface.DrawRect( 1, 1, panel:GetWide() - 2, panel:GetTall() - 2 )
 			
@@ -205,11 +208,26 @@ function SKIN:PaintButton( panel )
 			surface.SetDrawColor( gradHigh.r, gradHigh.g, gradHigh.b, gradHigh.a )
 			surface.DrawTexturedRect( 1, 1, panel:GetWide() - 2, panel:GetTall() - 2 )
 		else
-			draw.RoundedBox( panel.Rounded or 0, 1, 1, panel:GetWide() - 2, panel:GetTall() - 2, self.ExstoWhite )
+			draw.RoundedBox( panel.Rounded or 0, 1, 1, panel:GetWide() - 2, panel:GetTall() - 2, white )
 		end
 		
 		if panel.isEnabled then
 			surface.SetDrawColor( 255, 255, 255, 255 )
+			surface.SetTexture( surface.GetTextureID( "exstoButtonGlow" ) )
+			surface.DrawTexturedRect( 0, 0, panel:GetWide(), panel:GetTall() )
+		end
+		
+		if panel.Flashing then
+			if panel.BeginFlash + 1 <= CurTime() then
+				panel.FlashAlpha = panel.FlashAlpha - ( FrameTime() * 140 )
+				
+				if panel.FlashAlpha <= 0 then
+					panel.Flashing = false
+					return
+				end
+			end
+			
+			surface.SetDrawColor( 255, 255, 255, panel.FlashAlpha )
 			surface.SetTexture( surface.GetTextureID( "exstoButtonGlow" ) )
 			surface.DrawTexturedRect( 0, 0, panel:GetWide(), panel:GetTall() )
 		end

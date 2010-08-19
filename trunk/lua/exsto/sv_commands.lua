@@ -747,6 +747,8 @@ function exsto.OpenMenu( ply, _, args )
 	local bindPressed = nil
 	if args and args[1] then bindPressed = args[1] end
 	
+	print( "SERVER RANK --> " .. ply:GetRank() )
+	
 	exsto.UMStart( "exsto_Menu", ply, menuAuthKey, ply:GetRank(), #exsto.GetRankData( ply:GetRank() ).Flags, bindPressed )
 	
 end

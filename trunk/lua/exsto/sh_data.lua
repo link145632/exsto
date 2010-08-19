@@ -204,7 +204,7 @@ if SERVER then
 	Description: Prints an error recieved from the FEL.Query
      ----------------------------------- ]]
 	function FEL.PrintError( info )
-		ErrorNoHalt( "\n---- FEL SQL Error ----\n ** Running - \n ** Error Msg - " .. info.Error .. "\n" );
+		ErrorNoHalt( "\n---- FEL SQL Error ----\n ** Running - " .. info.Running .. " \n ** Error Msg - " .. info.Error .. "\n" );
 	end
 	
 --[[ -----------------------------------
@@ -223,43 +223,105 @@ if SERVER then
 	Function: FEL.CheckTable
 	Description: Checks a table to see if it has all the correct columns.  Will recreate if not.
      ----------------------------------- ]]
-	function FEL.CheckTable( name, data )
+	function FEL.CheckTable( name, data, options )
 	
-		-- First, lets check if the table exists.
 		local tbl = FEL.Query( "SELECT * FROM " .. name .. ";", nil, nil, false )
+		local cachedData = glon.decode( file.Read( "exsto_felcache/" .. name .. "_cache.txt" ) or "" )
 		
 		if !tbl then return false end
 		
-		-- He exists, lets see if his columns are all correct.
-		local columns = {}
-		for k,v in pairs( tbl[1] ) do
-			table.insert( columns, k )
+		if !cachedData or cachedData == "" then
+			exsto.Print( exsto_CONSOLE, "FEL --> No cached data exists for table '" .. name .. "'.  Dropping and updating to support new Exsto format." )
+			FEL.Query( "DROP TABLE " .. name .. ";" )
+			file.Write( "exsto_felcache/" .. name .. "_cache.txt", glon.encode( { data, options } ) )
+			return tbl
 		end
 		
-		local missing = false
-		for k,v in pairs( data ) do
-			if !table.HasValue( columns, k ) then
-				-- The saved data is missing a SQL column!
-				missing = true
-				break
+		local currentColumns = {}
+		for column, _ in pairs( data ) do
+			currentColumns[ column ] = _
+		end
+
+		local prevColumns = {}
+		for column, _ in pairs( tbl[1] ) do
+			prevColumns[ column ] = _
+		end
+		
+		local changedData = {}
+		
+		-- Check if we removed any columns
+		for column, dataType in pairs( prevColumns ) do
+			if !currentColumns[ column ] then
+				-- We removed a column.  Add it.
+				print( "Saved data contains extra " .. column )
+				table.insert( changedData, { Type = "remove", Column = column } )
 			end
 		end
 		
-		if !missing then return false end
+		-- Check if we add any columns
+		for column, dataType in pairs( currentColumns ) do
+			if !prevColumns[ column ] then
+				-- We added one.  Add it.
+				print( "Saved data doesn't contain " .. column .. ".  Adding" )
+				table.insert( changedData, { Type = "add", Column = column, Data = dataType } )
+			end
+		end
+				
+		-- Check if we changed any datatypes.
+		for column, dataType in pairs( data ) do
+			if !table.HasValue( cachedData[1], dataType ) then
+				-- Data type updated.  Fix it.
+				table.insert( changedData, { Type = "dt", Column = column, Data = dataType } )
+			end
+		end
+
+		-- Our settings table changed.
+		if type( cachedData[2] ) != "table" and table.Count( options ) != 0 then
+			cachedData[2] = {}
+			table.insert( changedData, { Type = "options" } )
+		end
 		
-		-- We already have the table data stored, so lets delete the old table and transfer in the new data.
-		FEL.Query( "DROP TABLE " .. name .. ";" ) -- Bye.
-		exsto.Print( exsto_ERRORNOHALT, "FEL --> Table " .. name .. " doesn't contain all required columns!  Recreating!" )
+		PrintTable( cachedData[2] or {} )
+		print( "----" )
+		PrintTable( options or {} )
 		
-		return tbl 
-		
+		-- Check options
+		if cachedData[2] then
+			if !cachedData[2].PrimaryKey and options.PrimaryKey then -- We added a primary key!
+				table.insert( changedData, { Type = "pk", Data = options.PrimaryKey } )
+			end
+		end
+
+		-- Finally commit our changes
+		if table.Count( changedData ) != 0 then
+			local begin = "ALTER TABLE " .. name 
+			for _, data in ipairs( changedData ) do
+				if data.Type == "remove" then
+					FEL.Query( begin .. " DROP COLUMN " .. data.Column .. ";" )
+				elseif data.Type == "add" then
+					FEL.Query( begin .. " ADD " .. data.Column .. " " .. data.Data .. ";" )
+				elseif data.Type == "dt" then
+					FEL.Query( begin .. " ALTER COLUMN " .. data.Column .. " " .. data.Data .. ";" )
+				elseif data.Type == "pk" then
+					FEL.Query( begin .. " ADD PRIMARY KEY (" .. data.Data .. ");" )
+				end
+			end
+			
+			exsto.Print( exsto_CONSOLE, "FEL --> Updating file cache for '" .. name .. "'" )
+			
+			file.Write( "exsto_felcache/" .. name .. "_cache.txt", glon.encode( { data, options } ) )
+			
+			-- Tell the internal table maker to stop.  We don't need to perform the rest of his code.
+			return true
+		end
+	
 	end
 
 --[[ -----------------------------------
 	Function: FEL.MakeTable_Internal
 	Description: Creates a table
      ----------------------------------- ]]
-	function FEL.MakeTable_Internal( name, data )
+	function FEL.MakeTable_Internal( name, data, options )
 
 		if type( data ) != "table" then exsto.Error( "Error while trying to create table " .. name .. "!  Data variable is not a table!" ) return end
 		if type( name ) != "string" then exsto.Error( "Error while trying to create table " .. name .. "!  Name variable is not a string!" ) return end
@@ -268,8 +330,11 @@ if SERVER then
 		local num = exsto.SmartNumber( data )
 		local curSlot = 1
 		
+		options = options or {}
+		
 		-- Check and make sure if there is an existing table, and it is up to date.
-		local savedInfo = FEL.CheckTable( name, data )
+		local savedInfo = FEL.CheckTable( name, data, options )
+		if savedInfo == true then return end -- We don't need to create the table if it already exists...
 		
 		for k,v in pairs( data ) do
 			
@@ -283,8 +348,15 @@ if SERVER then
 			
 		end
 
-		local query = string.format( "CREATE TABLE IF NOT EXISTS %s (%s);", name, columns );
-		FEL.Query( query );
+		local query = string.format( "CREATE TABLE IF NOT EXISTS %s (%s", name, columns );
+		
+		-- Check our options.
+		if options then
+			if options.PrimaryKey then
+				query = query .. ", PRIMARY KEY (" .. options.PrimaryKey .. ")" 
+			end
+		end
+		FEL.Query( query .. ");" );
 		exsto.Print( exsto_CONSOLE_DEBUG, "FEL --> Creating table " .. name .. "!" )
 		
 		-- Save the data if the table had to be broken down.
@@ -302,9 +374,9 @@ if SERVER then
 	Function: FEL.MakeTable
 	Description: Creates a table and inserts it into the Exsto list of tables.
      ----------------------------------- ]]
-	function FEL.MakeTable( name, data )
+	function FEL.MakeTable( name, data, options )
 		FEL.CreatedTables[name] = data;
-		FEL.MakeTable_Internal( name, data )
+		FEL.MakeTable_Internal( name, data, options )
 	end
 
 --[[ -----------------------------------
@@ -649,8 +721,11 @@ if SERVER then
 			SteamID = "varchar(255)",
 			Name = "varchar(255)",
 			Rank = "varchar(255)",
-			}
-		)
+		},
+		{
+			PrimaryKey = "SteamID",
+		}
+	)
 
 	FEL.MakeTable( "exsto_data_bans", {
 			Name = "varchar(255)",
@@ -659,8 +734,11 @@ if SERVER then
 			Reason = "varchar(255)",
 			BannedBy = "varchar(255)",
 			BannedAt = "int",
-			}
-		)
+		},
+		{
+			PrimaryKey = "SteamID",
+		}
+	)
 		
 end
 

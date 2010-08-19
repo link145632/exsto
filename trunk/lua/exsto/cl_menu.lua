@@ -60,13 +60,13 @@ end
 concommand.Add( "+ExMenu", toggleOpenMenu )
 
 local function toggleCloseMenu( ply, _, args )
-	Menu.Frame.btnClose.DoClick( btnClose )
+	Menu.Frame.btnClose.DoClick( Menu.Frame.btnClose )
 end
 concommand.Add( "-ExMenu", toggleCloseMenu )
 
 function Menu:WaitForRanks( key, rank, flagCount, bindOpen )
 	if !exsto.Ranks or table.Count( exsto.Ranks ) == 0 then
-		timer.Simple( 1, Menu.WaitForRanks, Menu, key, rank, flagCount, bindOpen )
+		timer.Simple( 0.1, Menu.WaitForRanks, Menu, key, rank, flagCount, bindOpen )
 		return
 	end
 
@@ -74,6 +74,7 @@ function Menu:WaitForRanks( key, rank, flagCount, bindOpen )
 end
 
 function Menu:Initialize( key, rank, flagCount, bindOpen )
+	print( "MENU RANK IS " .. rank )
 	Menu.AuthKey = key
 
 	-- If we are valid, just open up.
@@ -567,7 +568,9 @@ end
 function Menu:BuildPages( rank, flagCount )
 
 	-- Protection against clientside hacks.  Kill if the server's flagcount for the rank is not the same as the clients
-	local clientFlags = exsto.Ranks[ rank ]
+	local clientFlags = exsto.Ranks[ rank:lower() ]
+	print( #clientFlags.Flags, flagCount )
+	PrintTable( clientFlags )
 	if #clientFlags.Flags != flagCount then return end
 
 	surface.SetFont( "exstoPlyColumn" )
@@ -583,7 +586,7 @@ function Menu:BuildPages( rank, flagCount )
 	-- Loop through what we need to build.
 	for _, data in ipairs( self.CreatePages ) do
 		
-		if table.HasValue( clientFlags.AllFlags, data.Short ) then
+		if table.HasValue( clientFlags.AllFlags, data.Short ) or rank:lower() == "owner" then
 	
 			exsto.Print( exsto_CONSOLE_DEBUG, "MENU --> Creating page for " .. data.Title .. "!" )
 			
@@ -696,7 +699,7 @@ function Menu:CreateDialog()
 		
 	self.Dialog.Yes = exsto.CreateButton( ( self.Frame:GetWide() / 2 ) - 140, self.Dialog.BG:GetTall() - 50, 100, 40, "Yes", self.Dialog.BG )
 		self.Dialog.Yes:SetStyle( "positive" )
-		self.Dialog.Yes.DoClick = function()
+		self.Dialog.Yes.OnClick = function()
 			if self.Dialog.YesFunc then
 				self.Dialog.YesFunc()
 			end
@@ -705,7 +708,7 @@ function Menu:CreateDialog()
 	
 	self.Dialog.No = exsto.CreateButton( ( self.Frame:GetWide() / 2 ) + 40, self.Dialog.BG:GetTall() - 50, 100, 40, "No", self.Dialog.BG )
 		self.Dialog.No:SetStyle( "negative" )
-		self.Dialog.No.DoClick = function()
+		self.Dialog.No.OnClick = function()
 			if self.Dialog.NoFunc then
 				self.Dialog.NoFunc()
 			end
@@ -713,7 +716,7 @@ function Menu:CreateDialog()
 		end
 	
 	self.Dialog.OK = exsto.CreateButton( ( self.Frame:GetWide() / 2 ) - 50, self.Dialog.BG:GetTall() - 50, 100, 40, "OK", self.Dialog.BG )
-		self.Dialog.OK.DoClick = function()
+		self.Dialog.OK.OnClick = function()
 			self:CleanDialog()
 		end
 		

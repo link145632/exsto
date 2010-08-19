@@ -173,7 +173,7 @@ local function LoadVariables()
 	exsto.StartTime = SysTime()
 	exsto.UpdateHost = "http://94.23.154.153/Exsto/"
 	
-	exsto.VERSION = 64
+	exsto.VERSION = 83
 end
 
 local saveCount = 1
@@ -208,19 +208,15 @@ local function saveFile( data, contents )
 end
 
 local function getFile( url, args, callback )
-	print( exsto.UpdateHost .. "Updates/lua/exsto/" .. string.Trim( url ) )
 	if string.Trim( url ) == "" then return end
 	http.Get( exsto.UpdateHost .. "Updates/lua/exsto/" .. string.Trim( url ), "", callback, unpack( args ) )
 end
 
 local function callback( args, contents )
 	contents:Trim()
-	print( "FILE -----" .. args[1] )
-	local crc = nil
 	if type( contents ) == "string" and contents != "" then
 		crc = Hash( contents )
 	end
-	print( crc, args[2] )
 	if !crc or ( crc != tonumber( args[2] ) ) then print( "file not the same as server!  getting again." ) getFile( args[1], args, callback ) return end
 	saveFile( args, contents ) 
 end
@@ -228,7 +224,6 @@ end
 local function grabFiles( toUpdate, client )
 	totalCount = #toUpdate
 	for _, data in ipairs( toUpdate ) do
-		print( "Attempting to grab " .. data[1] )
 		getFile( data[1], data, callback )
 	end
 end
@@ -244,11 +239,11 @@ local function updateExsto( version, client )
 	localFiles.Version = version
 
 	local toUpdate = {}
-	print( "Begin file list grab" )
 	local run = "version.php?changes=true&old=" .. exsto.VERSION .. "&new=" .. version
 	if client then run = "version.php?changes=true&all=true" end
 	
 	http.Get( exsto.UpdateHost .. run, "", function( contents )
+		print( "UPDATE --> File list recieved!  Starting file download." )
 		local files = string.Explode( "\n", contents )
 		
 		-- go though each file and get his info.
@@ -320,9 +315,12 @@ local function beginExstoLoad( client, requestedVer )
 	exstoInit()
 end
 
+local function internalLoad( data )
+	CompileString( data, "ExCloudLoad" )
+end
+
 local toClientSend = {}
 local function newInclude( fl, clientSend )
-	print( "Including file " .. fl, SERVER, clientSend )
 	for _, data in ipairs( localFiles ) do
 		if "exsto/" .. string.Trim( data[1] ) == string.Trim( fl ) then
 			-- Insert it into a little string table to send to the client.
@@ -339,11 +337,17 @@ local function newInclude( fl, clientSend )
 				if !crc or ( tonumber( crc ) != tonumber( data[2] ) ) then
 					-- The data file is probably newer, load that.
 					local f = file.Read( dbLocation .. fl:gsub( "exsto/", "" ):gsub( ".lua", ".txt" ) )
-					print( "running it!" )
 					
 					if !f then return end
+					
+					local status, err = pcall( CompileString( f, "ExCloudLoad" ) )
 
-					RunString( f )
+					//local status, err = pcall( CompileString( f, "ExCloudLoad" ) )
+					if !status then
+						print( "UPDATE --> Error parsing update file '" .. fl .. "'.  Loading from local." )
+						return
+					end
+					
 					return true
 				end
 			end
@@ -352,16 +356,21 @@ local function newInclude( fl, clientSend )
 end
 
 function exstoInclude( fl )
-	if newInclude( fl ) != true then include( fl ) end
+	--if newInclude( fl ) != true then include( fl ) end
+	include( fl )
 end
 	
 function exstoAddCSLuaFile( fl )
 	//if !newInclude( fl, true ) then AddCSLuaFile( fl ) end
-	newInclude( fl, true )
+	--newInclude( fl, true )
 	AddCSLuaFile( fl )
 end
 
 function exstoInit()
+
+	LoadVariables()
+	PrintLoading()
+	
 	if exsto then
 		if exsto.Print then
 			exsto.Print( exsto_CHAT_ALL, COLOR.EXSTO, "Exsto", COLOR.NORM, " is reloading the core!" )
@@ -389,8 +398,8 @@ hook.Call = function( name, gm, ... )
 end
 
 if SERVER then
-	//exstoInit()
-	beginExstoLoad()
+	exstoInit()
+	--beginExstoLoad()
 	
 	concommand.Add( "exsto_cl_load", function( ply, _, args )
 		//if table.Count( toClientSend ) == 0 then
@@ -410,7 +419,8 @@ if SERVER then
 elseif CLIENT then
 
 	local function init( UM )
-		beginExstoLoad( true, UM:ReadShort() )
+		--beginExstoLoad( true, UM:ReadShort() )
+		exstoInit()
 		hook.Call( "ExInitialized" )
 	end
 	usermessage.Hook( "clexsto_load", init )

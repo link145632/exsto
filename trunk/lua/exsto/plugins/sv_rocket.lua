@@ -52,15 +52,8 @@ PLUGIN:RequestQuickmenuSlot( "ignite", {
 	}
 } )
 
-function PLUGIN:CanNoclip( ply )
+function PLUGIN:PlayerNoClip( ply )
 	if ply.IsRocket then return false end
-end
-
-function PLUGIN:PlayerDeath(victim,inflictor,killer)
--- print(tostring(victim).." died.") -- Hook's dead.
-	if victim.IsRocket then
-		victim:RocketExplode()
-	end
 end
 
 function _R.Player:RocketExplode()
@@ -73,6 +66,7 @@ function _R.Player:RocketExplode()
 		
 	self:StopParticles()
 	self:KillSilent()
+	self.IsRocket = false
 	
 	for _, ply in ipairs( PLUGIN.Rocketeers ) do
 		if ply.Player == self then
@@ -113,6 +107,13 @@ function PLUGIN:Think()
 					ply.Player:RocketPrep()
 					ply.Stage = 2
 				else
+					if ply.Player:Health() <= 0 then
+						print( "DEAD" )
+						ply.Player.IsRocket = false
+						ply.Text:Remove()
+						table.remove( self.Rocketeers, _ )
+						return
+					end
 					ply.Delay = ply.Delay - 1
 					ply.Text:SetText( "Liftoff in " .. ply.Delay )
 					ply.Player:EmitSound( "buttons/blip1.wav" )
@@ -126,7 +127,7 @@ function PLUGIN:Think()
 				ply.NumberTicksSinceLaunch = ply.NumberTicksSinceLaunch + 1
 				
 				-- If we hit something, stop
-				if ply.Player:GetVelocity().z <= 60 and ply.NumberTicksSinceLaunch >= 20 then 
+				if ply.Player:GetVelocity().z <= 60 and ply.NumberTicksSinceLaunch >= 20 or ply.Player:Health() <= 0 then 
 					timer.Destroy( "ExRocket" .. ply.Player:EntIndex() )
 					ply.Player:RocketExplode()
 				end
@@ -147,6 +148,7 @@ function PLUGIN:RocketMan( owner, ply, delay )
 		text:SetParent( ply )
 		
 	ply.IsRocket = true
+	ply:SetMoveType( MOVETYPE_WALK )
 	
 	table.insert( self.Rocketeers, {
 		Player = ply,
