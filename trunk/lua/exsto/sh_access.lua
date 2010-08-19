@@ -107,6 +107,17 @@ if SERVER then
 			end
 		end
 		
+		-- Check and see if we can do this baby.
+		if exsto.LoadedRanks[ "owner" ] then
+			-- Delete existing please.
+			FEL.RemoveData( "exsto_data_ranks", "Short", "owner" )
+			exsto.LoadedRanks[ "owner" ] = nil
+		elseif exsto.LoadedRanks[ "Owner" ] then
+			-- Delete existing please.
+			FEL.RemoveData( "exsto_data_ranks", "Short", "Owner" )
+			exsto.LoadedRanks[ "Owner" ] = nil
+		end
+		
 		exsto.LoadedRanks[ "owner" ] = {
 			Name = "Server Owner",
 			Desc = "He owns the server!",
