@@ -194,7 +194,7 @@ elseif CLIENT then
 		local immunityData = {}
 		for short, data in pairs( exsto.Ranks ) do
 			print( short )
-			if short != "owner" then
+			if short != "srv_owner" then
 				local page = self.Tabs:CreatePage( panel )
 				self:FormPage( page, data )
 				self.Tabs:AddItem( data.Name, page )
