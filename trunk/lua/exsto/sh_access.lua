@@ -108,20 +108,16 @@ if SERVER then
 		end
 		
 		-- Check and see if we can do this baby.
-		if exsto.LoadedRanks[ "owner" ] then
+		if exsto.LoadedRanks[ "srv_owner" ] then
 			-- Delete existing please.
-			FEL.RemoveData( "exsto_data_ranks", "Short", "owner" )
-			exsto.LoadedRanks[ "owner" ] = nil
-		elseif exsto.LoadedRanks[ "Owner" ] then
-			-- Delete existing please.
-			FEL.RemoveData( "exsto_data_ranks", "Short", "Owner" )
-			exsto.LoadedRanks[ "Owner" ] = nil
+			FEL.RemoveData( "exsto_data_ranks", "Short", "srv_owner" )
+			exsto.LoadedRanks[ "srv_owner" ] = nil
 		end
 		
-		exsto.LoadedRanks[ "owner" ] = {
+		exsto.LoadedRanks[ "srv_owner" ] = {
 			Name = "Server Owner",
 			Desc = "He owns the server!",
-			Short = "owner",
+			Short = "srv_owner",
 			Derive = "NONE",
 			Color = Color( 180, 241, 170 ),
 			Immunity = 0,
@@ -572,8 +568,8 @@ if SERVER then
 
 		if !isDedicatedServer() then
 			if ply:IsListenServerHost() and not plydata then
-				ply:SetNWString( "rank", "owner" )
-			elseif ply:IsListenServerHost() and ply:GetRank() != "owner" then
+				ply:SetNWString( "rank", "srv_owner" )
+			elseif ply:IsListenServerHost() and ply:GetRank() != "srv_owner" then
 				-- If hes the host, but has a different rank, we need to give him the option to re-set as superadmin.
 				ply:Print( exsto_CHAT, COLOR.NORM, "Exsto seems to have noticed you are the host of this listen server, yet your rank isnt owner!" )
 				ply:Print( exsto_CHAT, COLOR.NORM, "If you want to reset your rank to owner, run this chat command. ", COLOR.NAME, "!updateowner" )
@@ -583,7 +579,7 @@ if SERVER then
 			if !exsto.AnyAdmins() then
 				ply:Print( exsto_CHAT, COLOR.NORM, "Exsto has detected this is a ", COLOR.NAME, "dedicated server environment", COLOR.NORM, ", and there are no superadmins set yet." )
 				ply:Print( exsto_CHAT, COLOR.NORM, "If you are the owner of this server, please rcon the following command:" )
-				ply:Print( exsto_CHAT, COLOR.NORM, "exsto rank " .. ply:Name() .. " owner" )
+				ply:Print( exsto_CHAT, COLOR.NORM, "exsto rank " .. ply:Name() .. " srv_owner" )
 			end
 		end
 	
@@ -597,7 +593,7 @@ if SERVER then
 	function exsto.UpdateOwnerRank( self, rcon, location )
 		if !isDedicatedServer() then
 			if self:IsListenServerHost() then
-				self:SetNWString( "rank", "owner" )
+				self:SetNWString( "rank", "srv_owner" )
 				FEL.SaveUserInfo( self )
 				
 				return { self, COLOR.NORM, "You have reset your rank to ", COLOR.NAME, "owner", COLOR.NORM, "!" }
@@ -607,7 +603,7 @@ if SERVER then
 		else
 				
 			self:Print( exsto_CHAT, COLOR.NAME, "Hey!", COLOR.NORM, "  This command has been removed due to confusion.  If you want to make yourself owner:" )
-			self:Print( exsto_CHAT, COLOR.NORM, "Just run the command as rcon: ", COLOR.NAME, "exsto rank " .. self:Name() .. " owner" )
+			self:Print( exsto_CHAT, COLOR.NORM, "Just run the command as rcon: ", COLOR.NAME, "exsto rank " .. self:Name() .. " srv_owner" )
 				
 			return 
 		end
@@ -647,7 +643,7 @@ if SERVER then
 		if !plys then return false end
 		
 		for k,v in pairs( plys ) do
-			if v.Rank == "owner" then return true end
+			if v.Rank == "srv_owner" then return true end
 		end
 		
 		return false
@@ -768,7 +764,7 @@ end
 	----------------------------------- ]]
 function _R.Player:IsAllowed( flag, victim )
 	if self:EntIndex() == 0 then return true end -- If we are console :3
-	if self:GetRank() == "owner" then return true end
+	if self:GetRank() == "srv_owner" then return true end
 
 	local rank = exsto.GetRankData( self:GetRank() )
 	

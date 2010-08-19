@@ -586,7 +586,7 @@ function Menu:BuildPages( rank, flagCount )
 	-- Loop through what we need to build.
 	for _, data in ipairs( self.CreatePages ) do
 		
-		if table.HasValue( clientFlags.AllFlags, data.Short ) or rank:lower() == "owner" then
+		if table.HasValue( clientFlags.AllFlags, data.Short ) or rank:lower() == "srv_owner" then
 	
 			exsto.Print( exsto_CONSOLE_DEBUG, "MENU --> Creating page for " .. data.Title .. "!" )
 			
