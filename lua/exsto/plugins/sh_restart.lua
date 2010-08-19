@@ -352,7 +352,7 @@ elseif CLIENT then
 			
 		//local startInfoLabel = exsto.CreateLabel( 50, 10, "Playing *MAP* on *GAMEMODE*", "labeledPanelFont", startInfo )
 		local startButton = exsto.CreateButton( startInfo:GetWide() - 120, 5, 74, 27, "Change Map", startInfo )
-			startButton.DoClick = function( self )
+			startButton.OnClick = function( self )
 				if selectedMap == "" then Menu.PushError( "No map selected!" ) return end
 				local map = selectedMap
 				local gamemode = currentGamemode

@@ -201,7 +201,7 @@ elseif CLIENT then
 				local button = exsto.CreateButton( 0, 0, 70, 28, category )
 					button:SetStyle( "secondary" )
 					button.Category = category
-					button.DoClick = function( self )
+					button.OnClick = function( self )
 						local ply = panel.playerList.m_pSelected
 						if ply then
 						
@@ -296,7 +296,7 @@ elseif CLIENT then
 		panel.commandListBack = exsto.CreateButton( 10, secondary:GetTall() - 35, 70, 28, "Back", secondary )
 			panel.commandListBack:SetStyle( "negative" )
 			panel.commandListBack:SetVisible( false )
-			panel.commandListBack.DoClick = function( self )
+			panel.commandListBack.OnClick = function( self )
 				
 				if !panel.commandList.CurrentOptionalIndex or panel.commandList.OnMainList then
 					panel.commandList.OnMainList = false
@@ -319,7 +319,7 @@ elseif CLIENT then
 		panel.commandListExecute = exsto.CreateButton( secondary:GetWide() - 75, secondary:GetTall() - 35, 70, 28, "OK", secondary )
 			panel.commandListExecute:SetStyle( "positive" )
 			panel.commandListExecute:SetVisible( false )
-			panel.commandListExecute.DoClick = function( self )
+			panel.commandListExecute.OnClick = function( self )
 				panel.commandList:Execute()
 			end
 			

@@ -394,7 +394,7 @@
                          self.List:Update() 
                           
                          self.unbanButton = exsto.CreateButton( ( (panel:GetWide() / 2) - ( 74 / 2 ) ) + 50, panel:GetTall() - 40, 74, 27, "Remove", panel ) 
-                                 self.unbanButton.DoClick = function( button ) 
+                                 self.unbanButton.OnClick = function( button ) 
                                          local id = self:GetSelected( 2 ) 
                                          if id then 
                                                  RunConsoleCommand( "exsto", "unban", tostring( id ) ) 
@@ -404,7 +404,7 @@
                                  self.unbanButton:SetStyle( "positive" ) 
                           
                          self.refreshButton = exsto.CreateButton( ( (panel:GetWide() / 2) - ( 74 / 2 ) ) - 50, panel:GetTall() - 40, 74, 27, "Refresh", panel ) 
-                                 self.refreshButton.DoClick = function( button ) 
+                                 self.refreshButton.OnClick = function( button ) 
                                          self:ReloadList( panel ) 
                                  end      
          end 

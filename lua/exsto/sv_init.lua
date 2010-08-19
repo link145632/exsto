@@ -115,7 +115,7 @@ function exsto.FindPlayers( data, ply )
 		end
 	end
 	
-	local splits = string.Explode( "-", data ) or 1
+	local splits = string.Explode( ",", data ) or 1
 	for I = 1, #splits do
 		data = splits[I]
 		for _, ply in ipairs( player.GetAll() ) do

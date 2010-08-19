@@ -154,6 +154,12 @@ function exsto.CreateButton( x, y, w, h, text, parent )
 			return self.mStyle
 		end
 		
+		button.Flash = function( self )
+			self.Flashing = true
+			self.FlashAlpha = 255
+			self.BeginFlash = CurTime()
+		end
+		
 		button.SetStyle = function( self, style )
 			self.mStyle = style
 			if style == "secondary" then
@@ -189,6 +195,14 @@ function exsto.CreateButton( x, y, w, h, text, parent )
 		end
 		
 		button:SetStyle( "neutral" )
+		
+		button.DoClick = function( self )
+			print( "FLASHING GO!" )
+			self:Flash()
+			if type( self.OnClick ) == "function" then
+				self:OnClick()
+			end
+		end
 
 	return button
 	

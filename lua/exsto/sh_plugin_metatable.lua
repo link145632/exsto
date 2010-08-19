@@ -78,29 +78,17 @@ if SERVER then
 end
 
 hook.Add( "exsto_RecievedSettings", "exsto_CheckOnSettings", function()
-	if table.Count( queuedPlugins ) >= 1 then	
-		for k,v in pairs( queuedPlugins ) do v:Register() end	
+	-- Go through our client plugins and remove those who the server doesn't allow.
+	for short, data in pairs( exsto.Plugins ) do
+		if tobool( exsto.ServerPlugSettings[ short ] ) == false then
+			data.Object:Unload()
+		end
 	end
 	hook.Call( "ExPluginsReady" )
 	RunConsoleCommand( "_ExClientPlugsReady" )
 end )
 
 function plugin:Register()
-
-	-- Client checks, we need to make sure that the clientside plugin is enabled on the server.
-	local clientEnd = false
-	if CLIENT then
-		if exsto.ServerPlugSettings then
-			if exsto.ServerPlugSettings[self.Info.ID] == false then
-				-- The server doesn't want this command to run, end it.
-				clientEnd = true
-			end
-		else
-			-- The settings seem to be non-existant.  Lets queue the plugins into a table, then enable them later.
-			table.insert( queuedPlugins, self )
-			return
-		end
-	end
 	
 	-- Check and see if we exist in the saved plugin table.
 	if !exsto.PluginSaved( self ) then
@@ -108,7 +96,7 @@ function plugin:Register()
 	else
 		
 		-- We are saved, so lets check and see if we are disabled.
-		if exsto.PluginDisabled( self ) or self.Info.Disabled or clientEnd then
+		if exsto.PluginDisabled( self ) or self.Info.Disabled then
 			exsto.Print( exsto_CONSOLE, "PLUGIN --> Skipping loading plugin " .. self.Info.ID .. ".  Not Enabled." )
 			
 			-- We need to tell Exsto hes atleast disabled.
@@ -149,7 +137,7 @@ function plugin:Register()
 	-- Construct FEL tables.
 	for k,v in pairs( self.FEL.CreateTable ) do
 		if CLIENT then return end
-		FEL.MakeTable( k, v )
+		FEL.MakeTable( k, v[1], v[2] or {} )
 	end 
 	
 	-- Insert requested FEL.AddData
@@ -218,7 +206,18 @@ end
 --[[ -----------------------------------
 		Plugin Helper Functions
      ----------------------------------- ]]
+function plugin:IsEnabled()
+	if exsto.PluginDisabled( self ) then return false end
+	if self.Info.Disabled then return false end
+	return true
+end
+
 function plugin:Print( enum, ... )
+	if type( enum ) == "string" then
+		exsto.Print( exsto_CONSOLE, "PLUGINS --> " .. self.Info.Name .. " --> " .. enum )
+		return
+	end
+	
 	exsto.Print( enum, ... )
 end
 
@@ -226,8 +225,8 @@ function plugin:AddVariable( tbl )
 	table.insert( self.Variables, tbl )
 end
 
-function plugin:CreateTable( id, tbl )
-	self.FEL.CreateTable[id] = tbl
+function plugin:CreateTable( id, tbl, options )
+	self.FEL.CreateTable[id] = { tbl, options }
 end
 
 function plugin:AddData( id, tbl )

@@ -12,43 +12,45 @@ PLUGIN:SetInfo({
 	Owner = "Prefanatic",
 } )
 
-function PLUGIN:SendPlayer( ply, victim, force )
+-- I was told to rewrite this by the lovely Megiddo; so I did.  Love: Prefanatic.
+-- Hated: hatred says you are now lower life form then a scene whore... hi overv
+function PLUGIN:SendPlayer( ply, megiddo, force )
 
 	local isvec = false
-	if type( victim ) == "Vector" then isvec = true end
+	if type( megiddo ) == "Vector" then isvec = true end
 
-	if !isvec and !victim:IsInWorld() and !force then return false end
+	if !isvec and !megiddo:IsInWorld() and !force then return false end
 	
-	local pos
-	local forward
+	local fuck
+	local umegiddo
 	if isvec then
-		forward = 0
-		pos = victim
+		umegiddo = 0
+		fuck = megiddo
 	else
-		forward = victim:EyeAngles().yaw
-		pos = victim:GetPos()
+		umegiddo = megiddo:EyeAngles().yaw
+		fuck = megiddo:GetPos()
 	end
 	
-	local locations = {
-		math.NormalizeAngle( forward - 180 ),
-		math.NormalizeAngle( forward + 90 ),
-		math.NormalizeAngle( forward - 90 ),
-		forward,
+	local ulx_sucks = {
+		math.NormalizeAngle( umegiddo - 180 ),
+		math.NormalizeAngle( umegiddo + 90 ),
+		math.NormalizeAngle( umegiddo - 90 ),
+		umegiddo,
 	}
 
-	local trace = {}
-	trace.start = pos + Vector( 0, 0, 32 )
-	trace.filter = { victim, ply }
+	local lol_creative_commons_on_code = {}
+	lol_creative_commons_on_code.start = fuck + Vector( 0, 0, 32 )
+	lol_creative_commons_on_code.filter = { megiddo, ply }
 
-	local TraceData
-	for I = 1, #locations do
-		trace.endpos = pos + Angle( 0, locations[ I ], 0 ):Forward() * 47
-		TraceData = util.TraceEntity( trace, victim )
-		if !TraceData.Hit then return TraceData.HitPos end
+	local loveyou
+	for I = 1, #ulx_sucks do
+		lol_creative_commons_on_code.endpos = fuck + Angle( 0, ulx_sucks[ I ], 0 ):Forward() * 47
+		loveyou = util.TraceEntity( lol_creative_commons_on_code, Entity(1) )
+		if !loveyou.Hit then return loveyou.HitPos end
 	end
 	
 	if force then
-		return pos + Angle( 0, locations[ 1 ], 0 ):Forward() * 47
+		return fuck + Angle( 0, ulx_sucks[ 1 ], 0 ):Forward() * 47
 	end
 	
 end

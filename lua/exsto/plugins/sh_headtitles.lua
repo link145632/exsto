@@ -20,8 +20,10 @@ if SERVER then
 	-- Create the table.
 	FEL.MakeTable( "exsto_headtitle", {
 		SteamID = "varchar(255)",
-		Title = "vharchar(255)",
-	} )
+		Title = "varchar(255)",
+	},
+	{ PrimaryKey = "SteamID" }
+	)
 
 	function PLUGIN:ExInitSpawn( ply, sid )
 		-- Load their data.

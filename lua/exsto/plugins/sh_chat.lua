@@ -196,6 +196,9 @@ elseif CLIENT then
 		if string.find( bind, "messagemode" ) then
 			self:Toggle( true, bind == "messagemode2" )
 			return true
+		elseif string.find( bind, "cancelselect" ) then
+			self:Toggle( false, false )
+			return true
 		end
 	end
 	
@@ -271,7 +274,7 @@ elseif CLIENT then
 				if command.Chat then
 					for _, chat in ipairs( command.Chat ) do
 					
-						if string.find( chat:lower():Trim(), split[1]:lower():Trim() ) then
+						if string.find( chat:lower():Trim(), split[1]:lower():Trim(), 1, true ) then
 							self.Panel:AddAutoComplete( chat, command )
 						end
 					end
@@ -806,6 +809,7 @@ elseif CLIENT then
 		
 		-- Build the function requirements
 		if type( command.ReturnOrder ) == "table" then
+			--PrintTable( command.ReturnOrder )
 			for I = 1, #command.ReturnOrder do
 				arg = command.ReturnOrder[ I ]
 				
@@ -818,6 +822,7 @@ elseif CLIENT then
 			data.Arguments = build
 		end
 
+		--print( build )
 		table.insert( self.AutoComplete.Slots, data )
 		
 	end

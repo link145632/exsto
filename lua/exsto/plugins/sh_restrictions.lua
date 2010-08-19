@@ -21,11 +21,6 @@ PLUGIN.FileTypes = {
 if SERVER then
 
 	function PLUGIN:Init()
-		local oldCount = _R.Player.GetCount
-		_R.Player.GetCount = function( self, ... )
-			if self.ExNoLimits then return -1 end
-			return oldCount( self, ... )
-		end
 		
 		-- Check to see if the server owners want to input their restrictions through the file library.
 		if !file.Exists( "exsto_restrictions/readme.txt" ) then
@@ -57,7 +52,8 @@ if SERVER then
 			Stools = "text",
 			Entities = "text",
 			Sweps = "text",
-		} )
+		}, { PrimaryKey = "rank" }
+		)
 		
 		local data = FEL.LoadTable( "exsto_data_restrictions" )
 		
@@ -93,6 +89,16 @@ if SERVER then
 		self:LoadFileRestrictions()
 		
 	end
+	
+	-- Reggh, this gets over-written after its created by SOMEONE.
+	timer.Simple( 1, function()
+		local oldCount = _R.Player.GetCount
+		function _R.Player.GetCount( self, ... )
+			print( self.ExNoLimits, PLUGIN:IsEnabled() )
+			if self.ExNoLimits and PLUGIN:IsEnabled() then return -1 end
+			return oldCount( self, ... )
+		end
+	end )
 	
 	function PLUGIN:NoLimits( caller, ply )
 		local t = " has enabled limits on "

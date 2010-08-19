@@ -35,6 +35,9 @@ if SERVER then
 			Color = "varchar(255)",
 			Flags = "text",
 			DefaultFlags = "text",
+		},
+		{ 
+			PrimaryKey = "Short",
 		}
 	)
 	
@@ -103,6 +106,18 @@ if SERVER then
 				}
 			end
 		end
+		
+		exsto.LoadedRanks[ "owner" ] = {
+			Name = "Server Owner",
+			Desc = "He owns the server!",
+			Short = "owner",
+			Derive = "NONE",
+			Color = Color( 180, 241, 170 ),
+			Immunity = 0,
+			Flags = { "owner" },
+			CanRemove = false,
+		}
+
 	end		
 
 --[[ -----------------------------------
@@ -307,7 +322,7 @@ if SERVER then
 				end
 			end
 		end
-		
+
 		if table.Count( exsto.RankErrors ) >= 1 then
 			exsto.Print( exsto_CONSOLE, "RANKS --> Finished loading with errors!" )
 		else
@@ -479,12 +494,6 @@ if SERVER then
 	Description: Sets a player's rank.
 	----------------------------------- ]]
 	function exsto.SetAccess( ply, user, short )
-	
-		if short == "operator" then
-			ply:SetOperator()
-			exsto.Print( exsto_CHAT_ALL, COLOR.NORM, "Giving operator status to ", COLOR.NAME, user:Nick() )
-			return
-		end
 		
 		local rank = exsto.Ranks[short]
 		
@@ -552,18 +561,18 @@ if SERVER then
 
 		if !isDedicatedServer() then
 			if ply:IsListenServerHost() and not plydata then
-				ply:SetNWString( "rank", "superadmin" )
-			elseif ply:IsListenServerHost() and ply:GetRank() != "superadmin" then
+				ply:SetNWString( "rank", "owner" )
+			elseif ply:IsListenServerHost() and ply:GetRank() != "owner" then
 				-- If hes the host, but has a different rank, we need to give him the option to re-set as superadmin.
-				ply:Print( exsto_CHAT, COLOR.NORM, "Exsto seems to have noticed you are the host of this listen server, yet your rank isnt superadmin!" )
-				ply:Print( exsto_CHAT, COLOR.NORM, "If you want to reset your rank to superadmin, run this chat command. ", COLOR.NAME, "!updateowner" )
+				ply:Print( exsto_CHAT, COLOR.NORM, "Exsto seems to have noticed you are the host of this listen server, yet your rank isnt owner!" )
+				ply:Print( exsto_CHAT, COLOR.NORM, "If you want to reset your rank to owner, run this chat command. ", COLOR.NAME, "!updateowner" )
 			end
 		else
 			-- We are running a dedicated server, and someone joined.  Lets check to see if there are any admins.
 			if !exsto.AnyAdmins() then
 				ply:Print( exsto_CHAT, COLOR.NORM, "Exsto has detected this is a ", COLOR.NAME, "dedicated server environment", COLOR.NORM, ", and there are no superadmins set yet." )
 				ply:Print( exsto_CHAT, COLOR.NORM, "If you are the owner of this server, please rcon the following command:" )
-				ply:Print( exsto_CHAT, COLOR.NORM, "exsto rank " .. ply:Name() .. " superadmin" )
+				ply:Print( exsto_CHAT, COLOR.NORM, "exsto rank " .. ply:Name() .. " owner" )
 			end
 		end
 	
@@ -572,41 +581,24 @@ if SERVER then
 	
 --[[ -----------------------------------
 	Function: exsto.UpdateOwnerRank
-	Description: Updates a player to superadmin if enough info is given.
+	Description: Updates a player to owner if enough info is given.
 	----------------------------------- ]]
 	function exsto.UpdateOwnerRank( self, rcon, location )
 		if !isDedicatedServer() then
 			if self:IsListenServerHost() then
-				self:SetNWString( "rank", "superadmin" )
+				self:SetNWString( "rank", "owner" )
 				FEL.SaveUserInfo( self )
 				
-				return { self, COLOR.NORM, "You have reset your rank to ", COLOR.NAME, "superadmin", COLOR.NORM, "!" }
+				return { self, COLOR.NORM, "You have reset your rank to ", COLOR.NAME, "owner", COLOR.NORM, "!" }
 			else
 				return { self, COLOR.NORM, "You are not the host of this listen server!" }
 			end
 		else
-			if !self.UpdateRecommendSent then
-				self.UpdateRecommendSent = true
 				
-				self:Print( exsto_CHAT, COLOR.NAME, "Hey!", COLOR.NORM, "  Before you use this command, maybe you just want to set yourself through ", COLOR.NAME, "rcon?" )
-				self:Print( exsto_CHAT, COLOR.NORM, "Just run the command as rcon: ", COLOR.NAME, "exsto rank " .. self:Name() .. " superadmin" )
+			self:Print( exsto_CHAT, COLOR.NAME, "Hey!", COLOR.NORM, "  This command has been removed due to confusion.  If you want to make yourself owner:" )
+			self:Print( exsto_CHAT, COLOR.NORM, "Just run the command as rcon: ", COLOR.NAME, "exsto rank " .. self:Name() .. " owner" )
 				
-				return { self, COLOR.NORM, "If you still want to run the !updateowner command, run it ", COLOR.NAME, "again." }
-			end
-			
-			if rcon == "" then return { self, COLOR.NORM, "No RCON password inputed!" } end
-			local rconPass = exsto.ReadRCONPass( location )
-			if !rconPass then return { self, COLOR.NORM, "There was an issue reading the RCON pass!" } end
-			rconPass = string.Trim( rconPass )
-			
-			if rconPass == rcon then
-				self:SetNWString( "rank", "superadmin" )
-				FEL.SaveUserInfo( self )
-				
-				return { self, COLOR.NORM, "RCON password verified!  Your status has been set as ", COLOR.NAME, "superadmin", COLOR.NORM, "!" }
-			else
-				return { self, COLOR.NORM, "Bad RCON password!" }
-			end
+			return 
 		end
 	end
 	exsto.AddChatCommand( "updateownerrank", {
@@ -644,11 +636,7 @@ if SERVER then
 		if !plys then return false end
 		
 		for k,v in pairs( plys ) do
-			local rank = exsto.Ranks[v.Rank]
-			
-			if rank then
-				if table.HasValue( rank.Flags, "issuperadmin" ) then return true end
-			end
+			if v.Rank == "owner" then return true end
 		end
 		
 		return false
@@ -710,7 +698,6 @@ if SERVER then
 	Description: Sets a player's rank.
 	----------------------------------- ]]
 	function _R.Player:SetRank( rank )
-		if self:IsOperator() then self.ExOperator = false end
 		self:SetNetworkedString( "rank", rank )
 		FEL.SaveUserInfo( self )
 		hook.Call( "ExSetRank", nil, self, rank )
@@ -722,22 +709,6 @@ if SERVER then
 	----------------------------------- ]]
 	function _R.Player:SetUserGroup( rank )
 		self:SetRank( rank )
-	end
-	
---[[ -----------------------------------
-	Function: player:SetOperator
-	Description: Gives a player operator status.
-	----------------------------------- ]]
-	function _R.Player:SetOperator()
-		self.ExOperator = true
-	end
-	
---[[ -----------------------------------
-	Function: player:IsOperator
-	Description: Returns operator status.
-	----------------------------------- ]]
-	function _R.Player:IsOperator()
-		return self.ExOperator
 	end
 
 elseif CLIENT then
@@ -786,7 +757,7 @@ end
 	----------------------------------- ]]
 function _R.Player:IsAllowed( flag, victim )
 	if self:EntIndex() == 0 then return true end -- If we are console :3
-	if !CLIENT and self:IsOperator() then return true end -- If we are operatoring.
+	if self:GetRank() == "owner" then return true end
 
 	local rank = exsto.GetRankData( self:GetRank() )
 	
@@ -814,8 +785,6 @@ end
 	Description: Returns the rank of a player.
 	----------------------------------- ]]
 function _R.Player:GetRank()
-	if !CLIENT and self:IsOperator() then return "operator" end
-
 	local rank = self:GetNetworkedString( "rank" )
 	
 	if rank == "" then return "guest" end
@@ -830,7 +799,6 @@ end
 	Description: Returns true if the player is an admin
 	----------------------------------- ]]
 function _R.Player:IsAdmin()
-	if !CLIENT and self:IsOperator() then return true end
 	if self:EntIndex() == 0 then return true end -- If we are console :3
 	if self:IsAllowed( "isadmin" ) then return true end
 	if self:IsSuperAdmin() then return true end
@@ -842,7 +810,6 @@ end
 	Description: Returns true if the player is a superadmin
 	----------------------------------- ]]
 function _R.Player:IsSuperAdmin()
-	if !CLIENT and self:IsOperator() then return true end
 	if self:EntIndex() == 0 then return true end -- If we are console :3
 	if self:IsAllowed( "issuperadmin" ) then return true end
 	return false

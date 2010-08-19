@@ -283,6 +283,10 @@ exsto.DefaultRanks = {
 			"allowprop",
 			"denyprop",
 			"rankrestrictions",
+			"deletevar",
+			"addgimp",
+			"playertitle",
+			"setconvar",
 		}
 	},
 	
@@ -379,6 +383,7 @@ exsto.DefaultRanks = {
 			"pluginlist",
 			"printrestrict",
 			"pm",
+			"displayheadtags",
 		}
 	}
 }
