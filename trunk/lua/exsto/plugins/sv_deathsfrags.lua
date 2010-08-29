@@ -37,6 +37,7 @@ PLUGIN:AddCommand( "setfrags", {
 	Console = { "setfrags", },
 	Chat = { "!setfrags" },
 	ReturnOrder = "Target-Kills",
+	Optional = { Kills = 0 },
 	Args = {Target="PLAYER", Kills="NUMBER"},
 	Category = "Fun",
 })
@@ -55,6 +56,7 @@ PLUGIN:AddCommand( "setdeaths", {
 	Console = { "exsto_setdeaths", },
 	Chat = { "!setdeaths" },
 	ReturnOrder = "Target-DeathCount",
+	Optional = { DeathCount = 0 },
 	Args = {Target="PLAYER", DeathCount="NUMBER"},
 	Category = "Fun",
 })

@@ -33,29 +33,15 @@ if SERVER then
 	exsto.CreateFlag( "plugindisable", "Allows users to disable or enable plugins in the Plugin List page." )
 
 	function PLUGIN.SendServerPlugins( ply )
-	
-		local plugins = {}
-		local commands = {}
-		for k,v in pairs( exsto.Plugins ) do
-			if v.Object.Commands then
-				for k,v in pairs( v.Object.Commands ) do
-					table.insert( commands, { Chat = v.Chat, ID = v.ID } )
-				end
-			end
-			table.insert( plugins, {
-				Name = v.Name,
-				ID = k,
-				Desc = v.Desc,
-				Owner = v.Owner,
-				Experimental = v.Experimental,
-				Commands = commands,
-			} )
-			commands = {}
+		for k,v in pairs( exsto.Plugins ) do	
+			local sender = exsto.CreateSender( "ExSendPlugs", ply )
+				sender:AddString( k )
+				sender:AddString( v.Name )
+				sender:AddString( v.Desc )
+				sender:AddBool( v.Experimental )
+				sender:Send()
 		end
-		
-		local send = { exsto.PluginSettings, plugins }
-		
-		exsto.UMStart( "ExSendPlugs", ply, send )
+		exsto.CreateSender( "ExSendPlugsDone", ply ):Send()
 	end
 	concommand.Add( "_SendPluginList", PLUGIN.SendServerPlugins )
 	
@@ -74,9 +60,6 @@ if SERVER then
 		if CurTime() < ply.PlugChange then return end
 		
 		ply.PlugChange = CurTime() + 1
-		
-		local settings = exsto.PluginSettings
-
 		if style then 
 			-- We are trying to enable him.
 			exsto.EnablePlugin( plugin.Object )
@@ -94,30 +77,28 @@ if SERVER then
 	
 elseif CLIENT then
 
-	local settings = {}
 	local plugins = {}
-	
-	function PLUGIN.RecievePlugins( data )
-		settings = data[1]
-		plugins = data[2]
+	function PLUGIN.RecievePlugins( reader )
+		table.insert( plugins, {
+				ID = reader:ReadString(),
+				Name = reader:ReadString(),
+				Desc = reader:ReadString(),
+				Experimental = reader:ReadBool(),
+			}
+		)
 	end
-	exsto.UMHook( "ExSendPlugs", PLUGIN.RecievePlugins )
+	exsto.CreateReader( "ExSendPlugs", PLUGIN.RecievePlugins )
+	
+	local function sent()
+		PLUGIN.Recieved = true
+		PLUGIN.Panel:EndLoad()
+		PLUGIN.Build( PLUGIN.Panel )
+	end
+	exsto.CreateReader( "ExSendPlugsDone", sent )
 	
 	function PLUGIN.ReloadData( panel )
-	
-		settings = {}
 		plugins = {}
 		RunConsoleCommand( "_SendPluginList" )
-		
-		local function Ping()
-			if table.Count( settings ) >= 1 then
-				PLUGIN.Build( panel )
-			else
-				timer.Simple( 0.1, Ping )
-			end
-		end
-		Ping()
-		
 	end
 	
 	function PLUGIN.GetProperSize( text, max, font )
@@ -170,7 +151,7 @@ elseif CLIENT then
 					surface.SetDrawColor( 255, 255, 255, 255 )
 					surface.DrawTexturedRect( panel.pluginList:GetWide() - 40, ( self:GetTall() / 2 ) - 8, 16, 16 )
 				end
-				if settings[v.ID] then
+				if exsto.ServerPlugSettings[v.ID] then
 					obj.Icon = "icon_on"
 				else
 					obj.Icon = "icon_off"
@@ -179,21 +160,21 @@ elseif CLIENT then
 				if LocalPlayer():IsSuperAdmin() then
 						obj.DoClick = function( self )
 							if !LocalPlayer().PlugChange then LocalPlayer().PlugChange = CurTime() end
-							if CurTime() < LocalPlayer().PlugChange then Menu:PushError( "Slow down, you are toggling plugins too fast!" ) return end
+							if CurTime() < LocalPlayer().PlugChange then panel:PushError( "Slow down, you are toggling plugins too fast!" ) return end
 							
 							LocalPlayer().PlugChange = CurTime() + 1
 							
-							if settings[v.ID] then
+							if exsto.ServerPlugSettings[v.ID] then
 								-- We are trying to disable the plugin.
 								
-								settings[v.ID] = false
+								exsto.ServerPlugSettings[v.ID] = false
 								
 								Menu.CallServer( "_TogglePlugin", "false", v.ID )
 								self.Icon = "icon_off"
 							else
 								-- Trying to enable it.
 								
-								settings[v.ID] = true
+								exsto.ServerPlugSettings[v.ID] = true
 
 								Menu.CallServer( "_TogglePlugin", "true", v.ID )
 								self.Icon = "icon_on"
@@ -209,7 +190,13 @@ elseif CLIENT then
 		Short = "pluginlist",
 		},
 		function( panel )
-			PLUGIN.ReloadData( panel )
+			if !PLUGIN.Recieved then
+				panel:PushLoad()
+				RunConsoleCommand( "_SendPluginList" )
+			else
+				PLUGIN.Build( PLUGIN.Panel )
+			end
+			PLUGIN.Panel = panel
 		end
 	)
 	

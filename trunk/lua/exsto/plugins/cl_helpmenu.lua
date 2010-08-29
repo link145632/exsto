@@ -59,14 +59,18 @@ function PLUGIN:CreateHTML( url )
 			<head>
 				<style type="text/css">
 					body{
+						background-image:url( "]] .. self.DropLink .. "background.png" .. [[" );
 						padding:0px 0px 0px 0px;
 						margin:0px 0px 0px 0px;
 					}
+					.image{
+						width:565px;
+						height:280px;
+					}
 				</style>
 			</head>
-			<body scroll="no">
-			   <iframe src="]] .. url .. [["
-				height="100%" width="100%" frameborder="0"/>
+			<body>
+				<center><img src="]] .. url .. [[" alt="image1" /></center>
 			</body>
 		</html>
 	]]
@@ -74,22 +78,36 @@ end
 
 function PLUGIN:CreatePage( panel )
 	local tabs = panel:RequestTabs()
-		
+	
+	-- Sort them.
+	local newTable = {}
 	for category, pictures in pairs( self.DatabaseConstruct ) do
+		table.insert( newTable, { Category = category, Pics = pictures } )
+	end
+	
+	table.sort( newTable, function( a, b ) return a.Category == "Introduction" or a.Category > b.Category end )
+	
+	local function waitOnFinish( html, url )
+		html:SetVisible( true )
+		panel:EndLoad()
+	end
+		
+	for _, data in ipairs( newTable ) do
 		local page = tabs:CreatePage( panel )
 		
 		page.CurrentIndex = 1
 		
 		-- Create the HTML thing.  Thank you WebKit.
 		local browser = vgui.Create( "HTML", page )
-			browser:SetHTML( self:CreateHTML( self.DropLink .. pictures[1] ) )
-			browser:SetSize( 565, 280 )
+			browser:SetHTML( self:CreateHTML( self.DropLink .. data.Pics[1] ) )
+			browser:SetSize( 595, 305 )
 			browser:SetPos( ( panel:GetWide() / 2 ) - ( browser:GetWide() / 2 ), 5 )
 			
 			browser:SetMouseInputEnabled( false )
+			browser.FinishedURL = waitOnFinish
 			
 		-- Create prev and next buttons.
-		if #pictures > 1 then
+		if #data.Pics > 1 then
 			page.Prev = exsto.CreateButton( 15, page:GetTall() - 40, 84, 27, "Previous", page )
 				page.Prev:SetStyle( "negative" )
 				page.Prev:SetVisible( false )
@@ -98,7 +116,9 @@ function PLUGIN:CreatePage( panel )
 					if page.CurrentIndex == 1 then return end
 					
 					page.CurrentIndex = page.CurrentIndex - 1
-					browser:SetHTML( self:CreateHTML( self.DropLink .. pictures[ page.CurrentIndex ] ) )
+					browser:SetHTML( self:CreateHTML( self.DropLink .. data.Pics[ page.CurrentIndex ] ) )
+					browser:SetVisible( false )
+					panel:PushLoad()
 					
 					page.Next:SetVisible( true )
 					if page.CurrentIndex == 1 then page.Prev:SetVisible( false ) end
@@ -108,17 +128,19 @@ function PLUGIN:CreatePage( panel )
 				page.Next:SetStyle( "positive" )
 				
 				page.Next.OnClick = function()
-					if page.CurrentIndex == #pictures then return end
+					if page.CurrentIndex == #data.Pics then return end
 					
 					page.CurrentIndex = page.CurrentIndex + 1
-					browser:SetHTML( self:CreateHTML( self.DropLink .. pictures[ page.CurrentIndex ] ) )
+					browser:SetHTML( self:CreateHTML( self.DropLink .. data.Pics[ page.CurrentIndex ] ) )
+					browser:SetVisible( false )
+					panel:PushLoad()
 					
 					page.Prev:SetVisible( true )
-					if page.CurrentIndex == #pictures then page.Next:SetVisible( false ) end
+					if page.CurrentIndex == #data.Pics then page.Next:SetVisible( false ) end
 				end
 		end
 			
-		tabs:AddItem( category, page )
+		tabs:AddItem( data.Category, page )
 	end
 	
 end	

@@ -217,7 +217,7 @@ function plugin:Print( enum, ... )
 		exsto.Print( exsto_CONSOLE, "PLUGINS --> " .. self.Info.Name .. " --> " .. enum )
 		return
 	end
-	
+
 	exsto.Print( enum, ... )
 end
 
@@ -243,10 +243,12 @@ function plugin:AddOverride( old, new, tbl )
 end
 
 function plugin:SendData( hook, ply, ... )
+	self:Print( "DEPRICATED SENDING METHOD!" )
 	exsto.UMStart( hook, ply, ... )
 end
 
 function plugin:DataHook( hook )
+	self:Print( "DEPRICATED SENDING METHOD!" )
 	exsto.UMHook( hook, function( ... ) self[ hook ]( self, ... ) end )
 end
 

@@ -16,7 +16,7 @@ if SERVER then
 	end
 	
 	function PLUGIN:ToggleAnims( owner )
-		exsto.UMStart( "ExChatPlug_ToggleAnims", owner )
+		exsto.CreateSender( "ExChatPlug_ToggleAnims", owner ):Send()
 	end
 	PLUGIN:AddCommand( "togglechatanim", {
 		Call = PLUGIN.ToggleAnims,
@@ -69,11 +69,15 @@ if SERVER then
 	})
 	
 	function PLUGIN:SetAdminBlink( ply, val )
-		exsto.UMStart( "ExChatPlug_AdminBlink", ply, val )
+		local sender = exsto.CreateSender( "ExChatPlug_AdminBlink", ply )
+			sender:AddBool( val )
+			sender:Send()
 	end
 	
 	function PLUGIN:SetRankColors( ply, val )
-		exsto.UMStart( "ExChatPlug_RankColors", ply, val )
+		local sender = exsto.CreateSender( "ExChatPlug_RankColors", ply )
+			sender:AddBool( val )
+			sender:Send()
 	end
 	
 	function PLUGIN:ExClientPluginsReady( ply )
@@ -135,23 +139,23 @@ elseif CLIENT then
 
 	end
 	
-	local function SetRankColors( val )
-		PLUGIN.RankColors = val
+	local function SetRankColors( reader )
+		PLUGIN.RankColors = reader:ReadBool()
 	end
-	exsto.UMHook( "ExChatPlug_RankColors", SetRankColors )
+	exsto.CreateReader( "ExChatPlug_RankColors", SetRankColors )
 	
-	local function SetAdminBlink( val )
-		PLUGIN.BlinkAdmins = val
+	local function SetAdminBlink( reader )
+		PLUGIN.BlinkAdmins = reader:ReadBool()
 	end
-	exsto.UMHook( "ExChatPlug_AdminBlink", SetAdminBlink )
+	exsto.CreateReader( "ExChatPlug_AdminBlink", SetAdminBlink )
 	
-	local function AnimateLines( val )
+	local function AnimateLines( reader )
 		PLUGIN.AnimateLines = !PLUGIN.AnimateLines
 		
 		if PLUGIN.AnimateLines then chat.AddText( COLOR.NORM, "Chat animations have been ", COLOR.NAME, "enabled", COLOR.NORM, "!" ) end
 		if !PLUGIN.AnimateLines then chat.AddText( COLOR.NORM, "Chat animations have been ", COLOR.NAME, "disabled", COLOR.NORM, "!" ) end
 	end
-	exsto.UMHook( "ExChatPlug_ToggleAnims", AnimateLines )
+	exsto.CreateReader( "ExChatPlug_ToggleAnims", AnimateLines )
 	
 	function PLUGIN:Toggle( bool, team )
 	

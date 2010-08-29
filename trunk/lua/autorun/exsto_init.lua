@@ -367,9 +367,6 @@ function exstoAddCSLuaFile( fl )
 end
 
 function exstoInit()
-
-	LoadVariables()
-	PrintLoading()
 	
 	if exsto then
 		if exsto.Print then
@@ -379,6 +376,9 @@ function exstoInit()
 			exsto.UnloadAllPlugins()
 		end
 	end			
+	
+	LoadVariables()
+	PrintLoading()
 	
 	if SERVER then
 		exstoInclude( "exsto/sv_init.lua" )

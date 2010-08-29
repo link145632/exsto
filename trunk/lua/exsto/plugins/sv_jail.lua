@@ -204,10 +204,10 @@ function PLUGIN:Jail( owner, ply, time )
 	if !ply.IsJailed then
 		ply:CreateJail(time)
 		if time > 0 then 
-			return { exsto_CHAT,COLOR.NAME,owner,COLOR.NORM," has jailed ",COLOR.NAME,ply,
+			return { exsto_CHAT,COLOR.NAME,owner:Nick(),COLOR.NORM," has jailed ",COLOR.NAME,ply:Nick(),
 				COLOR.NORM," for ", COLOR.NAME,tostring(time),COLOR.NORM, " seconds." }
 		else
-			return { exsto_CHAT,COLOR.NAME,owner,COLOR.NORM," has jailed ",COLOR.NAME,ply,COLOR.NORM,"!" }		
+			return { exsto_CHAT,COLOR.NAME,owner:Nick(),COLOR.NORM," has jailed ",COLOR.NAME,ply:Nick(),COLOR.NORM,"!" }		
 		end
 	else
 		ply:RemoveJail()
@@ -229,6 +229,15 @@ PLUGIN:AddCommand( "jail", {
 	Optional = { Time = 0 },
 	Category = "Fun",
 })
-PLUGIN:RequestQuickmenuSlot( "jail" )
+PLUGIN:RequestQuickmenuSlot( "jail", {
+	Time = {
+		{ Display = "Instant", Data = 0 },
+		{ Display = "5 seconds", Data = 5 },
+		{ Display = "10 seconds", Data = 10 },
+		{ Display = "20 seconds", Data = 20 },
+		{ Display = "30 seconds", Data = 30 },
+		{ Display = "1 minute", Data = 60 },
+	}
+})
 
 PLUGIN:Register()

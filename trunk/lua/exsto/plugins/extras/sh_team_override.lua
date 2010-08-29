@@ -29,7 +29,11 @@ if SERVER then
 		if !info then ply:SetTeam( 1 ) return end
 		
 		for k,v in pairs( self.Teams ) do
-			exsto.UMStart( "teamToRankSend", ply, v.Team, v.Name, v.Color )
+			local sender = exsto.CreateSender( "teamToRankSend", ply )
+				sender:AddShort( v.Team )
+				sender:AddString( v.Name )
+				sender:AddColor( v.Color )
+				sender:Send()
 		end
 		ply:SetTeam( info.Team )
 	end
@@ -40,7 +44,11 @@ if SERVER then
 		
 		for k, ply in pairs( player.GetAll() ) do
 			for k,v in pairs( self.Teams ) do
-				exsto.UMStart( "teamToRankSend", ply, v.Team, v.Name, v.Color )
+				local sender = exsto.CreateSender( "teamToRankSend", ply )
+				sender:AddShort( v.Team )
+				sender:AddString( v.Name )
+				sender:AddColor( v.Color )
+				sender:Send()
 			end
 			self:ExSetRank( ply )
 		end
@@ -66,10 +74,11 @@ if SERVER then
 	PLUGIN:BuildTeams()
 	
 elseif CLIENT then
-
-	exsto.UMHook( "teamToRankSend", function( teamNum, name, color )
-		team.SetUp( teamNum, name, color )
-	end)
+	
+	local function receice( reader )
+		team.SetUp( reader:ReadShort(), reader:ReadString(), reader:ReadColor() )
+	end
+	exsto.CreateReader( "teamToRankSend", receive )
 
 end
 

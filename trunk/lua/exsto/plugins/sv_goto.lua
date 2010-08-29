@@ -45,7 +45,7 @@ function PLUGIN:SendPlayer( ply, megiddo, force )
 	local loveyou
 	for I = 1, #ulx_sucks do
 		lol_creative_commons_on_code.endpos = fuck + Angle( 0, ulx_sucks[ I ], 0 ):Forward() * 47
-		loveyou = util.TraceEntity( lol_creative_commons_on_code, Entity(1) )
+		loveyou = util.TraceEntity( lol_creative_commons_on_code, ply )
 		if !loveyou.Hit then return loveyou.HitPos end
 	end
 	

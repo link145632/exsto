@@ -487,25 +487,14 @@ elseif CLIENT then
 	function PLUGIN.RecieveRestrictions( data )
 		PLUGIN.Restrictions = data
 	end
-	exsto.UMHook( "ExRecRestrict", PLUGIN.RecieveRestrictions )
+	//exsto.UMHook( "ExRecRestrict", PLUGIN.RecieveRestrictions )
 	
 	function PLUGIN.Build()
 	end
 
 	function PLUGIN.Reload( panel )
-		
 		PLUGIN.Restrictions = {}
-		RunConsoleCommand( "_SendRestrictions" )
-		
-		local function Ping()
-			if table.Count( PLUGIN.Restrictions ) == 0 then
-				timer.Simple( 1, Ping )
-			else
-				PLUGIN.Build( panel )
-			end
-		end
-		Ping()
-	
+		RunConsoleCommand( "_SendRestrictions" )	
 	end
 
 	--[[

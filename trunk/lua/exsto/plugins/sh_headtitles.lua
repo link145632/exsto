@@ -12,9 +12,6 @@ PLUGIN:SetInfo({
 } )
 
 if SERVER then
-
-	resource.AddFile( "materials/glow2.vmt" )
-
 	exsto.CreateFlag( "displayheadtags", "Allows users to see tags above players heads." )
 	
 	-- Create the table.
@@ -171,7 +168,7 @@ elseif CLIENT then
 					
 					if !ply:GetNWString( "title" ) or ply:GetNWString( "title" ) == "" then h = 21 end
 					
-					local drawPos = ply:GetShootPos():ToScreen()
+					local drawPos = ( ply:GetBonePosition( ply:LookupBone( "ValveBiped.Bip01_Head1" ) ) + Vector( 0, 0, 15 ) ):ToScreen()
 					drawPos.x = drawPos.x - w / 2
 					drawPos.y = drawPos.y - 20
 					

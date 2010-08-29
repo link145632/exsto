@@ -94,11 +94,12 @@ function SKIN:DrawGenericBackground( x, y, w, h, color )
  
 end
 
+local id = surface.GetTextureID( "gui/center_gradient" )
 function SKIN:DrawExstoGradient( panel )
 	surface.SetDrawColor( panel.GradientHigh.r, panel.GradientHigh.g, panel.GradientHigh.b, panel.GradientHigh.a )
 	surface.DrawRect( 0, 0, panel:GetWide(), panel:GetTall() )
 	
-	surface.SetTexture( surface.GetTextureID( "gui/center_gradient" ) )
+	surface.SetTexture( id )
 	surface.SetDrawColor( panel.GradientLow.r, panel.GradientLow.g, panel.GradientLow.b, panel.GradientLow.a )
 	surface.DrawTexturedRect( 0, 0, panel:GetWide(), panel:GetTall() )
 	
@@ -174,7 +175,8 @@ function SKIN:LayoutFrame( panel )
  
 end
  
- 
+local grad_Down = surface.GetTextureID( "gui/gradient_down" )
+local glow = surface.GetTextureID( "exstoButtonGlow" )
 /*---------------------------------------------------------
         Button
 ---------------------------------------------------------*/
@@ -200,11 +202,11 @@ function SKIN:PaintButton( panel )
 		end
 
 		draw.RoundedBox( panel.Rounded or 0, 0, 0, panel:GetWide(), panel:GetTall(), border )
-		if ( panel.Hovered or style == "secondary" ) and panel.GetStyle then
+		if ( panel.Hovered ) and panel.GetStyle then
 			surface.SetDrawColor( gradLow.r, gradLow.g, gradLow.b, gradLow.a )
 			surface.DrawRect( 1, 1, panel:GetWide() - 2, panel:GetTall() - 2 )
 			
-			surface.SetTexture( surface.GetTextureID( "gui/gradient_down" ) )
+			surface.SetTexture( grad_Down )
 			surface.SetDrawColor( gradHigh.r, gradHigh.g, gradHigh.b, gradHigh.a )
 			surface.DrawTexturedRect( 1, 1, panel:GetWide() - 2, panel:GetTall() - 2 )
 		else
@@ -213,7 +215,7 @@ function SKIN:PaintButton( panel )
 		
 		if panel.isEnabled then
 			surface.SetDrawColor( 255, 255, 255, 255 )
-			surface.SetTexture( surface.GetTextureID( "exstoButtonGlow" ) )
+			surface.SetTexture( glow )
 			surface.DrawTexturedRect( 0, 0, panel:GetWide(), panel:GetTall() )
 		end
 		
@@ -228,7 +230,7 @@ function SKIN:PaintButton( panel )
 			end
 			
 			surface.SetDrawColor( 255, 255, 255, panel.FlashAlpha )
-			surface.SetTexture( surface.GetTextureID( "exstoButtonGlow" ) )
+			surface.SetTexture( glow )
 			surface.DrawTexturedRect( 0, 0, panel:GetWide(), panel:GetTall() )
 		end
 	end
@@ -885,11 +887,11 @@ function SKIN:PaintComboBoxItem( panel )
 
 	local col = nil
 
-	if panel.Hovered then
-		col = self.ExstoComboHover
-	elseif !panel.Hovered and panel.overrideColor then
+	if panel.overrideColor then
 		col = panel.overrideColor
-	elseif panel:GetSelected() then
+	elseif panel.Hovered then
+		col = self.ExstoComboHover
+	elseif panel:GetSelected() and panel.disableSelect != true then
 		col = self.combobox_selected
 	end
 

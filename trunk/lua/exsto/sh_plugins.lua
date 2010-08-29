@@ -36,11 +36,15 @@ if SERVER then
 	Description: Sends the plugin settings to a player.
      ----------------------------------- ]]
 	function exsto.SendPluginSettings( ply )
-		exsto.Print( exsto_CONSOLE_DEBUG, "PLUGINS --> Streaming plugin settings to " .. ply:Nick() )
-
-		exsto.UMStart( "ExRecPlugSettings", ply, exsto.PluginSettings )
+		local sender = exsto.CreateSender( "ExRecPlugSettings", ply )
+			sender:AddShort( exsto.PluginSettings and table.Count( exsto.PluginSettings ) or 0 )
+			for id, enabled in pairs( exsto.PluginSettings ) do
+				sender:AddString( id )
+				sender:AddBool( enabled )
+			end
+			sender:Send()
 	end
-	hook.Add( "exsto_InitSpawn", "exsto_StreamPluginSettingsList", exsto.SendPluginSettings )
+	hook.Add( "ExInitSpawn", "exsto_StreamPluginSettingsList", exsto.SendPluginSettings )
 	
 elseif CLIENT then
 	
@@ -48,13 +52,16 @@ elseif CLIENT then
 	Function: IncommingHook
 	Description: Recieves the server's plugin settings file.
      ----------------------------------- ]]
-	function exsto.RecievePluginSettings( settings )
-		exsto.ServerPlugSettings = settings
+	function exsto.ReceivePluginSettings( reader )
+		exsto.ServerPlugSettings = {}
+		for I = 1, reader:ReadShort() do
+			exsto.ServerPlugSettings[ reader:ReadString() ] = reader:ReadBool()
+		end
 		
 		-- Legacy
 		hook.Call( "exsto_RecievedSettings" )
 	end
-	exsto.UMHook( "ExRecPlugSettings", exsto.RecievePluginSettings )
+	exsto.CreateReader( "ExRecPlugSettings", exsto.ReceivePluginSettings )
 
 end
 

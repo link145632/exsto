@@ -78,7 +78,18 @@ if SERVER then
 	function ACCESS_LoadFiles()
 		for k,v in pairs( FEL.LoadTable( "exsto_data_access" ) ) do
 
-			if v.DefaultFlags != "NULL" and v.DefaultFlags != nil then
+			if v.DefaultFlags == "NULL" or v.DefaultFlags == nil or tostring( v.DefaultFlags ) == "NULL" then
+				exsto.LoadedRanks[v.Short] = {
+					Name = v.Name,
+					Desc = v.Description,
+					Short = v.Short,
+					Derive = v.Derive,
+					Color = FEL.MakeColor( v.Color ),
+					Immunity = v.Immunity,
+					Flags = FEL.NiceDecode( v.Flags ),
+					CanRemove = true,
+				}
+			else
 				exsto.LoadedRanks[v.Short] = {
 					Name = v.Name,
 					Desc = v.Description,
@@ -93,17 +104,6 @@ if SERVER then
 				
 				-- Check to make sure his default flags are up to date.
 				ACCESS_UpdateDefaultFlags( v.Short )
-			else
-				exsto.LoadedRanks[v.Short] = {
-					Name = v.Name,
-					Desc = v.Description,
-					Short = v.Short,
-					Derive = v.Derive,
-					Color = FEL.MakeColor( v.Color ),
-					Immunity = v.Immunity,
-					Flags = FEL.NiceDecode( v.Flags ),
-					CanRemove = true,
-				}
 			end
 		end
 		
@@ -335,6 +335,7 @@ if SERVER then
 		else
 			exsto.Print( exsto_CONSOLE, "RANKS --> Loaded successfully!" )
 		end
+
 	end
 
 --[[ -----------------------------------
@@ -381,6 +382,40 @@ if SERVER then
 	Description: Loads data from ULX
 	----------------------------------- ]]
 	function ACCESS_LoadFromULX( ply, style )
+	
+		if file.Exists( "UTeam.txt" ) and style == "ranks" then
+			ply:Print( exsto_CLIENT, "UCS --> Loading rank information from ULX!" )
+			
+			local data = file.Read( "UTeam.txt" )
+			data = util.KeyValuesToTable( data ).teams or {}
+			
+			for _, rank in pairs( data ) do
+				if !exsto.RankExists( rank.group ) then -- Ho ho lets create!
+					
+					FEL.AddData( "exsto_data_access", {
+						Look = {
+							Short = rank.group,
+						},
+						Data = {
+							Name = rank.name,
+							Description = "Imported from ULX UTeam",
+							Short = rank.group,
+							Derive = "NONE",
+							Color = FEL.NiceColor( rank.color ),
+							Immunity = 10,
+							Flags = FEL.NiceEncode( {} ),
+						},
+						Options = {
+							Update = false,
+						}
+					} )
+				end
+			end
+			
+			ply:Print( exsto_CLIENT, "UCS --> Rank import successful!  Reloading UCS." )
+			ACCESS_Reload()
+
+		end			
 		
 		if file.Exists( "Ulib/users.txt" ) and style == "users" then
 			ply:Print( exsto_CLIENT, "UCS --> Loading user information from ULX!" )
@@ -557,17 +592,20 @@ if SERVER then
 	----------------------------------- ]]
 	function exsto.AddUsersOnJoin( ply, steamid, uniqueid )
 
-		local plydata = FEL.LoadUserInfo( ply )
-
-		ply:SetRank( plydata or "guest" )	
+		local rank, userFlags = FEL.LoadUserInfo( ply )
 		
-		if !plydata then
+		print( rank )
+
+		ply:SetRank( rank or "guest" )	
+		ply:UpdateUserFlags( type( userFlags ) == "string" and FEL.NiceDecode( userFlags ) or {} )
+		
+		if !rank then
 			-- Its his first time here!  Welcome him to the beautiful environment of Exsto.
 			ply:Print( exsto_CHAT, COLOR.NORM, "Hello!  This server is proudly running ", COLOR.NAME, "Exsto", COLOR.NORM, "!  For more information, visit the !menu" )
 		end
 
 		if !isDedicatedServer() then
-			if ply:IsListenServerHost() and not plydata then
+			if ply:IsListenServerHost() and not rank then
 				ply:SetNWString( "rank", "srv_owner" )
 			elseif ply:IsListenServerHost() and ply:GetRank() != "srv_owner" then
 				-- If hes the host, but has a different rank, we need to give him the option to re-set as superadmin.
@@ -577,20 +615,20 @@ if SERVER then
 		else
 			-- We are running a dedicated server, and someone joined.  Lets check to see if there are any admins.
 			if !exsto.AnyAdmins() then
-				ply:Print( exsto_CHAT, COLOR.NORM, "Exsto has detected this is a ", COLOR.NAME, "dedicated server environment", COLOR.NORM, ", and there are no superadmins set yet." )
+				ply:Print( exsto_CHAT, COLOR.NORM, "Exsto has detected this is a ", COLOR.NAME, "dedicated server environment", COLOR.NORM, ", and there are no server owners set yet." )
 				ply:Print( exsto_CHAT, COLOR.NORM, "If you are the owner of this server, please rcon the following command:" )
 				ply:Print( exsto_CHAT, COLOR.NORM, "exsto rank " .. ply:Name() .. " srv_owner" )
 			end
 		end
 	
 	end
-	hook.Add( "exsto_InitSpawn", "exsto_AddUsersOnJoin", exsto.AddUsersOnJoin )
+	hook.Add( "ExInitSpawn", "exsto_AddUsersOnJoin", exsto.AddUsersOnJoin )
 	
 --[[ -----------------------------------
 	Function: exsto.UpdateOwnerRank
 	Description: Updates a player to owner if enough info is given.
 	----------------------------------- ]]
-	function exsto.UpdateOwnerRank( self, rcon, location )
+	function exsto.UpdateOwnerRank( self )
 		if !isDedicatedServer() then
 			if self:IsListenServerHost() then
 				self:SetNWString( "rank", "srv_owner" )
@@ -613,27 +651,10 @@ if SERVER then
 		Desc = "Updates listen server host's rank.",
 		Console = { "updateowner" },
 		Chat = { "!updateowner" },
-		ReturnOrder = "RCON-Location",
-		Args = { RCON = "STRING", Location = "STRING" },
-		Optional = { RCON = "", Location = "cfg/server.cfg" },
+		Args = {  },
 		Category = "Administration",
 	})
-	
---[[ -----------------------------------
-	Function: exsto.ReadRCONPass
-	Description: Reads the rcon pass from a location
-	----------------------------------- ]]
-	function exsto.ReadRCONPass( location )
-		local cfg = file.Read( "../" .. location )
-		
-		local pass = string.match( cfg, "[%c%s]-rcon_password[%s]-\"([%w%p]-)\"" )
-		if !pass then
-			pass = string.match( cfg, "[%c%s]-\"rcon_password\"[%s]-\"([%w%p]-)\"" )
-		end
-		
-		return pass
-	end
-	
+
 --[[ -----------------------------------
 	Function: exsto.AnyAdmins
 	Description: Checks to see if there are any admin in the data server.
@@ -717,6 +738,41 @@ if SERVER then
 	function _R.Player:SetUserGroup( rank )
 		self:SetRank( rank )
 	end
+	
+--[[ -----------------------------------
+	Function: player:UpdateUserFlags
+	Description: Updates a player's user flags
+	----------------------------------- ]]
+	function _R.Player:UpdateUserFlags( tbl )
+		self.ExUserFlags = tbl
+	end
+
+--[[ -----------------------------------
+	Function: player:AddUserFlag
+	Description: Adds a flag into the user's flag list
+	----------------------------------- ]]	
+	function _R.Player:AddUserFlag( flag )
+		table.insert( self.ExUserFlags, flag )
+	end
+	
+--[[ -----------------------------------
+	Function: player:RemoveUserFlag
+	Description: Removes a flag from the user's flag list
+	----------------------------------- ]]
+	function _R.Player:RemoveUserFlag( flag )
+		for _, flags in ipairs( self.ExUserFlags ) do
+			if flag == flag then table.remove( self.ExUserFlags, _ ) break end
+		end
+		self:SaveUserFlags()
+	end
+	
+--[[ -----------------------------------
+	Function: player:SaveUserFlags
+	Description: Creates a delay when saving flags, to allow multiple flags to be saved before everything else is.
+	----------------------------------- ]]
+	function _R.Player:SaveUserFlags()
+		timer.Create( "ExUserFlagUpdate_" .. self:UniqueID(), 5, 1, FEL.SaveUserInfo, self )
+	end
 
 elseif CLIENT then
 	
@@ -775,7 +831,7 @@ function _R.Player:IsAllowed( flag, victim )
 		local victimRank = exsto.GetRankData( victim:GetRank() )
 		if !rank.Immunity or !victimRank.Immunity then -- Just ignore it if they don't exist, we don't want to break Exsto.
 			if table.HasValue( rank.AllFlags, flag ) then return true end
-		elseif rank.Immunity <= victimRank.Immunity then
+		elseif tonumber( rank.Immunity ) <= tonumber( victimRank.Immunity ) then
 			if table.HasValue( rank.AllFlags, flag ) then return true end
 		else
 			return false, "immunity"
