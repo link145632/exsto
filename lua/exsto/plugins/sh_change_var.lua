@@ -51,6 +51,10 @@ if SERVER then
 		-- If we are an existing one.
 		local existing = exsto.GetVar( dirty )
 		if existing then
+			if !existing.EnvVar then -- Oh god, dont do this
+				return { owner, COLOR.NORM, "You cannot delete an ", COLOR.NAME, "environmental variable!" }
+			end
+			
 			exsto.Variables[ dirty ] = nil
 			
 			FEL.RemoveData( "exsto_data_variables", "Dirty", dirty )
@@ -118,22 +122,25 @@ if SERVER then
 	})
 	
 	local function SendVars( ply )
-	
-		local Send = {}
+
 		for k,v in pairs( exsto.Variables ) do
-			local Data = {}
-				Data.Pretty = v.Pretty
-				Data.Dirty = v.Dirty
-				Data.Value = v.Value
-				Data.DataType = v.DataType
-				Data.Description = v.Description
-				Data.Possible = v.Possible
-				Data.EnvVar = v.EnvVar
+
+			local sender = exsto.CreateSender( "ExRecVars", ply )
+				sender:AddString( v.Dirty )
+				sender:AddString( v.Pretty )
+				sender:AddVariable( v.Value )
+				sender:AddString( v.DataType )
+				sender:AddString( v.Description )
+				sender:AddBool( v.EnvVar )
 				
-			table.insert( Send, Data )
+				sender:AddShort( v.Possible and table.Count( v.Possible ) or 0 )
+				for _, possible in ipairs( v.Possible ) do
+					sender:AddVariable( possible )
+				end
+				sender:Send()
 		end
-	
-		exsto.UMStart( "ExRecVars", ply, Send )
+		
+		exsto.CreateSender( "ExRecVarsFinal", ply ):Send()
 		
 	end
 	concommand.Add( "_RequestVars", SendVars )
@@ -145,13 +152,33 @@ if SERVER then
 	
 elseif CLIENT then
 
-	function PLUGIN:ExRecVars( vars )
-		if !vars then return end
-		self.Vars = vars
-		Menu:EndLoad()
-		if self.List then self.List:Refresh() end
+	local function done()
+		PLUGIN.Panel:EndLoad()
+		if PLUGIN.List and PLUGIN.List:IsValid() then PLUGIN.List:Refresh() else PLUGIN:Build( PLUGIN.Panel ) end
 	end
-	PLUGIN:DataHook( "ExRecVars" )
+	exsto.CreateReader( "ExRecVarsFinal", done )
+	
+	local function receive( reader ) 
+		if !PLUGIN.Vars then PLUGIN.Vars = {} end
+		
+		local data = {
+			Dirty = reader:ReadString(),
+			Pretty = reader:ReadString(),
+			Value = reader:ReadVariable(),
+			DataType = reader:ReadString(),
+			Description = reader:ReadString(),
+			EnvVar = reader:ReadBool(),
+			Possible = {}
+		}
+		
+		for I = 1, reader:ReadShort() do
+			table.insert( data.Possible, reader:ReadVariable() )
+		end
+
+		table.insert( PLUGIN.Vars, data )
+		
+	end
+	exsto.CreateReader( "ExRecVars", receive )
 	
 	function PLUGIN:Build( panel )
 		self.List = exsto.CreateListView( 10, 10, panel:GetWide() - 20, panel:GetTall() - 80, panel )
@@ -202,10 +229,7 @@ elseif CLIENT then
 				for _, data in ipairs( self.Vars ) do
 					if data.Dirty == self.CurrentLine:GetValue( 2 ) then found = data break end
 				end
-				
-				print( found )
-				if type( found ) == "table" then PrintTable( found ) end
-				
+
 				if !found or tobool( found.EnvVar ) == true then
 					-- Give him a delete option.
 					self.DeleteVar:SetVisible( true )
@@ -217,22 +241,31 @@ elseif CLIENT then
 			entry:SetText( "" )
 			entry.hideAble = false
 		end
-			
-		self.ShortLabel = exsto.CreateLabel( 10, self.List:GetTall() + 20, "ID:", "arial", panel )
-		self.ShortBox = exsto.CreateTextEntry( 30, self.List:GetTall() + 20, 140, 20, panel )
+		
+		self.DataColorPanel = Menu:CreateColorPanel( 10, self.List:GetTall() + 15, 180, 60, panel )
+		
+		self.ShortLabel = exsto.CreateLabel( 5, 5, "ID:", "arial", self.DataColorPanel )
+		self.ShortBox = exsto.CreateTextEntry( 20, 5, 140, 20, self.DataColorPanel )
 			self.ShortBox.OnMousePressed = hideOnSelect
 			self.ShortBox.OnTextChanged = function( entry )
+				if string.find( entry:GetValue(), " " ) then
+					self.DataColorPanel:Deny()
+					entry:SetToolTip( "You cannot have a space in the ID!" )
+				else
+					self.DataColorPanel:Accept()
+				end
+				
 				self.CurrentLine:SetValue( 1, "envvar_" .. entry:GetValue() )
 				self.CurrentLine:SetValue( 2, entry:GetValue() )
 			end
 			
-		self.ValueLabel = exsto.CreateLabel( 10, self.List:GetTall() + 50, "Value:", "arial", panel )
-		self.ValueBox = exsto.CreateTextEntry( 50, self.List:GetTall() + 50, 120, 20, panel )
+		self.ValueLabel = exsto.CreateLabel( 5, 35, "Value:", "arial", self.DataColorPanel )
+		self.ValueBox = exsto.CreateTextEntry( 40, 35, 120, 20, self.DataColorPanel )
 			self.ValueBox.OnMousePressed = hideOnSelect
 			self.ValueBox.OnTextChanged = function( entry )
 				self.CurrentLine:SetValue( 3, entry:GetValue() )
 			end
-		self.PossibleBox = exsto.CreateMultiChoice( 50, self.List:GetTall() + 50, 120, 20, panel )
+		self.PossibleBox = exsto.CreateMultiChoice( 40, 35, 120, 20, self.DataColorPanel )
 			self.PossibleBox:SetVisible( false )
 			self.PossibleBox:SetEditable( false )
 			self.PossibleBox.OnSelect = function( index, value, data )
@@ -242,6 +275,8 @@ elseif CLIENT then
 		self.ChangeButton = exsto.CreateButton( panel:GetWide() - 80, panel:GetTall() - 40, 74, 27, "Change", panel )
 			self.ChangeButton:SetStyle( "positive" )
 			self.ChangeButton.OnClick = function( button )
+				if !self.CurrentLine or !self.CurrentLine:IsValid() then panel:PushError( "Please select a variable to change!" ) return end
+				if string.find( self.ValueBox:GetValue(), " " ) then panel:PushError( "You cannot have a space in the variable ID!" ) return end
 				local short = self.CurrentLine:GetValue( 2 )
 				local done = false
 				for _, data in ipairs( self.Vars ) do
@@ -251,10 +286,14 @@ elseif CLIENT then
 						break
 					end
 				end 
-				if done then return end
+				if done then
+					self.Refresh:OnClick()
+					return
+				end
 				
 				-- Apparently, its an new var
 				RunConsoleCommand( "exsto", "createenv", short, self.CurrentLine:GetValue( 3 ) )
+				self.Refresh:OnClick()
 			end
 			
 		self.CreateVar = exsto.CreateButton( 0, panel:GetTall() - 40, 94, 27, "Create Var", panel )
@@ -277,6 +316,8 @@ elseif CLIENT then
 		self.Refresh = exsto.CreateButton( 0, panel:GetTall() - 40, 74, 27, "Refresh", panel )
 			self.Refresh:MoveLeftOf( self.CreateVar, 15 )
 			self.Refresh.OnClick = function()
+				self.DataColorPanel:Neutral()
+				self.DeleteVar:SetVisible( false )
 				self:RefreshVars( panel )
 			end
 			
@@ -290,25 +331,16 @@ elseif CLIENT then
 	end
 	
 	function PLUGIN:RefreshVars( panel )
-		Menu:PushLoad()
+		panel:PushLoad()
 		RunConsoleCommand( "_RequestVars" )
 		self.Vars = nil
-		self:Ping( panel )
 	end 
-	
-	function PLUGIN:Ping( panel )
-		if type( self.Vars ) != "table" then
-			timer.Simple( 0.1, PLUGIN.Ping, PLUGIN, panel )
-			return
-		end
-		if self.List then return end
-		self:Build( panel )
-	end
-	
+
 	Menu:CreatePage({
 		Title = "Variable Editor",
 		Short = "vareditor",
 	}, function( panel )
+		PLUGIN.Panel = panel
 		PLUGIN:RefreshVars( panel )
 	end )
 	

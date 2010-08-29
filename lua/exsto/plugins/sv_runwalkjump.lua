@@ -52,6 +52,7 @@ PLUGIN:AddCommand( "runspeed", {
 	Console = { "runspeed" },
 	Chat = { "!runspeed" },
 	ReturnOrder = "Target-Power",
+	Optional = { Power = 500 },
 	Args = { Target = "PLAYER", Power = "NUMBER" },
 	Category = "Fun",
 })
@@ -70,6 +71,7 @@ PLUGIN:AddCommand( "walkspeed", {
 	Desc = "Allows users to change player's walk speed.",
 	Console = { "walkspeed" },
 	Chat = { "!walkspeed" },
+	Optional = { Power = 250 },
 	ReturnOrder = "Target-Power",
 	Args = { Target = "PLAYER", Power = "NUMBER" },
 	Category = "Fun",
@@ -89,6 +91,7 @@ PLUGIN:AddCommand( "jumppower", {
 	Desc = "Allows users to change player's jump power.",
 	Console = { "jumppower" },
 	Chat = { "!jumppower" },
+	Optional = { Power = 100 },
 	ReturnOrder = "Target-Power",
 	Args = { Target = "PLAYER", Power = "NUMBER" },
 	Category = "Fun",

@@ -25,7 +25,7 @@ if SERVER then
 		ACCESS_ResendRanks()
 		
 		-- Reload the rank editor.
-		PLUGIN:SendData( "ExRankEditor_Reload", ply )
+		ply:QuickSend( "ExRankEditor_Reload" )
 	end
 	exsto.MenuCall( "_DeleteRank", PLUGIN.DeleteRank )
 	
@@ -100,37 +100,33 @@ elseif CLIENT then
 	local function reload()
 		PLUGIN:ReloadMenu( PLUGIN.Panel )
 	end
-	exsto.UMHook( "ExRankEditor_Reload", reload )
+	exsto.CreateReader( "ExRankEditor_Reload", reload )
 
 	Menu:CreatePage( {
 		Title = "Rank Editor",
 		Short = "rankeditor", },
 		function( panel )
 			-- Request ranks.
-			if table.Count( exsto.Ranks ) == 0 or !PLUGIN.Recieved then
-				Menu:PushLoad()
+			if !PLUGIN.Recieved then
+				panel:PushLoad()
 				RunConsoleCommand( "_ResendRanks" )
+			else
+				PLUGIN:Main( panel )
 			end
 			PLUGIN.Panel = panel
-			PLUGIN:Main( panel )
 		end
 	)
 	
-	function PLUGIN:ExRecievedRanks()
-		self.Recieved = true
+	local function received( reader )
+		PLUGIN.Recieved = true
+		if PLUGIN.Panel then
+			PLUGIN:Main( PLUGIN.Panel )
+		end
 	end
+	exsto.CreateReader( "ExRecievedRanks", received )
 	
 	function PLUGIN:Main( panel )
-		if table.Count( exsto.Ranks ) == 0 or !self.Recieved then
-			timer.Simple( 1, PLUGIN.Main, self, panel )
-			return
-		end
-		
-		if table.Count( exsto.Flags ) == 0  or !self.Recieved then
-			timer.Simple( 1, PLUGIN.Main, self, panel )
-			return
-		end
-		
+	
 		if !self.Flags then
 			self.Flags = {}
 			for name, desc in pairs( exsto.Flags ) do
@@ -139,23 +135,21 @@ elseif CLIENT then
 			table.SortByMember( self.Flags, "Name", true )
 		end
 		
-		self.Recieved = false
-		Menu:EndLoad()
+		panel:EndLoad()
 		self:BuildMenu( panel )
 	end
 	
 	function PLUGIN:ReloadMenu( panel )
 		exsto.Ranks = {}
-		Menu:PushLoad()
+		panel:PushLoad()
 		self.Recieved = false
 		RunConsoleCommand( "_ResendRanks" )
-		self:Main( panel )
 	end
 	
 	function PLUGIN:FormulateUpdate( name, short, desc, derive, col, flags )
 
 		-- Upload new rank data
-		Menu:PushLoad()
+		self.Panel:PushLoad()
 		exsto.SendToServer( "ExRecRankData", name, desc, short, derive, col, flags )
 		
 		-- Send changes to immunity
@@ -191,10 +185,15 @@ elseif CLIENT then
 			Menu:BringBackSecondaries() 
 		end
 		
-		local immunityData = {}
+		local sortedRanks = {}
 		for short, data in pairs( exsto.Ranks ) do
-			print( short )
-			if short != "srv_owner" then
+			table.insert( sortedRanks, data )
+		end
+		table.sort( sortedRanks, function( a, b ) return a.Immunity < b.Immunity end )
+		
+		local immunityData = {}
+		for _, data in ipairs( sortedRanks ) do
+			if data.Short != "srv_owner" then
 				local page = self.Tabs:CreatePage( panel )
 				self:FormPage( page, data )
 				self.Tabs:AddItem( data.Name, page )
@@ -385,66 +384,47 @@ elseif CLIENT then
 		local colorExample = exsto.CreateLabel( "center", 5, "abc ABC 123", "exstoSecondaryButtons", colorColorPanel )
 			colorExample:SetTextColor( data.Color )
 
-			local oldPress = colorMixer.ColorCube.OnMousePressed
-			colorMixer.ColorCube.OnMousePressed = function( self, ... )
-				oldPress( self, ... )
-				self.Updating = true
-			end
-			
-			local oldRelease = colorMixer.ColorCube.OnMouseReleased
-			colorMixer.ColorCube.OnMouseReleased = function( self, ... )
-				oldRelease( self, ... )
-				self.Updating = false
-			end
-			
 		local emptyFunc = function() end
-		
-		local valChange = function( self, tbl )
-			local col = colorMixer.niceColor
-			colorExample:SetTextColor( col )
-			
-			if !colorMixer.ColorCube.Updating then
-				//print( "updating color tbl .. tbl ", self:GetValue() )
-				col[ tbl ] = self:GetValue()
-				//PrintTable( col )
-				colorMixer.niceColor = Color( col.r, col.g, col.b, col.a )
-				colorMixer:SetColor( colorMixer.niceColor )
-			end
-		end
 
 		local redSlider = exsto.CreateNumberWang( 0, 30, 32, 20, data.Color.r, 255, 0, colorColorPanel )
-			redSlider.OnValueChanged = function( self ) valChange( self, "r" ) end
-			redSlider.TextEntry.OnTextChanged = function( self ) valChange( self, "r" ) end
-			
 			redSlider.Wanger.Paint = emptyFunc
 			redSlider:SetDecimals( 0 )
 			redSlider:MoveRightOf( colorMixer )
 			
 		local greenSlider = exsto.CreateNumberWang( 0, 55, 32, 20, data.Color.g, 255, 0, colorColorPanel )
-			greenSlider.OnValueChanged = function( self ) valChange( self, "g" ) end
-			greenSlider.TextEntry.OnTextChanged = function( self ) valChange( self, "g" ) end
-			
 			greenSlider.Wanger.Paint = emptyFunc
 			greenSlider:SetDecimals( 0 )
 			greenSlider:MoveRightOf( colorMixer )
 			
 		local blueSlider = exsto.CreateNumberWang( 0, 80, 32, 20, data.Color.b, 255, 0, colorColorPanel )
-			blueSlider.OnValueChanged = function( self ) valChange( self, "b" ) end
-			blueSlider.TextEntry.OnTextChanged = function( self ) valChange( self, "b" ) end
-			
 			blueSlider.Wanger.Paint = emptyFunc
 			blueSlider:SetDecimals( 0 )
 			blueSlider:MoveRightOf( colorMixer )
 			
 		local alphaSlider = exsto.CreateNumberWang( 0, 105, 32, 20, data.Color.a, 255, 0, colorColorPanel )
-			alphaSlider.OnValueChanged = function( self ) valChange( self, "a" ) end
-			alphaSlider.TextEntry.OnTextChanged = function( self ) valChange( self, "a" ) end
-			
 			alphaSlider.Wanger.Paint = emptyFunc
 			alphaSlider:SetDecimals( 0 )
 			alphaSlider:MoveRightOf( colorMixer )
 			
+		local oldThink = colorMixer.Think
+		colorMixer.Think = function( self )
+			oldThink( self )
+			if self.ColorCube:GetDragging() then return end
+			if !self.niceColor then self.niceColor = Color( 0, 0, 0, 200 ) end
+			
+			self.niceColor.r = redSlider:GetValue()
+			self.niceColor.g = greenSlider:GetValue()
+			self.niceColor.b = blueSlider:GetValue()
+			self.niceColor.a = alphaSlider:GetValue()
+			
+			colorExample:SetTextColor( self.niceColor )
+			colorMixer:SetColor( self.niceColor )
+		end
+			
+		local oldChange = colorMixer.ColorCube.OnUserChanged
 		colorMixer.ColorCube.OnUserChanged = function( self )
+			oldChange( self )
+			
 			local col = self:GetParent():GetColor()
 			redSlider:SetValue( col.r )
 			greenSlider:SetValue( col.g )
@@ -468,6 +448,9 @@ elseif CLIENT then
 				local obj = self:AddItem( info.Name )
 					obj:SetToolTip( info.Desc )
 					obj.FlagName = info.Name
+					obj.disableSelect = true
+					
+					obj.OnCursorMoved = emptyFunc
 					
 					local oldClick = obj.DoClick
 					obj.DoClick = function( self, ... )
@@ -488,7 +471,7 @@ elseif CLIENT then
 								if flag == self.FlagName then
 									table.remove( data.AllFlags, _ )
 									self.Icon = "icon_off"
-									self.overrideColor = Color( 0, 0, 0, 0 )
+									self.overrideColor = nil
 									break
 								end
 							end
@@ -520,7 +503,7 @@ elseif CLIENT then
 					obj.overrideColor = Color( 180, 241, 170 )
 					
 					if !table.HasValue( data.Flags, obj.FlagName ) then
-						obj.overrideColor = Color( 0, 0, 0, 0 )
+						obj.overrideColor = nil
 						if table.HasValue( data.AllFlags, obj.FlagName ) then
 							obj.Icon = "icon_locked"
 						else
@@ -536,10 +519,10 @@ elseif CLIENT then
 		local save = exsto.CreateButton( panel:GetWide() - 80, panel:GetTall() - 40, 70, 27, "Save", panel )
 			save:SetStyle( "positive" )
 			save.OnClick = function( self )
-				if nameEntry:GetValue() == "" then Menu:PushError( "Please enter a name for the rank!" ) return end
-				if uidEntry:GetValue() == "" then Menu:PushError( "Please enter a UID for the rank!" ) return end
+				if nameEntry:GetValue() == "" then PLUGIN.Panel:PushError( "Please enter a name for the rank!" ) return end
+				if uidEntry:GetValue() == "" then PLUGIN.Panel:PushError( "Please enter a UID for the rank!" ) return end
 				if descEntry:GetValue() == "" then descEntry:SetText( "None Provided" ) end
-				if deriveEntry.TextEntry:GetValue() == "" then Menu:PushError( "Please enter a valid derive!" ) return end
+				if deriveEntry.TextEntry:GetValue() == "" then PLUGIN.Panel:PushError( "Please enter a valid derive!" ) return end
 				
 				PLUGIN:FormulateUpdate( nameEntry:GetValue(), uidEntry:GetValue(), descEntry:GetValue(), deriveEntry.TextEntry:GetValue(), colorMixer:GetColor(), data.Flags )
 			end
@@ -549,7 +532,7 @@ elseif CLIENT then
 			delete:MoveLeftOf( save, 5 )
 			delete:SetVisible( data.CanRemove )
 			delete.OnClick = function( self )
-				Menu:PushLoad()
+				PLUGIN.Panel:PushLoad()
 				Menu.CallServer( "_DeleteRank", data.Short )
 			end
 			

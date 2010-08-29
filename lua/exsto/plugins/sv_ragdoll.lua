@@ -46,17 +46,22 @@ function PLUGIN:Ragdoll( self, ply )
 
 	if !ply.ExRagdolled then
 		ply.ExRagdolled = true
+		ply.ExRagdoll_Angle = ply:GetAngles()
 		
 		ply.ExRagdoll_Weps = ply:GetWeapons()
 		ply:StripWeapons()
 		
+		local vel = ply:GetVelocity()
 		local doll = ents.Create( "prop_ragdoll" )
 			doll:SetModel( ply:GetModel() )
 			doll:SetPos( ply:GetPos() )
 			doll:SetAngles( ply:GetAngles() )
 			doll:Spawn()
 			doll:Activate()
-			doll:SetVelocity( ply:GetVelocity() )
+			
+			for I = 1, 14 do
+				doll:GetPhysicsObjectNum( I ):SetVelocity( vel )
+			end
 			
 		ply.ExRagdoll = doll
 		ply:SpectateEntity( doll )
@@ -70,7 +75,6 @@ function PLUGIN:Ragdoll( self, ply )
 		}
 	else
 		ply.ExRagdolled = false
-		if ply.ExRagdoll and ply.ExRagdoll:IsValid() then ply.ExRagdoll:Remove() end
 		
 		ply:UnSpectate()
 		for _, wep in ipairs( ply.ExRagdoll_Weps ) do
@@ -80,6 +84,11 @@ function PLUGIN:Ragdoll( self, ply )
 		end
 		ply:SetParent()
 		ply:Spawn()
+		ply:SetPos( ply.ExRagdoll:GetPos() )
+		ply:SetVelocity( ply.ExRagdoll:GetVelocity() )
+		ply:SetEyeAngles( Angle( 0, ply.ExRagdoll:GetAngles().yaw, 0 ) )
+		
+		if ply.ExRagdoll and ply.ExRagdoll:IsValid() then ply.ExRagdoll:Remove() end
 	
 		return {
 			Activator = self,

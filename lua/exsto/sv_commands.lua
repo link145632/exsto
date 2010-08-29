@@ -44,34 +44,60 @@ exsto.AddVariable({
 	Function: exsto.SendCommandList
 	Description: Sends the Exsto command list to players on join.
      ----------------------------------- ]]
-function exsto.SendCommandList( ply, format )
+function exsto.SendCommandList( ply )
 
-	local Send = {}
 	for k,v in pairs( exsto.Commands ) do
 		
-		Send[v.ID] = {
-			ID = v.ID,
-			Desc = v.Desc,
-			Args = v.Args,
-			Chat = v.Chat,
-			Console = v.Console,
-			FlagDesc = v.FlagDesc,
-			ReturnOrder = v.ReturnOrder,
-			Optional = v.Optional,
-			QuickMenu = v.QuickMenu,
-			CallerID = v.CallerID,
-			ExtraOptionals = v.ExtraOptionals or {},
-			Category = v.Category
-		}
-		
+		local sender = exsto.CreateSender( "ExRecCommands", ply )
+			sender:AddString( v.ID )
+			sender:AddString( v.Desc )
+			sender:AddString( v.Category )
+			sender:AddBool( v.QuickMenu )
+			sender:AddString( v.CallerID or "" )
+			
+			sender:AddShort( v.Args and table.Count( v.Args ) or 0 )
+			for arg, var in pairs( v.Args ) do
+				sender:AddString( arg )
+				sender:AddString( var )
+			end
+
+			sender:AddShort( v.ReturnOrder and #v.ReturnOrder or 0 )
+			for _, arg in ipairs( v.ReturnOrder ) do
+				sender:AddString( arg )
+			end
+			
+			sender:AddShort( v.Optional and table.Count( v.Optional ) or 0 )
+			for arg, val in pairs( v.Optional ) do
+				sender:AddString( arg )
+				sender:AddVariable( val )
+			end
+
+			sender:AddShort( v.Console and #v.Console or 0 )
+			for _, com in ipairs( v.Console ) do
+				sender:AddString( com )
+			end
+			
+			sender:AddShort( v.Chat and #v.Chat or 0 )
+			for _, com in ipairs( v.Chat ) do
+				sender:AddString( com )
+			end
+			
+			sender:AddShort( v.ExtraOptionals and table.Count( v.ExtraOptionals ) or 0 )
+			if type( v.ExtraOptionals ) == "table" then
+				for name, extra in pairs( v.ExtraOptionals ) do
+					sender:AddString( name )
+					sender:AddShort( #extra )
+					for _, display in ipairs( extra ) do
+						sender:AddString( display.Display )
+						sender:AddVariable( display.Data )
+					end
+				end
+			end
+			
+			sender:Send()
 	end
-	if !ply and format == "format" then return Send end
-	
-	exsto.Print( exsto_CONSOLE_DEBUG, "COMMANDS --> Streaming command list to " .. ply:Nick() )
-	
-	exsto.UMStart( "ExRecCommands", ply, Send )
 end
-hook.Add( "exsto_InitSpawn", "exsto_StreamCommandList", exsto.SendCommandList )
+hook.Add( "ExInitSpawn", "exsto_StreamCommandList", exsto.SendCommandList )
 concommand.Add( "_ResendCommands", exsto.SendCommandList )
 
 --[[ -----------------------------------
@@ -79,9 +105,7 @@ concommand.Add( "_ResendCommands", exsto.SendCommandList )
 	Description: Resends the command list to everyone in the server.
      ----------------------------------- ]]
 function exsto.ResendCommands()
-	local send = exsto.SendCommandList( nil, "format" )
-	
-	exsto.UMStart( "ExRecCommands", player.GetAll(), send )
+	exsto.SendCommandList( player.GetAll() )
 end
 
 --[[ -----------------------------------
@@ -749,8 +773,12 @@ function exsto.OpenMenu( ply, _, args )
 	
 	print( "SERVER RANK --> " .. ply:GetRank() )
 	
-	exsto.UMStart( "exsto_Menu", ply, menuAuthKey, ply:GetRank(), #exsto.GetRankData( ply:GetRank() ).Flags, bindPressed )
-	
+	local sender = exsto.CreateSender( "ExMenu", ply )
+		sender:AddShort( menuAuthKey )
+		sender:AddString( ply:GetRank() )
+		sender:AddShort( #exsto.GetRankData( ply:GetRank() ).Flags )
+		sender:AddBool( bindPressed )
+		sender:Send()
 end
 exsto.AddChatCommand( "menu", {
 	Call = exsto.OpenMenu,

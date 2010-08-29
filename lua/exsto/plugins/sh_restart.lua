@@ -246,7 +246,7 @@ elseif CLIENT then
 		currentGamemode = list[3]
 		
 	end
-	exsto.UMHook( "ExSendMaps", PLUGIN.RecieveMaps ) 
+	//exsto.UMHook( "ExSendMaps", PLUGIN.RecieveMaps ) 
 
 	function PLUGIN.Reload( panel )
 	

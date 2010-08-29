@@ -137,6 +137,11 @@ if SERVER then
 		local data = FEL.QueryObj:getData()
 		
 		FEL.QueryObj = nil
+		
+		if type( data ) != "table" then
+			MsgN( tostring( run ) or "UNKNOWN RUN QUERY" )
+			return nil
+		end
 
 		if table.Count( data ) < 1 then return nil end
 		return data		
@@ -280,10 +285,6 @@ if SERVER then
 			cachedData[2] = {}
 			table.insert( changedData, { Type = "options" } )
 		end
-		
-		PrintTable( cachedData[2] or {} )
-		print( "----" )
-		PrintTable( options or {} )
 		
 		-- Check options
 		if cachedData[2] then
@@ -524,7 +525,6 @@ if SERVER then
 
 		local nick = ply:Nick()
 		local steamID = ply:SteamID()
-		local rank = ply:GetRank()
 
 		FEL.AddData( "exsto_data_users", {
 			Look = {
@@ -533,16 +533,14 @@ if SERVER then
 			Data = {
 				Name = nick,
 				SteamID = steamID,
-				Rank = rank,
+				Rank = ply:GetRank(),
+				UserFlags = FEL.NiceEncode( ply.ExUserFlags or {} )
 			},
 			Options = {
 				Threaded = true,
 				Update = true,
 			}
 		} )
-		
-		exsto.Print( exsto_CONSOLE_DEBUG, "Saving data for " .. ply:Nick() .. "!" )
-		
 	end
 
 --[[ -----------------------------------
@@ -550,7 +548,9 @@ if SERVER then
 	Description: Loads user's information
      ----------------------------------- ]]
 	function FEL.LoadUserInfo( ply )
-		return FEL.LoadData( "exsto_data_users", "Rank", "SteamID", ply:SteamID() )
+		local data = FEL.Query( "SELECT Rank, UserFlags FROM exsto_data_users WHERE SteamID = " .. FEL.Escape( ply:SteamID() ) .. ";" )
+		if type( data ) == "table" then data = data[1] else data = {} end
+		return data.Rank, data.UserFlags
 	end
 
 --[[ -----------------------------------
@@ -558,30 +558,24 @@ if SERVER then
 	Description: Saves a player's banned information.
      ----------------------------------- ]]
 	function FEL.SaveBanInfo( ply, len, reason, banned_by, time )
-
-		local nick
-		local steam
-		
-		if type( ply ) == "table" then
-			nick = ply.Nick
-			steam = ply.SteamID
+	
+		local name, id
+		if type( ply ) == "Player" then
+			name, id = ply:Name(), ply:SteamID()
 		else
-			nick = ply:Nick()
-			steam = ply:SteamID()
+			name, id = ply[1], ply[2]
 		end
 		
-		local banned_by = banned_by:Nick()
-
 		FEL.AddData( "exsto_data_bans", {
 			Look = {
-				SteamID = steam,
+				SteamID = id,
 			},
 			Data = {
-				Name = nick,
-				SteamID = steam,
+				Name = name,
+				SteamID = id,
 				Length = len,
 				Reason = reason,
-				BannedBy = banned_by,
+				BannedBy = banned_by:Nick() or "Console",
 				BannedAt = time,
 			},
 			Options = {
@@ -589,7 +583,7 @@ if SERVER then
 				Update = true,
 			}
 		} )
-		exsto.Print( exsto_CONSOLE_DEBUG, "Saving data for " .. nick .. "!" )
+		exsto.Print( exsto_CONSOLE_DEBUG, "Saving data for " .. name .. "(" .. id .. ") !" )
 		
 	end
 
@@ -721,6 +715,7 @@ if SERVER then
 			SteamID = "varchar(255)",
 			Name = "varchar(255)",
 			Rank = "varchar(255)",
+			UserFlags = "test",
 		},
 		{
 			PrimaryKey = "SteamID",

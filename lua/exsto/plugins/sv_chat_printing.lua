@@ -28,13 +28,15 @@ PLUGIN:AddCommand( "chatnotify", {
 })
 
 function PLUGIN:ChatNotify2( ply, text )
-	PrintMessage(HUD_PRINTCENTER,text)
+	for _, ply in ipairs( player.GetAll() ) do
+		ply:PrintMessage( HUD_PRINTCENTER, text )
+	end
 end
 PLUGIN:AddCommand( "chatnotify2", {
 	Call = PLUGIN.ChatNotify2,
 	Desc = "Allows users to talk to do a chat notify on all players (Middle of the screen).",
-	Console = { "chatnotify2" },
-	Chat = { "@@2" },
+	Console = { "centernotify" },
+	Chat = { "@@@" },
 	ReturnOrder = "Text",
 	Args = { Text = "STRING" },
 	Optional = { },
@@ -44,14 +46,13 @@ PLUGIN:AddCommand( "chatnotify2", {
 function PLUGIN:AdminSay( ply, text )
 	for k,v in pairs( player.GetAll() ) do
 		if v:IsAdmin() or v:IsSuperAdmin() then
-			print( v:Nick() )
 			v:Print( exsto_CHAT_NOLOGO, COLOR.NAME, "(ADMIN) ", ply, COLOR.NORM, ": " .. text )
 		end
 	end
 end
 PLUGIN:AddCommand( "adminsay", {
 	Call = PLUGIN.AdminSay,
-	Desc = "Allows users to talk to admins privatly.",
+	Desc = "Allows users to talk to admins privately.",
 	Console = { "adminsay" },
 	Chat = { "@", "!admin" },
 	ReturnOrder = "Text",

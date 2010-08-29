@@ -34,8 +34,8 @@ end
 PLUGIN:AddCommand( "returnweps", {
 	Call = PLUGIN.Return,
 	Desc = "Allows users to return players their weapons.",
-	Console = { "returnweapons" },
-	Chat = { "!returnweps" },
+	Console = { "return" },
+	Chat = { "!return" },
 	ReturnOrder = "Victim",
 	Args = { Victim = "PLAYER" },
 	Optional = { },
@@ -96,8 +96,8 @@ end
 PLUGIN:AddCommand( "stripweps", {
 	Call = PLUGIN.Strip,
 	Desc = "Allows users to strip players of weapons.",
-	Console = { "stripweapons", "strip" },
-	Chat = { "!stripweps", "!strip" },
+	Console = { "strip" },
+	Chat = { "!strip" },
 	ReturnOrder = "Victim",
 	Args = { Victim = "PLAYER" },
 	Optional = { },

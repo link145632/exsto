@@ -22,6 +22,7 @@
 	 
 	exstoInclude( "exsto/cl_derma.lua" )
 	exstoInclude( "exsto/sh_tables.lua" )
+	exstoInclude( "exsto/sh_umsg_core.lua" )
 	exstoInclude( "exsto/sh_umsg.lua" )
 	exstoInclude( "exsto/sh_print.lua" )
 	exstoInclude( "exsto/sh_data.lua" )

@@ -27,17 +27,18 @@ if SERVER then
 	-- We need to send out data to the client.  Do I have to do it?
 	-- Args: server time, #exsto errors, number joins, number leaves, number kicks, number bans, number commands
 	function PLUGIN:SendInfo( ply )
-		exsto.UMStart( "ExQuickMenuData", ply, CurTime(),
-			self.NumberErrors,
-			self.NumberJoins,
-			self.NumberLeaves,
-			self.NumberKicks,
-			self.NumberBans,
-			self.NumberCommands,
-			self.NumberQueries,
-			self.NumberDataSend,
-			self.ServerMaxPlayers
-		)
+		local sender = exsto.CreateSender( "ExQuickMenuData", ply )
+			sender:AddShort( CurTime() )
+			sender:AddShort( self.NumberErrors )
+			sender:AddShort( self.NumberJoins )
+			sender:AddShort( self.NumberLeaves )
+			sender:AddShort( self.NumberKicks )
+			sender:AddShort( self.NumberBans )
+			sender:AddShort( self.NumberCommands )
+			sender:AddShort( self.NumberQueries )
+			sender:AddShort( self.NumberDataSend )
+			sender:AddShort( self.ServerMaxPlayers )
+			sender:Send()
 	end
 	
 	function PLUGIN:ExDataSend( name, ply )
@@ -81,19 +82,21 @@ if SERVER then
 
 elseif CLIENT then
 
-	local function waitData( serverTime, errors, joins, leaves, kicks, bans, commands, queries, data, maxplys )
-		PLUGIN.ServerStartTime = serverTime + 1 -- Give us a second for data transfer.
-		PLUGIN.NumberErrors = errors
-		PLUGIN.NumberJoins = joins
-		PLUGIN.NumberLeaves = leaves
-		PLUGIN.NumberKicks = kicks
-		PLUGIN.NumberBans = bans
-		PLUGIN.NumberCommands = commands
-		PLUGIN.NumberQueries = queries
-		PLUGIN.NumberDataSend = data
-		PLUGIN.ServerMaxPlayers = maxplys
+	local function waitData( reader )
+		PLUGIN.ServerStartTime = reader:ReadShort() + 1 -- Give us a second for data transfer.
+		PLUGIN.NumberErrors = reader:ReadShort()
+		PLUGIN.NumberJoins = reader:ReadShort()
+		PLUGIN.NumberLeaves = reader:ReadShort()
+		PLUGIN.NumberKicks = reader:ReadShort()
+		PLUGIN.NumberBans = reader:ReadShort()
+		PLUGIN.NumberCommands = reader:ReadShort()
+		PLUGIN.NumberQueries = reader:ReadShort()
+		PLUGIN.NumberDataSend = reader:ReadShort()
+		PLUGIN.ServerMaxPlayers = reader:ReadShort()
 	end
-	exsto.UMHook( "ExQuickMenuData", waitData )
+	exsto.CreateReader( "ExQuickMenuData", waitData )
+	
+	local function nullFunc() end
 
 	Menu:CreatePage( {
 		Title = "Quick Menu",
@@ -118,7 +121,7 @@ elseif CLIENT then
 					self.Categories[ data.Category ] = {}
 				end
 				
-				local index = data.ReturnOrder
+				local index = table.Copy( data.ReturnOrder )
 				table.remove( index, 1 )
 				
 				table.insert( self.Categories[ data.Category ], { Name = short, CallerID = data.CallerID, OptionalInfo = data.ExtraOptionals, OptionalIndex = index } )
@@ -147,31 +150,12 @@ elseif CLIENT then
 		panel.playerList = exsto.CreateComboBox( 5, 5, colorPlayerPanel:GetWide() - 10, colorPlayerPanel:GetTall() - 10,  colorPlayerPanel )
 			local initems = {}
 			panel.playerList.Build = function( self )
-				local nicks = {}
-				for _, item in ipairs( self.Items ) do
-					if item:IsValid() then
-						if !table.HasValue( initems, item:GetValue() ) then
-							table.insert( initems, item:GetValue() )
-						end
-					end
-				end
-				
+				self:Clear()
 				for _, ply in ipairs( player.GetAll() ) do
-					table.insert( nicks, ply:Nick() )
-					
-					if !table.HasValue( initems, ply:Nick() ) then
-						panel.playerList:AddItem( ply:Nick() ).DoClick = playerListClick
-					end
+					local obj = panel.playerList:AddItem( ply:Nick() )
+						obj.DoClick = playerListClick
+						obj.OnCursorMoved = nullFunc
 				end
-				
-				for _, item in ipairs( self.Items ) do
-					if item:IsValid() then
-						if !table.HasValue( nicks, item:GetValue() ) then
-							self:RemoveItem( item )
-						end
-					end
-				end
-
 			end
 			panel.playerList:Build()
 			
@@ -180,16 +164,16 @@ elseif CLIENT then
 				if self.NextThink <= CurTime() then
 					self.NextThink = CurTime() + 1
 					
-					self:Build()
-					
-					if !self.m_pSelected then return end
-					if !self.m_pSelected:IsValid() then
-						self:SelectByName( "" )
-						return
+					local selected = self.m_pSelected
+					if selected and selected:IsValid() then
+						selected = selected:GetValue()
 					end
 					
-					local selected = self.m_pSelected:GetValue()
-					self:SelectByName( selected )
+					self:Build()
+
+					if type( selected ) == "string" then
+						self:SelectByName( selected )
+					end
 				end
 			end
 			
@@ -197,7 +181,7 @@ elseif CLIENT then
 		panel.categoryList = exsto.CreatePanelList( 10, 10, secondary:GetWide() - 20, secondary:GetTall() - 20, 5, false, true, secondary )
 			panel.categoryList.m_bBackground = false
 			-- Insert our categories in there.
-			for category, data in pairs( PLUGIN.Categories ) do
+			for category, data in SortedPairs( PLUGIN.Categories ) do
 				local button = exsto.CreateButton( 0, 0, 70, 28, category )
 					button:SetStyle( "secondary" )
 					button.Category = category
@@ -209,6 +193,7 @@ elseif CLIENT then
 							panel.commandList:SetVisible( true )
 							panel.commandListBack:SetVisible( true )
 							panel.commandList:Build( self.Category )
+							panel.commandList.OnMainList = true
 							
 						end
 					end
@@ -216,62 +201,69 @@ elseif CLIENT then
 			end
 			panel.categoryList:SetVisible( true )
 			
+		local function nullFunc() end
+			
 		-- Command List
 		panel.commandList = exsto.CreateComboBox( 10, 10, secondary:GetWide() - 20, secondary:GetTall() - 50, secondary )
+			panel.commandList:SetMultiple( false )
 			panel.commandList.NextPress = CurTime()
 			panel.commandList.CurrentCommand = nil
 			panel.commandList:SetVisible( false )
+			panel.commandList.UpdateStatus = function( self, obj )
+				self.CallerID = obj.CallerID
+				self.OptionalInfo = obj.OptionalInfo
+				self.OptionalIndex = obj.OptionalIndex
+				self.ReturnData = { panel.playerList.m_pSelected:GetValue() }
+				self.OnMainList = false
+			end
+			
+			panel.commandList.GetOptionalInfo = function( self )
+				return self.OptionalInfo[ self.OptionalIndex[ self.CurrentIndex ] ]
+			end
+			
 			panel.commandList.Build = function( self, category )
 				self:Clear()
 				self.CurrentCategory = category
-				for _, data in ipairs( PLUGIN.Categories[ category ] ) do
+				
+				for _, data in ipairs( PLUGIN.Categories[ category ] ) do -- Loop through each one of our friends.
 					local obj = self:AddItem( data.Name )
+						obj.OnCursorMoved = nullFunc
 						obj.CallerID = data.CallerID
 						obj.OptionalInfo = data.OptionalInfo
 						obj.OptionalIndex = data.OptionalIndex
-						
-						obj.DoClick = function( self )
-							if CurTime() <= panel.commandList.NextPress then return end
-							panel.commandList.NextPress = CurTime() + 0.2
-							
-							panel.commandList.CallerID = self.CallerID
-							panel.commandList.OptionalInfo = self.OptionalInfo
-							panel.commandList.OptionalIndex = self.OptionalIndex
-							panel.commandList.ReturnData = { panel.playerList.m_pSelected:GetValue() }
-							
-							-- If we have an awaiting optional.
+						obj.DoClick = function( obj )
+							panel.commandList:UpdateStatus( obj )
+
+							-- Check to see if we are waiting for any optionals to display
 							if #self.OptionalIndex >= 1 then
-								panel.commandListExecute:SetVisible( true )
-								
-								panel.commandList.CurrentOptionalIndex = 1
-								panel.commandList:OptionalFill( obj.OptionalInfo[ self.OptionalIndex[ panel.commandList.CurrentOptionalIndex ] ] )
+								panel.commandListExecute:SetVisible( true ) -- Allow them to execute with no optionals
+								self.CurrentIndex = 1
+								local info = self:GetOptionalInfo() 
+								if !info then self:Execute() return end -- Developer error; he didn't provide any menu alternatives.
+								self:OptionalFill( info )
 							else
-								panel.commandList:Execute()
+								self:Execute() -- He has no optionals, execute
 							end
 						end
 				end
 			end
-			
+		
 			panel.commandList.OptionalFill = function( self, data )
 				self:Clear()
 				self.OnMainList = false
 				for _, info in ipairs( data ) do
 					local obj = self:AddItem( info.Display )
-						obj.Data = info.Data
-						obj.Display = info.Display
-						
-						obj.DoClick = function( self )
-							if CurTime() <= panel.commandList.NextPress then return end
-							panel.commandList.NextPress = CurTime() + 0.2
+						obj.OnCursorMoved = nullFunc
+						obj.DoClick = function( obj )
+
+							table.insert( self.ReturnData, tostring( info.Data or info.Display ) )
 							
-							table.insert( panel.commandList.ReturnData, tostring( self.Data or self.Display ) )
-							
-							panel.commandList.CurrentOptionalIndex = panel.commandList.CurrentOptionalIndex + 1
-							local nextData = panel.commandList.OptionalInfo[ panel.commandList.OptionalIndex[ panel.commandList.CurrentOptionalIndex ] ]
-							if nextData then
-								panel.commandList:OptionalFill( nextData )
+							self.CurrentIndex = self.CurrentIndex + 1
+							local nextData = self:GetOptionalInfo()
+							if nextData then -- If we have more data, fill in our new optionals
+								self:OptionalFill( nextData )
 							else
-								panel.commandList:Execute()
+								self:Execute()
 							end
 						end
 				end
@@ -282,6 +274,7 @@ elseif CLIENT then
 				self.OptionalInfo = {}
 				self.OptionalIndex = {}
 				self.ReturnData = {}
+				self.CurrentIndex = 1
 				
 				self.OnMainList = true
 				panel.commandListExecute:SetVisible( false )
@@ -298,7 +291,7 @@ elseif CLIENT then
 			panel.commandListBack:SetVisible( false )
 			panel.commandListBack.OnClick = function( self )
 				
-				if !panel.commandList.CurrentOptionalIndex or panel.commandList.OnMainList then
+				if panel.commandList.OnMainList then
 					panel.commandList.OnMainList = false
 					
 					self:SetVisible( false )
@@ -307,8 +300,8 @@ elseif CLIENT then
 					return
 				end
 				
-				panel.commandList.CurrentOptionalIndex = panel.commandList.CurrentOptionalIndex - 1
-				local prevData = panel.commandList.OptionalInfo[ panel.commandList.OptionalIndex[ panel.commandList.CurrentOptionalIndex ] ]
+				panel.commandList.CurrentIndex = panel.commandList.CurrentIndex - 1
+				local prevData = panel.commandList:GetOptionalInfo()
 				if prevData then
 					panel.commandList:OptionalFill( prevData )
 				else
@@ -377,10 +370,10 @@ elseif CLIENT then
 		panel.commandListExecute:FadeOnVisible( true )
 		panel.commandListBack:FadeOnVisible( true )
 		
-		panel.commandList:SetFadeMul( 4 )
-		panel.categoryList:SetFadeMul( 4 )
-		panel.commandListExecute:SetFadeMul( 4 )
-		panel.commandListBack:SetFadeMul( 4 )
+		panel.commandList:SetFadeMul( 3 )
+		panel.categoryList:SetFadeMul( 3 )
+		panel.commandListExecute:SetFadeMul( 3 )
+		panel.commandListBack:SetFadeMul( 3 )
 	end
 end
 

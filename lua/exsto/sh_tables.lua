@@ -287,6 +287,7 @@ exsto.DefaultRanks = {
 			"addgimp",
 			"playertitle",
 			"setconvar",
+			"entspawn",
 		}
 	},
 	
@@ -357,6 +358,7 @@ exsto.DefaultRanks = {
 			"say",
             "clear",
             "lookup",
+			"playsound",
 		}
 	},
 	

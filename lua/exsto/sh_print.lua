@@ -38,17 +38,22 @@ exsto_CHAT = AddPrint(
 	function( ply, ... )
 		if CLIENT then return end
 		if {...} == nil then return end
+		local arg = {...}
 		if type( ply ) == "Entity" then -- It seems like we are going console.
-			-- local str = ""
-			-- for I = 1, #arg do
-				-- if type( arg[I] ) == "string" then str = str .. arg[I] end
-			-- end
-			-- exsto.Print( exsto_CONSOLE, str )
-			ply:Print( exsto_CHAT, ... )
+			local str = ""
+			for I = 1, #arg do
+				if type( arg[I] ) == "string" then str = str .. arg[I] end
+			end
+			exsto.Print( exsto_CONSOLE, str )
 			return
 		end
-		
-		exsto.UMStart( "exsto_ChatPrint", ply, {...} )
+
+		local sender = exsto.CreateSender( "ExChatPrint", ply )
+			sender:AddShort( #arg )
+			for I = 1, #arg do
+				sender:AddVariable( arg[ I ] )
+			end
+			sender:Send()
 	end, true
 )
 exsto_CHAT_NOLOGO = exsto_CHAT
@@ -96,7 +101,11 @@ exsto_ERROR = AddPrint(
 
 		if SERVER then
 			for k,v in pairs( player.GetAll() ) do
-				if v:IsSuperAdmin() then exsto.UMStart( "exsto_ClientERROR", v, send ) end
+				if v:IsSuperAdmin() then
+					local sender = exsto.CreateSender( "ExClientErr", v )
+						sender:AddString( send )
+						sender:Send()
+				end
 			end
 		end
 		
@@ -107,12 +116,15 @@ exsto_ERROR = AddPrint(
 
 exsto_ERRORNOHALT = AddPrint( 
 	function( msg )
-		print( msg )
 		local send = exsto.ErrorStart .. " " .. msg .. "\n" 
 
 		if SERVER then
 			for k,v in pairs( player.GetAll() ) do
-				if v:IsSuperAdmin() then exsto.UMStart( "exsto_ClientERRORNoHalt", v, send ) end
+				if v:IsSuperAdmin() then
+				local sender = exsto.CreateSender( "ExClientErrNoHalt", v )
+						sender:AddString( send )
+						sender:Send()
+					end
 			end
 		end
 		
@@ -233,24 +245,23 @@ if CLIENT then
 --[[ -----------------------------------
 		Printing Helpers
      ----------------------------------- ]]
-	local function chatprint( data )
+	local function chatprint( reader )
+		local data = {}
+		for I = 1, reader:ReadShort() do
+			table.insert( data, reader:ReadVariable() )
+		end
 		chat.AddText( unpack( data ) )
 	end
-	exsto.UMHook( "exsto_ChatPrint", chatprint )
-	
-	local function msg( str )
-		Msg( str )
+	exsto.CreateReader( "ExChatPrint", chatprint )
+
+	local function err( reader )
+		Error( reader:ReadString()  )
 	end
-	exsto.UMHook( "exsto_ClientMSG", msg )
+	exsto.CreateReader( "ExClientErr", err )
 	
-	local function err( str )
-		Error( str )
+	local function err( reader )
+		ErrorNoHalt( reader:ReadString() )
 	end
-	exsto.UMHook( "exsto_ClientERROR", err )
-	
-	local function err( str )
-		ErrorNoHalt( str )
-	end
-	exsto.UMHook( "exsto_ClientERRORNoHalt", err )
+	exsto.CreateReader( "ExClientErrNoHalt", err )
 	
 end

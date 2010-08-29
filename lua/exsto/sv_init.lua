@@ -27,25 +27,29 @@
 	resource.AddFile( "materials/icon_locked.vmt" )
 	resource.AddFile( "materials/icon_on.vmt" )
 	resource.AddFile( "materials/icon_off.vmt" )
+	resource.AddFile( "materials/loading.vmt" )
+	resource.AddFile( "materials/glow2.vmt" )
 
-	exstoInclude( "exsto/sh_tables.lua" )
-	exstoInclude( "exsto/sh_umsg.lua" )
-	exstoInclude( "exsto/sh_print.lua" )
-	exstoInclude( "exsto/sh_data.lua" )
-	exstoInclude( "exsto/sv_variables.lua" )
-	exstoInclude( "exsto/sv_commands.lua" )
-	exstoInclude( "exsto/sh_access.lua" )
-	exstoInclude( "exsto/sh_plugins.lua" )
+	include( "exsto/sh_tables.lua" )
+	include( "sh_umsg_core.lua" )
+	include( "exsto/sh_umsg.lua" )
+	include( "exsto/sh_print.lua" )
+	include( "exsto/sh_data.lua" )
+	include( "exsto/sv_variables.lua" )
+	include( "exsto/sv_commands.lua" )
+	include( "exsto/sh_access.lua" )
+	include( "exsto/sh_plugins.lua" )
 	
-	exstoAddCSLuaFile( "exsto/sh_tables.lua" )
-	exstoAddCSLuaFile( "exsto/cl_derma.lua" )
-	exstoAddCSLuaFile( "exsto/sh_data.lua" )
-	exstoAddCSLuaFile( "exsto/sh_umsg.lua" )
-	exstoAddCSLuaFile( "exsto/cl_menu_skin.lua" )
-	exstoAddCSLuaFile( "exsto/cl_menu.lua" )
-	exstoAddCSLuaFile( "exsto/sh_access.lua" )
-	exstoAddCSLuaFile( "exsto/sh_print.lua" )
-	exstoAddCSLuaFile( "exsto/sh_plugins.lua" )
+	AddCSLuaFile( "exsto/sh_tables.lua" )
+	AddCSLuaFile( "exsto/cl_derma.lua" )
+	AddCSLuaFile( "exsto/sh_data.lua" )
+	AddCSLuaFile( "sh_umsg_core.lua" )
+	AddCSLuaFile( "exsto/sh_umsg.lua" )
+	AddCSLuaFile( "exsto/cl_menu_skin.lua" )
+	AddCSLuaFile( "exsto/cl_menu.lua" )
+	AddCSLuaFile( "exsto/sh_access.lua" )
+	AddCSLuaFile( "exsto/sh_print.lua" )
+	AddCSLuaFile( "exsto/sh_plugins.lua" )
 
 --[[ -----------------------------------
 	Category:  Player Utils
@@ -161,6 +165,11 @@ end )
 
 	exsto.LoadFlags()
 	exsto.CreateFlagIndex()
+	
+	-- After everything is done; update the owner with his flags :)
+	if exsto.Ranks[ "srv_owner" ] then
+		exsto.Ranks[ "srv_owner" ].AllFlags = exsto.FlagIndex
+	end
 	
 	local seconds = SysTime() - exsto.StartTime
 	print( "----------------------------------------------" )
