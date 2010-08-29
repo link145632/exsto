@@ -75,7 +75,7 @@ if SERVER then
 	
 elseif CLIENT then
 	
-	local function receice( reader )
+	local function receive( reader )
 		team.SetUp( reader:ReadShort(), reader:ReadString(), reader:ReadColor() )
 	end
 	exsto.CreateReader( "teamToRankSend", receive )
