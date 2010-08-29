@@ -513,7 +513,7 @@ if SERVER then
 		else
 			syntax = string.format( syntax, args )
 		end
-		
+
 		return FEL.Query( syntax, options.Threaded, options.Callback )
 	end	
 
@@ -534,7 +534,7 @@ if SERVER then
 				Name = nick,
 				SteamID = steamID,
 				Rank = ply:GetRank(),
-				UserFlags = FEL.NiceEncode( ply.ExUserFlags or {} )
+//				UserFlags = FEL.NiceEncode( ply.ExUserFlags or {} )
 			},
 			Options = {
 				Threaded = true,
@@ -548,7 +548,7 @@ if SERVER then
 	Description: Loads user's information
      ----------------------------------- ]]
 	function FEL.LoadUserInfo( ply )
-		local data = FEL.Query( "SELECT Rank, UserFlags FROM exsto_data_users WHERE SteamID = " .. FEL.Escape( ply:SteamID() ) .. ";" )
+		local data = FEL.Query( "SELECT Rank FROM exsto_data_users WHERE SteamID = " .. FEL.Escape( ply:SteamID() ) .. ";" )
 		if type( data ) == "table" then data = data[1] else data = {} end
 		return data.Rank, data.UserFlags
 	end
@@ -715,7 +715,6 @@ if SERVER then
 			SteamID = "varchar(255)",
 			Name = "varchar(255)",
 			Rank = "varchar(255)",
-			UserFlags = "test",
 		},
 		{
 			PrimaryKey = "SteamID",
