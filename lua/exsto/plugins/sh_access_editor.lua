@@ -409,7 +409,10 @@ elseif CLIENT then
 		local oldThink = colorMixer.Think
 		colorMixer.Think = function( self )
 			oldThink( self )
+			
 			if self.ColorCube:GetDragging() then return end
+			if self.RGBBar:GetDragging() then return end
+			if self.AlphaBar:GetDragging() then return end
 			if !self.niceColor then self.niceColor = Color( 0, 0, 0, 200 ) end
 			
 			self.niceColor.r = redSlider:GetValue()
@@ -420,11 +423,8 @@ elseif CLIENT then
 			colorExample:SetTextColor( self.niceColor )
 			colorMixer:SetColor( self.niceColor )
 		end
-			
-		local oldChange = colorMixer.ColorCube.OnUserChanged
-		colorMixer.ColorCube.OnUserChanged = function( self )
-			oldChange( self )
-			
+		
+		local function updateColors( self )
 			local col = self:GetParent():GetColor()
 			redSlider:SetValue( col.r )
 			greenSlider:SetValue( col.g )
@@ -432,6 +432,24 @@ elseif CLIENT then
 			alphaSlider:SetValue( col.a )
 			
 			colorExample:SetTextColor( self:GetParent():GetColor() )
+		end
+			
+		local oldChange = colorMixer.ColorCube.OnUserChanged
+		colorMixer.ColorCube.OnUserChanged = function( self )
+			oldChange( self )
+			updateColors( self )
+		end
+		
+		local oldChange = colorMixer.RGBBar.OnColorChange
+		colorMixer.RGBBar.OnColorChange = function( self, col )
+			oldChange( self, col )
+			updateColors( self )
+		end
+		
+		local oldChange = colorMixer.AlphaBar.OnChange
+		colorMixer.AlphaBar.OnChange = function( self, alpha )
+			colorMixer:SetColorAlpha( alpha )
+			updateColors( self )
 		end
 
 		-- Flag Panel

@@ -221,7 +221,7 @@ function SKIN:PaintButton( panel )
 		
 		if panel.Flashing then
 			if panel.BeginFlash + 1 <= CurTime() then
-				panel.FlashAlpha = panel.FlashAlpha - ( FrameTime() * 140 )
+				panel.FlashAlpha = panel.FlashAlpha - ( FrameTime() * 500 )
 				
 				if panel.FlashAlpha <= 0 then
 					panel.Flashing = false

@@ -1058,13 +1058,13 @@ function Menu:CreatePage( info, func )
 					
 					draw.SimpleText( "Loading", "ExLoadingText", ( self:GetWide() / 2 ), ( self:GetTall() / 2 ), self.Text_LoadingColor, 1, 1 )
 				elseif self.ExNotify_Generic then 
-					if self.ExNotify_EndTime - 1 <= CurTime() then -- Give us a second to fade
+					if self.ExNotify_EndTime - .5 <= CurTime() then -- Give us a second to fade
 						if self.ExNotify_Alpha > 5 then
-							self.ExNotify_Alpha = self.ExNotify_Alpha - 4.25
+							self.ExNotify_Alpha = self.ExNotify_Alpha - 8.5
 						end
 					else
 						if self.ExNotify_Alpha < 250 then
-							self.ExNotify_Alpha = self.ExNotify_Alpha + 4.25
+							self.ExNotify_Alpha = self.ExNotify_Alpha + 8.5
 						end
 					end
 					
