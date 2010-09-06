@@ -137,13 +137,14 @@ function plugin:Register()
 	-- Construct FEL tables.
 	for k,v in pairs( self.FEL.CreateTable ) do
 		if CLIENT then return end
-		FEL.MakeTable( k, v[1], v[2] or {} )
+		self.FEL.DB = FEL.CreateDatabase( k )
+			self.FEL.DB:ConstructColumns( v[1] )
 	end 
 	
 	-- Insert requested FEL.AddData
 	for k,v in pairs( self.FEL.AddData ) do
 		if CLIENT then return end
-		FEL.AddData( k, v )
+		self.FEL.DB:AddRow( v )
 	end
 	
 	-- Create variables requested

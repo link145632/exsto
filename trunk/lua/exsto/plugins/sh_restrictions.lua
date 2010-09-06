@@ -45,17 +45,17 @@ if SERVER then
 			]] )
 			
 		end
-
-		FEL.MakeTable( "exsto_data_restrictions", {
-			Rank = "varchar(255)",
-			Props = "text",
-			Stools = "text",
-			Entities = "text",
-			Sweps = "text",
-		}, { PrimaryKey = "rank" }
-		)
 		
-		local data = FEL.LoadTable( "exsto_data_restrictions" )
+		exsto.RestrictDB = FEL.CreateDatabase( "exsto_data_restrictions" )
+			exsto.RestrictDB:ConstructColumns( {
+				Rank = "VARCHAR(100):primary:not_null";
+				Props = "TEXT";
+				Stools = "TEXT";
+				Entities = "TEXT";
+				Sweps = "TEXT";
+			} )
+
+		local data = exsto.RestrictDB:GetAll()
 		
 		if !data then 
 			
@@ -194,16 +194,9 @@ if SERVER then
 				Sweps = FEL.NiceEncode( data.Sweps ),
 			}
 		end
+		
+		exsto.RestrictDB:AddRow( saveData )
 
-		FEL.AddData( "exsto_data_restrictions", {
-			Look = {
-				Rank = rank 
-			},
-			Data = saveData,
-			Options = {
-				Threaded = true,
-			}
-		} )
 	end
 	
 	function PLUGIN:CanTool( ply, trace, tool )

@@ -15,16 +15,23 @@ if SERVER then
 	exsto.CreateFlag( "displayheadtags", "Allows users to see tags above players heads." )
 	
 	-- Create the table.
-	FEL.MakeTable( "exsto_headtitle", {
-		SteamID = "varchar(255)",
-		Title = "varchar(255)",
-	},
-	{ PrimaryKey = "SteamID" }
-	)
+	exsto.HeadDB = FEL.CreateDatabase( "exsto_headtitle" )
+		exsto.HeadDB:ConstructColumns( {
+			SteamID = "VARCHAR(50):primary:not_null";
+			Title = "TEXT";
+		} )
+	
+	PLUGIN:AddVariable({
+		Pretty = "Title Limit",
+		Dirty = "title_limit",
+		Default = 50,
+		Description = "The limit to the number of letters in a player head title.",
+		OnChange = function( val ) print( val ) return true end
+	})
 
 	function PLUGIN:ExInitSpawn( ply, sid )
 		-- Load their data.
-		local title = FEL.LoadData( "exsto_headtitle", "Title", "SteamID", sid )
+		local title = exsto.HeadDB:GetData( sid, "Title" )
 		
 		-- If their title doesn't exist, don't continue.
 		if !title then return end
@@ -35,21 +42,16 @@ if SERVER then
 	end
 	
 	function PLUGIN:SetPlayerTitle( caller, ply, title )
+		if title:len() > exsto.GetVar( "title_limit" ).Value then
+			return { caller, COLOR.NORM, "You cannot set your title to contain more than ", COLOR.NAME, tostring( exsto.GetVar( "title_limit" ).Value ), COLOR.NORM, " characters!" }
+		end
+		
 		ply:SetNWString( "title", title )
 		
 		-- Save the data.
-		FEL.AddData( "exsto_headtitle", {
-			Look = {
-				SteamID = ply:SteamID(),
-			},
-			Data = {
-				Title = ply:GetNWString( "title" ),
-				SteamID = ply:SteamID(),
-			},
-			Options = {
-				Update = true,
-				Threaded = true,
-			},
+		exsto.HeadDB:AddRow( {
+			Title = ply:GetNWString( "title" );
+			SteamID = ply:SteamID();
 		} )
 		
 		return { COLOR.NAME, caller:Nick(), COLOR.NORM, " has set ", COLOR.NAME, ply:Nick(), COLOR.NORM, "'s title to ", COLOR.NORM, title, COLOR.NORM, "!" }
@@ -66,23 +68,18 @@ if SERVER then
 	})
 
 	function PLUGIN:SetTitle( caller, title )
+		if title:len() > exsto.GetVar( "title_limit" ).Value then
+			return { caller, COLOR.NORM, "You cannot set your title to contain more than ", COLOR.NAME, exsto.GetVar( "title_limit" ).Value, COLOR.NORM, "characters!" }
+		end
+		
 		caller:SetNWString( "title", title )
 		
 		-- Save the data.
-		FEL.AddData( "exsto_headtitle", {
-			Look = {
-				SteamID = caller:SteamID(),
-			},
-			Data = {
-				Title = caller:GetNWString( "title" ),
-				SteamID = caller:SteamID(),
-			},
-			Options = {
-				Update = true,
-				Threaded = true,
-			},
+		exsto.HeadDB:AddRow( {
+			Title = caller:GetNWString( "title" );
+			SteamID = caller:SteamID();
 		} )
-		
+
 		return {
 			Activator = caller,
 			Wording = " has set his title to ",
@@ -188,7 +185,7 @@ elseif CLIENT then
 					
 					-- if h is not 21, we have a title.  draw cool stuff.
 					if h != 21 then
-						surface.DrawLine( drawPos.x + 5, drawPos.y + 18, drawPos.x + w - 5, drawPos.y + 18 )
+						//surface.DrawLine( drawPos.x + 5, drawPos.y + 18, drawPos.x + w - 5, drawPos.y + 18 )
 						draw.SimpleTextOutlined( ply:GetNWString( "title" ), "PlayerTagText", drawPos.x + w / 2, drawPos.y + 18, textColor, 1, 0, 1, outlineCol )
 					end
 				end

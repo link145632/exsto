@@ -12,39 +12,27 @@ PLUGIN:SetInfo({
 
 if SERVER then
 
-	PLUGIN:CreateTable( "exsto_plugin_time", {
-			Player = "varchar(255)",
-			SteamID = "varchar(255)",
-			Time = "int",
-			Last = "int"
-		},
-		{
-			PrimaryKey = "SteamID",
-		}
-	)
+	exsto.TimeDB = FEL.CreateDatabase( "exsto_plugin_time" )
+		exsto.TimeDB:ConstructColumns( {
+			Player = "TEXT:not_null";
+			SteamID = "VARCHAR(50):primary:not_null";
+			Time = "INTEGER:not_null";
+			Last = "INTEGER:not_null";
+		} )
 	
 	function PLUGIN:ExInitSpawn( ply, sid, uid )
 
 		local nick = ply:Nick()
 		
-		local data = FEL.Query( "SELECT Time, Last FROM exsto_plugin_time WHERE SteamID = " .. FEL.Escape( sid ) .. ";" );
+		local time, last = exsto.TimeDB:GetData( sid, "Time, Last" )
 
-		if !data[1] then
-
-			FEL.AddData( "exsto_plugin_time", {
-				Look = {
-					SteamID = sid,
-				},
-				Data = {
-					Player = nick,
-					SteamID = sid, 
-					Time = 0,
-					Last = os.time(),
-				},
-				Options = {
-					Update = true,
-					Threaded = true,
-				}
+		if type( time ) == "nil" then
+			
+			exsto.TimeDB:AddRow( {
+				Player = nick;
+				SteamID = sid; 
+				Time = 0;
+				Last = os.time();
 			} )
 			
 			ply:SetFixedTime( 0 )
@@ -55,8 +43,8 @@ if SERVER then
 			
 		else
 		
-			local LastDay = os.date( "%c", data[1].Last )
-			ply:SetFixedTime( data[1].Time )
+			local LastDay = os.date( "%c", last )
+			ply:SetFixedTime( time )
 			timer.Simple( 1, function()
 				exsto.Print( exsto_CHAT, ply, COLOR.NORM, "Welcome back ", COLOR.NAME, nick, COLOR.NORM, "!" )
 				exsto.Print( exsto_CHAT, ply, COLOR.NORM, "You last visited ", COLOR.RED, LastDay )
@@ -72,20 +60,11 @@ if SERVER then
 	
 		local sid = ply:SteamID()
 		
-		FEL.AddData( "exsto_plugin_time", {
-			Look = {
-				SteamID = sid,
-			},
-			Data = {
-				Player = ply:Nick(),
-				SteamID = sid, 
-				Time = ply:GetTotalTime(),
-				Last = os.time(),
-			},
-			Options = {
-				Update = true,
-				Threaded = true,
-			}
+		exsto.TimeDB:AddRow( {
+			Player = nick;
+			SteamID = sid; 
+			Time = ply:GetTotalTime();
+			Last = os.time();
 		} )
 		
 	end

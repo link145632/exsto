@@ -19,16 +19,16 @@
 
 -- EVC (Exsto Var Controller)
 
-FEL.MakeTable( "exsto_data_variables", {
-	Pretty = "varchar(255)",
-	Dirty = "varchar(255)",
-	Value = "varchar(255)",
-	DataType = "varchar(255)",
-	Description = "varchar(255)",
-	Possible = "varchar(255)",
-	EnvVar = "boolean",
-	}, { PrimaryKey = "Dirty" }
-)
+exsto.VarDB = FEL.CreateDatabase( "exsto_data_variables" )
+	exsto.VarDB:ConstructColumns( {
+		Pretty = "TEXT:not_null";
+		Dirty = "VARCHAR(100):primary:not_null";
+		Value = "TEXT:not_null";
+		DataType = "TEXT:not_null";
+		Description = "TEXT";
+		Possible = "TEXT";
+		EnvVar = "BOOLEAN",
+	} )
 
 exsto.Variables = {}
 
@@ -92,19 +92,22 @@ function exsto.SetVar( dirty, value )
 
 	value = dataTypes[var.DataType]( value )
 	
-	-- If our variable has a callback, and he accepted it
-	if var.OnChange and var.OnChange( value ) then
-		exsto.Variables[dirty].Value = value -- Set it!
-		exsto.SaveVarInfo( dirty )
-		return true
-	elseif !var.OnChange then -- If we happen to not have a callback, just set it and go
+	local returnData
+	if type( var.OnChange ) == "function" then
+		local accepted, returnData = var.OnChange( value )
+		
+		if accepted then
+			exsto.Variables[dirty].Value = value
+			exsto.SaveVarInfo( dirty )
+		else
+			return accepted, returnData
+		end
+	else
 		exsto.Variables[dirty].Value = value
 		exsto.SaveVarInfo( dirty )
 		return true
 	end
 	
-	-- If we didn't accept the value, return false
-	return false		
 end
 
 --[[ -----------------------------------
@@ -112,24 +115,15 @@ end
 	Description: Saves the variable's information to FEL.
 	 ----------------------------------- ]]
 function exsto.SaveVarInfo( dirty )
-	local var = exsto.FindVar( dirty )		
-	FEL.AddData( "exsto_data_variables", {
-		Look = {
-			Dirty = var.Dirty,
-		},
-		Data = {
-			Pretty = var.Pretty,
-			Dirty = var.Dirty,
-			Value = var.Value,
-			DataType = var.DataType,
-			Description = var.Description,
-			Possible = FEL.NiceEncode( var.Possible ),
-			EnvVar = var.EnvVar,
-		},
-		Options = {
-			Update = true,
-			Threaded = true,
-		}
+	local var = exsto.FindVar( dirty )	
+	exsto.VarDB:AddRow( {
+		Pretty = var.Pretty;
+		Dirty = var.Dirty;
+		Value = var.Value;
+		DataType = var.DataType;
+		Description = var.Description;
+		Possible = FEL.NiceEncode( var.Possible );
+		EnvVar = var.EnvVar;
 	} )
 end
 
@@ -147,7 +141,7 @@ exsto.FindVar = exsto.GetVar
 	Description: Loads all existing exsto variables.
 	 ----------------------------------- ]]
 function exsto.Variable_Load()
-	local vars = FEL.LoadTable( "exsto_data_variables" )
+	local vars = exsto.VarDB:GetAll()
 
 	if !vars then return end
 
