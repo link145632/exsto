@@ -17,7 +17,15 @@ if SERVER then
 
 	function PLUGIN:Init() 
 		self.OldPlayers = {}
-		self.Bans = FEL.LoadTable( "exsto_data_bans" ) or {} 
+		exsto.BanDB = FEL.CreateDatabase( "exsto_data_bans" )
+			exsto.BanDB:ConstructColumns( {
+				Name = "TEXT:not_null";
+				SteamID = "VARCHAR(50):primary:not_null";
+				Length = "INTEGER:not_null";
+				Reason = "TEXT";
+				BannedBy = "TEXT:not_null";
+				BannedAt = "INTEGER:not_null";
+			} )
 	end 
 
 	function PLUGIN:Kick( owner, ply, reason ) 
@@ -58,14 +66,13 @@ if SERVER then
 	-- This function is a purly a hook for Gatekeeper, and will only run if Gatekeeper is present.
 	function PLUGIN:PlayerPasswordAuth( user, pass, steam, ipd ) 
 
-		local data = FEL.Query( "SELECT BannedAt, Length, Reason FROM exsto_data_bans WHERE SteamID = " .. FEL.Escape( steam ) .. ";" ) 
-
-		if not data or not data[1] then return end 
-		data = data[1] 
-
-		local len = tonumber( data.Length ) * 60
-		local at = tonumber( data.BannedAt ) 
-		local reason = tostring( data.Reason ) 
+		local at, len, reason = exsto.BanDB:GetData( steam, "BannedAt, Length, Reason" )
+		
+		if !at or !len or !reason then return end
+		
+		local len = tonumber( len ) * 60
+		local at = tonumber( at ) 
+		local reason = tostring( reason ) 
 
 		if len == 0 then return {false, "You are perma-banned!"} end 
 
@@ -92,17 +99,15 @@ if SERVER then
 		-- Check and see if we can grab any information we might have from this man.
 		local name = self.OldPlayers[ id ] or "Unknown"
 		
-		-- Save his stuff yo.
-		FEL.SaveBanInfo( { name, id }, len, reason, owner, os.time() )
-		
-		table.insert( self.Bans, { 
-			Name = name, 
-			SteamID = id, 
-			Reason = reason, 
-			Length = len, 
-			BannedBy = owner:Name() or "Console", 
-			BannedAt = os.time(), 
-		} ) 
+		-- Save his stuff yo.		
+		exsto.BanDB:AddRow( {
+			Name = name;
+			SteamID = id;
+			Reason = reason;
+			Length = len;
+			BannedBy = owner:Name() or "Console";
+			BannedAT = os.time();
+		} )
 		
 		self:ResendToAll()
 		
@@ -128,17 +133,16 @@ if SERVER then
 	function PLUGIN:Ban( owner, ply, len, reason ) 
 		local nick = ply:Nick()
 		
-		FEL.SaveBanInfo( ply, len, reason, owner, os.time() ) 
+		-- Save his stuff yo.		
+		exsto.BanDB:AddRow( {
+			Name = ply:Nick();
+			SteamID = ply:SteamID();
+			Reason = reason;
+			Length = len;
+			BannedBy = owner:Name() or "Console";
+			BannedAT = os.time();
+		} )
 		
-		table.insert( self.Bans, { 
-			Name = ply:Nick(), 
-			SteamID = ply:SteamID(), 
-			Reason = reason, 
-			Length = len, 
-			BannedBy = owner:Name() or "Console", 
-			BannedAt = os.time(), 
-		} ) 
-
 		if gatekeeper then 
 			gatekeeper.Drop( ply:UserID(), "BAN: " .. reason ) 
 		else 
@@ -209,7 +213,7 @@ if SERVER then
 		
 		-- Check to see if this ban actually exists.
 		local found = false
-		for _, ban in ipairs( self.Bans ) do
+		for _, ban in ipairs( exsto.BanDB:GetAll() ) do
 			if ban.SteamID == steamid then found = true break end
 		end
 		
@@ -218,16 +222,15 @@ if SERVER then
 		end
 		
 		game.ConsoleCommand( "removeid " .. steamid .. ";writeid\n" ) -- Do this regardless.
-		FEL.RemoveData( "exsto_data_bans", "SteamID", steamid ) 
-
+		
 		local name = "Unknown"
-		for _, data in ipairs( self.Bans ) do 
+		for _, data in ipairs( exsto.BanDB:GetAll() ) do 
 			if data.SteamID == steamid then
-				self.Bans[ _ ] = nil
 				name = data.Name
 			end 
 		end 
-
+		
+		exsto.BanDB:DropRow( steamid )
 		self:ResendToAll() 
 
 		return { 
@@ -252,7 +255,7 @@ if SERVER then
 			 local SearchType = ((string.Left(data,6) == "STEAM_") and "SteamID" or "Name")
 			 if SearchType == "Steam_" then data = string.upper( data ) end
 			 
-			 local users = FEL.LoadTable("exsto_data_users")
+			 local users = exsto.UserDB:GetAll()
 			
 			local ply = {}
 			 for _, user in ipairs( users ) do 
@@ -273,8 +276,7 @@ if SERVER then
 				return { owner,COLOR.NORM,"No player found under the "..SearchType,COLOR.NAME," "..data }
 			end
 			
-			local LastTime = FEL.LoadData("exsto_plugin_time","Last","SteamID",ply.SteamID)
-			local UserTime = FEL.LoadData("exsto_plugin_time","Time","SteamID",ply.SteamID)
+			local LastTime, UserTime = exsto.TimeDB:GetData( ply.SteamID, "Last, Time" )
 			
 			local info = {
 				{"  ~ Lookup table for "..ply.Name.." ~"},
@@ -283,7 +285,7 @@ if SERVER then
 				{"Last Joined: "..os.date( "%c", LastTime )},
 				{"Total Time : "..timeToStr(UserTime)}
 			}
-			
+
 			local BanInfo = FEL.Query( "SELECT BannedAt, Length, Reason FROM exsto_data_bans WHERE SteamID = " .. FEL.Escape(ply.SteamID) .. ";" ) 
 			if BanInfo then
 				BInfo = BanInfo[1]
@@ -336,19 +338,17 @@ if SERVER then
 	end 
 
 	function PLUGIN.RequestBans( ply ) 
-		if PLUGIN.Bans then 
-			for k,v in pairs( PLUGIN.Bans ) do 
-				local sender = exsto.CreateSender( "ExRecBans", ply )
-					sender:AddString( v.SteamID )
-					sender:AddString( v.Name )
-					sender:AddString( v.Reason )
-					sender:AddString( v.BannedBy )
-					sender:AddShort( v.Length )
-					sender:AddShort( v.BannedAt )
-					sender:Send()
-			end 
-			exsto.CreateSender( "ExSaveBans", ply ):Send()
+		for k,v in pairs( exsto.BanDB:GetAll() ) do 
+			local sender = exsto.CreateSender( "ExRecBans", ply )
+				sender:AddString( v.SteamID )
+				sender:AddString( v.Name )
+				sender:AddString( v.Reason )
+				sender:AddString( v.BannedBy )
+				sender:AddShort( v.Length )
+				sender:AddShort( v.BannedAt )
+				sender:Send()
 		end 
+		exsto.CreateSender( "ExSaveBans", ply ):Send()
 	end 
 	concommand.Add( "_ResendBans", PLUGIN.RequestBans ) 
 

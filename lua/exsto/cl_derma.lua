@@ -129,11 +129,25 @@ function exsto.CreateComboBox( x, y, w, h, parent )
 			return obj
 		end
 		
+		box.GetSelectedItem = function( self )
+			if self:GetSelectedItems() and self:GetSelectedItems()[1] then
+				return self:GetSelectedItems()[1]:GetValue()
+			end
+		end
+		
 	return box
 end
 
 function exsto.CreateImage( x, y, w, h, img, parent )
 	local image = vgui.Create( "DImage", parent )
+		image:SetSize( w, h )
+		image:SetPos( x, y )
+		image:SetImage( img )
+	return image
+end
+
+function exsto.CreateImageButton( x, y, w, h, img, parent )
+	local image = vgui.Create( "DImageButton", parent )
 		image:SetSize( w, h )
 		image:SetPos( x, y )
 		image:SetImage( img )

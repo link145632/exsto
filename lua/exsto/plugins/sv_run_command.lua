@@ -60,8 +60,8 @@ end
 PLUGIN:AddCommand( "command", {
 	Call = PLUGIN.RunCommand,
 	Desc = "Allows users to run console commands.",
-	Console = { "command" },
-	Chat = { "!command" },
+	Console = { "rcon" },
+	Chat = { "!rcon" },
 	ReturnOrder = "Command",
 	Args = {Command = "STRING"},
 	Category = "Administration",

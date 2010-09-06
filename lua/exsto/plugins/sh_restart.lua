@@ -31,7 +31,7 @@ if SERVER then
 		return d[#d]
 	end
 
-	function PLUGIN:ChangeLevel( owner, map, delay )
+	function PLUGIN:ChangeLevel( owner, map, delay, gm )
 		
 		if string.Right( map, 4 ) != ".bsp" then map = map .. ".bsp" end
 	
@@ -49,12 +49,22 @@ if SERVER then
 			return { owner, COLOR.NORM, "Unknown map ", COLOR.NAME, map:gsub( "%.bsp", "" ), COLOR.NORM, ".  Maybe you want ", COLOR.NAME, data.Map, COLOR.NORM, "?" }
 		end
 		
+		local found = false
+		for _, data in ipairs( self.Gamemodes ) do
+			if data.Name == gm then found = true break end
+		end
+		
+		if !found then
+			exsto.GetClosestString( gm, self.Gamemodes, "Name", owner, "Unknown gamemode" )
+			return
+		end
+		
 		if delay != 0 then
-			timer.Simple( delay, game.ConsoleCommand, "changelevel " .. map:gsub( "%.bsp", "" ) .."\n" )
+			timer.Simple( delay, game.ConsoleCommand, "changegamemode " .. map:gsub( "%.bsp", "" ) .." " .. gm .. "\n" )
 			
 			return {
 				COLOR.NORM, "Changing level to ",
-				COLOR.NAME, map:gsub( "%.bsp", "" ),
+				COLOR.NAME, map:gsub( "%.bsp", "" ) .. "(" .. gm .. ")",
 				COLOR.NORM, " in ",
 				COLOR.NAME, tostring( delay ),
 				COLOR.NORM, " seconds!"
@@ -69,9 +79,9 @@ if SERVER then
 		Desc = "Allows users to change the level.",
 		Console = { "changelevel" },
 		Chat = { "!changelevel" },
-		ReturnOrder = "Map-Delay",
-		Args = {Map = "STRING", Delay = "NUMBER"},
-		Optional = { Map = "gm_flatgrass", Delay = 0 },
+		ReturnOrder = "Map-Delay-Gamemode",
+		Args = {Map = "STRING", Delay = "NUMBER", Gamemode = "STRING"},
+		Optional = { Map = "gm_flatgrass", Delay = 0, Gamemode = "sandbox" },
 		Category = "Administration",
 	})
 
@@ -91,8 +101,21 @@ if SERVER then
 	
 	function SendMaps( ply )
 		local curGamemode = string.Explode( "/", GAMEMODE.Folder )
-		local Send = {PLUGIN.MapList, PLUGIN.Gamemodes, curGamemode[#curGamemode]}
-		exsto.UMStart( "ExSendMaps", ply, Send )
+		local sender = exsto.CreateSender( "ExRecMapData", ply )
+			sender:AddShort( table.Count( PLUGIN.MapList ) )
+			for mapName, mapData in pairs( PLUGIN.MapList ) do
+				sender:AddString( mapData.Name )
+				sender:AddString( mapData.Material )
+				sender:AddString( mapData.Category )
+			end
+			
+			sender:AddShort( table.Count( PLUGIN.Gamemodes ) )
+			for _, data in ipairs( PLUGIN.Gamemodes ) do
+				sender:AddString( data.Name ) 
+			end
+			
+			sender:AddString( curGamemode[#curGamemode] )
+		sender:Send()
 	end
 	concommand.Add( "_GetMapsList", SendMaps )
 	
@@ -215,165 +238,167 @@ if SERVER then
 		
 	end
 	
-	function PLUGIN.ChangeMap( ply, _, args )
-		local key = tonumber( args[1] )
-		
-		if key != ply.MenuAuthKey then return end
-		
-		local map = args[2]
-		local gamemode = args[3]
-		
-		if !map then return end
-		
-		exsto.Print( exsto_CHAT_ALL, COLOR.NORM, "Changing map to ", COLOR.NAME, map, COLOR.NORM, ", gamemode ", COLOR.NAME, gamemode, COLOR.NORM, " in 10 seconds!" )
-		
-		timer.Simple( 10, game.ConsoleCommand, "changegamemode " .. map .. " " .. gamemode .. "\n" )
-	end
-	concommand.Add( "_ChangeMap", PLUGIN.ChangeMap )
-	
 elseif CLIENT then
 
-	local MapsList = {}
-	local GamemodeList = {}
-	local currentGamemode = ""
-	local selectedMap = ""
-	local mapList
-
-	function PLUGIN.RecieveMaps( list )
-
-		MapsList = list[1]
-		GamemodeList = list[2]
-		currentGamemode = list[3]
-		
-	end
-	//exsto.UMHook( "ExSendMaps", PLUGIN.RecieveMaps ) 
-
-	function PLUGIN.Reload( panel )
-	
-		MapsList = {}
-		RunConsoleCommand( "_GetMapsList" )
-		Menu.PushLoad()
-		
-		local function Ping()
-		
-			if table.Count( MapsList ) >= 1 then
-				PLUGIN.Build( panel )
-				Menu.EndLoad()
-			else
-				timer.Simple( 0.1, Ping )
-			end
-			
+	local function receive( reader )
+		if !PLUGIN.Maps then PLUGIN.Maps = {} end
+		for I = 1, reader:ReadShort() do
+			table.insert( PLUGIN.Maps, {
+				Name = reader:ReadString(),
+				Material = reader:ReadString(),
+				Category = reader:ReadString()
+			} )
 		end
-		timer.Simple( 0.1, Ping )
 		
+		if !PLUGIN.Categories then PLUGIN.Categories = {} end
+		for _, data in ipairs( PLUGIN.Maps ) do
+			if !table.HasValue( PLUGIN.Categories, data.Category ) then table.insert( PLUGIN.Categories, data.Category ) end
+		end
+		
+		if !PLUGIN.Gamemodes then PLUGIN.Gamemodes = {} end
+		for I = 1, reader:ReadShort() do
+			table.insert( PLUGIN.Gamemodes, reader:ReadString() )
+		end
+		
+		PLUGIN.CurrentGamemode = reader:ReadString()
+		
+		PLUGIN.Received = true
+		if PLUGIN.Panel then
+			PLUGIN.Panel:EndLoad()
+			PLUGIN:Build( PLUGIN.Panel )
+		end
 	end
+	exsto.CreateReader( "ExRecMapData", receive ) 
 	
-	function PLUGIN.RebuildList( category )
-		mapList:Clear()
+	function PLUGIN:CreateMapIcon( data )
+		if !self.MapIcons then self.MapIcons = {} end
+		if self.MapIcons[ data.Name ] and self.MapIcons[ data.Name ]:IsValid() then return self.MapIcons[ data.Name ] end
 		
-		for k,v in pairs( MapsList ) do
-			if v.Category == category or category == "All" then
-				
-				local material = Material( v.Material )
-				
-				if material:GetName() == "___error" then	
-					material = "maps/noicon"
-				else
-					material = v.Material
+		local mat = Material( data.Material )
+		if mat:GetName() == "___error" then
+			mat = "maps/noicon"
+		else mat = data.Material end
+		
+		self.MapIcons[ data.Name ] = vgui.Create( "DImageButton" )
+		
+		local icon = self.MapIcons[ data.Name ]
+			icon:SetMaterial( mat )
+			icon:SetSize( 64, 64 )
+			icon:SetToolTip( data.Name )
+			icon.DoClick = function( icon )
+				if icon.LastClick and icon.LastClick + 1 > CurTime() then
+					self.Change:OnClick()
+					return
 				end
+				self.SelectedMap = data.Name
+				icon.LastClick = CurTime()
+			end
+			
+		return icon
+	end
+	
+	function PLUGIN:Build( panel )
+		self.Tabs = panel:RequestTabs()
+		self.Secondary = panel:RequestSecondary()
+	
+		self.MapList = exsto.CreatePanelList( 5, 5, panel:GetWide() - 10, panel:GetTall() - 50, 10, true, true, panel )
+			self.MapList.SetCategory = function( mapList, cat )
+				mapList:Clear()
 				
-				-- Create the map icon.
-				local icon = vgui.Create( "DImageButton" )
-				icon:SetMaterial( material )
-				icon:SetSize( 110, 110 )
-				icon:SetToolTip( v.Category .. " - " .. v.Name )
-				
-				icon.Map = k:gsub( "%.bsp", "" )
-				
-				icon.DoClick = function( self )
-					selectedMap = self.Map:gsub( "%.bsp", "" )
+				for _, data in ipairs( self.Maps ) do
+					if data.Category == cat then
+						mapList:AddItem( self:CreateMapIcon( data ) )
+					end
 				end
+			end
+			
+		self.MapListView = exsto.CreateListView( 5, 5, panel:GetWide() - 10, panel:GetTall() - 50, panel  )
+			self.MapListView:AddColumn( "Map" )
+			self.MapListView:AddColumn( "Category" )
+			local old = self.MapListView.OnClickLine
+			self.MapListView.OnClickLine = function( listView, line, ... )
+				old( listView, line, ... )
+				if line.LastClick and line.LastClick + 1 > CurTime() then
+					self.Change:OnClick()
+					return
+				end
+				self.SelectedMap = line:GetValue( 1 )
+				line.LastClick = CurTime()
+			end
+			self.MapListView.Populate = function( listView )
+				listView:Clear()
 				
-				mapList:AddItem( icon )
+				for _, data in ipairs( self.Maps ) do
+					listView:AddLine( data.Name, data.Category )
+				end
 			end
-		end
+			self.MapListView:Populate()
+			self.MapListView:SetVisible( false )
+			
+		self.GamemodeLabel = exsto.CreateLabel( "center", 4, "Gamemodes", "ExGenericText18", self.Secondary )
+		self.GamemodeList = exsto.CreateComboBox( 5, 20, self.Secondary:GetWide() - 10, self.Secondary:GetTall() - 25, self.Secondary )
+			self.GamemodeList.Populate = function( gameList )
+				gameList:Clear()
+				for _, gm in ipairs( self.Gamemodes ) do
+					gameList:AddItem( gm )
+				end
+				gameList:SelectByName( self.CurrentGamemode )
+			end
+			self.GamemodeList:Populate()
 		
-	end
-	
-	function PLUGIN.GetCategories()
-	
-		local cat = {}
-		for k,v in pairs( MapsList ) do
-			if !table.HasValue( cat, v.Category ) then
-				table.insert( cat, v.Category )
-			end
-		end
-		table.insert( cat, "All" )
-		return cat
-		
-	end
-	
-	function PLUGIN.Build( panel )
-	
-		local gamemodeContainer = exsto.CreateLabeledPanel( 10, 4, panel:GetWide() - 20, 40, "Gamemode", Color( 232, 232, 232, 255 ), panel )
-			gamemodeContainer.Label:SetFont( "labeledPanelFont" )
-			
-		local gamemodeEntry = exsto.CreateMultiChoice( 10, 10, gamemodeContainer:GetWide() - 20, 20, gamemodeContainer )
-			gamemodeEntry:SetText( currentGamemode )
-			
-			for k,v in pairs( GamemodeList ) do
-				gamemodeEntry:AddChoice( v.Name )
-			end
-			
-			gamemodeEntry.OnSelect = function( index, value, data )
-				currentGamemode = data
+		self.Change = exsto.CreateButton( panel:GetWide() - 80, panel:GetTall() - 40, 70, 27, "Change", panel )
+			self.Change.OnClick = function( button )
+				if !self.SelectedMap then panel:PushError( "Please select a map before changing level." ) return end
+				RunConsoleCommand( "exsto", "changelevel", self.SelectedMap, "5", self.GamemodeList:GetSelectedItem() )
 			end
 		
-		local mapListContainer = exsto.CreateLabeledPanel( 10, 60, panel:GetWide() - 20, panel:GetTall() - 130, "Click on the map you want to change to.", Color( 232, 232, 232, 255 ), panel )
-			mapListContainer.Label:SetFont( "labeledPanelFont" )
-			
-		mapList = exsto.CreatePanelList( 5, 8, mapListContainer:GetWide() - 10, mapListContainer:GetTall() - 16, 5, true, true, mapListContainer )
-			mapList.Color = Color( 0, 0, 0, 0 )
-		PLUGIN.RebuildList( "Garry's Mod" )
+		Menu:CreateAnimation( self.MapListView )
+		Menu:CreateAnimation( self.MapList )
 		
-		local startInfo = exsto.CreateLabeledPanel( 10, panel:GetTall() - 50, panel:GetWide() - 20, 40, "Other", Color( 232, 232, 232, 255 ), panel )
-			startInfo.Label:SetFont( "labeledPanelFont" )
-		
-		local startCategory = exsto.CreateMultiChoice( 10, 10, 120, 20, startInfo )
-			startCategory:SetText( "Garry's Mod" )
+		self.MapListView:FadeOnVisible( true )
+		self.MapList:FadeOnVisible( true )
+		self.MapListView:SetFadeMul( 3 )
+		self.MapList:SetFadeMul( 3 )
 			
-			for k,v in pairs( PLUGIN.GetCategories() ) do
-				startCategory:AddChoice( v )
-			end
-			
-			startCategory.OnSelect = function( index, value, data )
-				PLUGIN.RebuildList( data )
-			end
-			
-		//local startInfoLabel = exsto.CreateLabel( 50, 10, "Playing *MAP* on *GAMEMODE*", "labeledPanelFont", startInfo )
-		local startButton = exsto.CreateButton( startInfo:GetWide() - 120, 5, 74, 27, "Change Map", startInfo )
-			startButton.OnClick = function( self )
-				if selectedMap == "" then Menu.PushError( "No map selected!" ) return end
-				local map = selectedMap
-				local gamemode = currentGamemode
+		self.ListView = exsto.CreateImageButton( 5, panel:GetTall() - 40, 32, 32, "listview", panel )
+			self.ListView.DoClick = function( icon )
+				self.MapList:SetVisible( false )
+				self.MapListView:SetVisible( true )
+				self.Tabs:Hide()
 				
-				Menu.CallServer( "_ChangeMap", map, gamemode )
-				self:SetVisible( false )
+				icon:SetImage( "listviewsel" )
+				self.IconView:SetImage( "iconview" )
 			end
+			
+		self.IconView = exsto.CreateImageButton( 45, panel:GetTall() - 40, 32, 32, "iconviewsel", panel )
+			self.IconView.DoClick = function( icon )
+				self.MapList:SetVisible( true )
+				self.MapListView:SetVisible( false )
+				self.Tabs:Show()
+				
+				icon:SetImage( "iconviewsel" )
+				self.ListView:SetImage( "listview" )
+			end
+			
+		for _, cat in SortedPairs( self.Categories, true ) do
+			self.Tabs:CreateButton( cat, function() self.MapList:SetCategory( cat ) end )
+		end
 	end
 	
-	--[[Menu.CreatePage( {
+	Menu:CreatePage( {
 		Title = "Maps List",
 		Short = "mapslist",
-		Flag = "mapslist",
 		}, 
 		function( panel )
-		
-			PLUGIN.Reload( panel )
-			
+			PLUGIN.Panel = panel
+			if !PLUGIN.Received then
+				panel:PushLoad()
+				RunConsoleCommand( "_GetMapsList" )
+			else
+				PLUGIN:Build( panel )
+			end
 		end
 	)
-	]]
 end
 
 PLUGIN:Register()

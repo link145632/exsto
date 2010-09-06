@@ -31,6 +31,7 @@ Menu = {}
 	Menu.SecondaryRequests = {}
 	Menu.TabRequests = {}
 	Menu.CurrentIndex = 1
+	Menu.NotifyPanels = {}
 	
 surface.CreateFont( "arial", 14, 500, true, false, "exstoListColumn" )
 surface.CreateFont( "arial", 26, 700, true, false, "exstoBottomTitleMenu" )
@@ -101,6 +102,7 @@ function Menu:Initialize( key, rank, flagCount, bindOpen )
 		if bindOpen then Menu.Frame:ShowCloseButton( false ) end
 		Menu.Frame:SetVisible( true )
 		Menu:BringBackSecondaries()
+		Menu:BringBackNotify()
 	else
 		Menu.LastRank = LocalPlayer():GetRank()
 		Menu:Create( rank, flagCount )
@@ -174,6 +176,8 @@ function Menu:BuildMainFrame()
 		for short, obj in pairs( Menu.TabRequests ) do
 			obj:SetVisible( false )
 		end
+		
+		Menu:HideNotify()
 	end
 	
 	-- Move the secondarys and tabs along with us.
@@ -258,8 +262,52 @@ function Menu:BuildTabMenu()
 		tab:SetFadeMul( 4 )
 
 		tab.Pages = {}
+		tab.Items = {}
 		tab.Controls = exsto.CreatePanelList( 8.5, 10, tab:GetWide() - 17, tab:GetTall() - 20, 5, false, true, tab )
 		tab.Controls.m_bBackground = false
+		
+		tab.SetListHeight = function( self, num )
+			self.Controls:SetSize( self.Controls:GetWide(), num )
+		end
+		
+		tab.GetListTall = function( self ) return self.Controls:GetTall() end
+		tab.GetListWide = function( self ) return self.Controls:GetWide() end
+		
+		tab.SelectByName = function( self, str )
+			for _, item in ipairs( self.Items ) do
+				if str == item.Name then
+					item.Obj.DoClick( item.Obj )
+				end
+			end
+		end
+		
+		tab.SelectByObject = function( self, obj )
+			self.ActiveButton.isEnabled = false
+			self.ActiveButton = obj
+			obj.isEnabled = true
+		end
+		
+		tab.CreateButton = function( self, name, _callback )
+			local button = exsto.CreateButton( 0, 0, self:GetWide() - 40, 27, name )
+				button:SetStyle( "secondary" )
+				button:SetSkin( "ExstoTheme" )
+				
+				local function callback( button )
+					_callback( button )
+					self:SelectByObject( button )
+				end
+				button.DoClick = callback
+				
+				self.Controls:AddItem( button )
+				table.insert( self.Items, { Obj = button, Name = name, Callback = callback } )
+				
+				if !self.Initialized then
+					self.Initialized = true
+					self.ActiveButton = button
+					button.isEnabled = true
+					callback( button )
+				end
+		end
 		
 		tab.CreatePage = function( self, page )
 			local panel = exsto.CreatePanel( 0, 0, page:GetWide(), page:GetTall(), Menu.Colors.Black, page )
@@ -304,6 +352,16 @@ function Menu:BuildTabMenu()
 			for _, page in ipairs( self.Pages ) do
 				page:Remove()
 			end
+		end
+		
+		tab.Hide = function( self )
+			self.Hidden = true
+			self:SetVisible( false )
+		end
+		
+		tab.Show = function( self )
+			self.Hidden = false
+			Menu:BringBackSecondaries()
 		end
 	
 	return tab
@@ -372,10 +430,24 @@ function Menu:BringBackSecondaries()
 	end
 	
 	if self.ActiveTab then
-		self.ActiveTab:SetVisible( true )
+		if !self.ActiveTab.Hidden then
+			self.ActiveTab:SetVisible( true )
+		end
 	end
 	
 	self:UpdateSecondariesPos()
+end
+
+function Menu:BringBackNotify()
+	for _, obj in ipairs( self.NotifyPanels ) do
+		obj:SetVisible( true )
+	end
+end
+
+function Menu:HideNotify()
+	for _, obj in ipairs( self.NotifyPanels ) do
+		obj:SetVisible( false )
+	end
 end
 
 function Menu:CreateColorPanel( x, y, w, h, page )
@@ -888,7 +960,7 @@ function Menu:CheckRequests( short )
 	
 	local tabs = self.TabRequests[ short ]
 	if tabs then
-		tabs:SetVisible( true )
+		if !tabs.Hidden then tabs:SetVisible( true ) end
 		self.ActiveTab = tabs
 		self:UpdateSecondariesPos()
 	end
@@ -1020,6 +1092,29 @@ function Menu:CreatePage( info, func )
 			self.ExNotify_EndTime = CurTime() + ( timeOnline or 5 )
 			self.ExNotify_Error = err or false
 			self.ExNotify_Alpha = 0
+			
+			if !self.ExNotify_Panel then
+				self.ExNotify_Panel = exsto.CreatePanel( 0, self:GetTall() - 40, self:GetWide(), 23 )
+					self.ExNotify_Panel:Gradient( true )
+					self.ExNotify_Panel:SetSkin( "ExstoTheme" )
+					
+					table.insert( Menu.NotifyPanels, self.ExNotify_Panel )
+					
+					local x, y = Menu.Frame:GetPos()
+					self.ExNotify_Panel:SetPos( x, Menu.Frame:GetTall() - 40 + y )
+					
+				self.ExNotify_TextPanel = exsto.CreateLabel( 5, 3, text or "No Text Provided", "ExGenericText18", self.ExNotify_Panel )
+					self.ExNotify_TextPanel:SetWrap( true )
+				
+				Menu:CreateAnimation( self.ExNotify_Panel )
+				self.ExNotify_Panel:FadeOnVisible( true )
+				self.ExNotify_Panel:SetFadeMul( 2 )
+				self.ExNotify_Panel:SetPosMul( 3 )
+			end
+			
+			self.ExNotify_Panel:SetVisible( true )
+			local x, y = Menu.Frame:GetPos()
+			self.ExNotify_Panel:SetPos( x, Menu.Frame:GetTall() + 6 + y )
 		end
 		
 		function page:PushError( text, timeOnline )
@@ -1034,6 +1129,9 @@ function Menu:CreatePage( info, func )
 			self.ExNotify_EndTime = false
 			self.ExNotify_Error = false
 			self.ExNotify_Alpha = 0
+			
+			local x, y = Menu.Frame:GetPos()
+			self.ExNotify_Panel:SetPos( x, self:GetTall() - 40 + y )
 			
 			if self.ExNotify_Queue[1] then
 				self:PushGeneric( self.ExNotify_Queue[1].Text, self.ExNotify_Queue[1].TimeOnline, self.ExNotify_Queue[1].Err )
@@ -1058,37 +1156,17 @@ function Menu:CreatePage( info, func )
 					
 					draw.SimpleText( "Loading", "ExLoadingText", ( self:GetWide() / 2 ), ( self:GetTall() / 2 ), self.Text_LoadingColor, 1, 1 )
 				elseif self.ExNotify_Generic then 
-					if self.ExNotify_EndTime - .5 <= CurTime() then -- Give us a second to fade
-						if self.ExNotify_Alpha > 5 then
-							self.ExNotify_Alpha = self.ExNotify_Alpha - 8.5
-						end
-					else
-						if self.ExNotify_Alpha < 250 then
-							self.ExNotify_Alpha = self.ExNotify_Alpha + 8.5
-						end
-					end
-					
 					if self.ExNotify_EndTime <= CurTime() then
 						self:DialogCleanup()
 						return
 					end
-					surface.SetDrawColor( 0, 0, 0, self.ExNotify_Alpha * .9 )
-					surface.DrawRect( 0, self:GetTall() - 40, self:GetWide(), 40 )
-					
-					local col = self.ExNotify_Error and self.Text_ErrorColor or self.Text_GenericColor
-						col.a = self.ExNotify_Alpha
-						
-					local outlineCol = self.Text_OutlineColor
-						col.a = self.ExNotify_Alpha
-					
-					draw.SimpleTextOutlined( self.ExNotify_Text, Menu:CalcFontSize( self.ExNotify_Text, self:GetWide() - 10, 30 ), 5, self:GetTall() - 20, col, 0, 1, 1, outlineCol )
 				end
 			end
 		end
 		
 		local success, err = pcall( func, page )
 		if !success then
-			exsto.Print( exsto_CONSOLE, "MENU --> Error creating page '" .. info.Short .. "': " .. err )
+			exsto.ErrorNoHalt( "MENU --> Error creating page '" .. info.Short .. "':\n" .. err )
 		end
 		return page
 	end

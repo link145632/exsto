@@ -82,12 +82,20 @@ if SERVER then
 			return { owner, COLOR.NORM, "There is no variable named ", COLOR.NAME, var, COLOR.NORM, "!" }
 		end
 
-		local done = exsto.SetVar( var, value )
+		local done, returnData = exsto.SetVar( var, value )
 		
 		if done then
 			return { COLOR.NAME, var, COLOR.NORM, " has been set to ", COLOR.NAME, value, COLOR.NORM, "!" }
 		else
-			return { owner, COLOR.NORM, "The variables callback refuses the data set request!" }
+			if !returnData then
+				return { owner, COLOR.NORM, "The variables callback refuses the data set request!" }
+			else
+				if type( returnData ) == "table" then
+					return table.insert( { owner }, returnData )
+				elseif type( returnData ) == "string" then
+					return { owner, COLOR.NORM, returnData }
+				end
+			end
 		end
 		
 	end
@@ -190,7 +198,7 @@ elseif CLIENT then
 			self.List.Refresh = function( lst )
 				lst:Clear()
 				for _, data in ipairs( self.Vars ) do
-					lst:AddLine( data.Pretty, data.Dirty, data.Value, data.DataType )
+					lst:AddLine( data.Pretty, data.Dirty, tostring( data.Value ), data.DataType )
 				end
 			end
 			self.List:Refresh()

@@ -113,7 +113,7 @@ PLUGIN:AddCommand( "search", {
 	Call = PLUGIN.Search,
 	Desc = "Allows users to search for commands.",
 	Console = { "commands" },
-	Chat = { "!search" },
+	Chat = { "!commands" },
 	ReturnOrder = "Command",
 	Args = {Command = "STRING"},
 	Optional = {Command = ""},

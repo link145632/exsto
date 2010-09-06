@@ -6,7 +6,7 @@ local PLUGIN = exsto.CreatePlugin()
 PLUGIN:SetInfo({
 	Name = "Help Menu",
 	ID = "helpmenu",
-	Desc = "A menu page that shows Exsto help",
+	Desc = "A menu panel that shows Exsto help",
 	Owner = "Prefanatic",
 } )
 
@@ -76,6 +76,21 @@ function PLUGIN:CreateHTML( url )
 	]]
 end
 
+function PLUGIN:Reset( panel, pages )
+	self.Pics = pages
+	
+	panel.CurrentIndex = 1
+	self.browser:SetHTML( self:CreateHTML( self.DropLink .. pages[ panel.CurrentIndex ] ) )
+	self.browser:SetVisible( false )
+	panel:PushLoad()
+
+	panel.Prev:SetVisible( false )
+	panel.Next:SetVisible( false )
+	if #pages > 1 then
+		panel.Next:SetVisible( true )
+	end
+end
+
 function PLUGIN:CreatePage( panel )
 	local tabs = panel:RequestTabs()
 	
@@ -91,56 +106,52 @@ function PLUGIN:CreatePage( panel )
 		html:SetVisible( true )
 		panel:EndLoad()
 	end
+	
+	panel.CurrentIndex = 1
+	
+	-- Create the HTML thing.  Thank you WebKit.
+	self.browser = vgui.Create( "HTML", panel )
+		//self.browser:SetHTML( self:CreateHTML( self.DropLink .. self.Pics[1] ) )
+		self.browser:SetSize( 595, 305 )
+		self.browser:SetPos( ( panel:GetWide() / 2 ) - ( self.browser:GetWide() / 2 ), 5 )
+		
+		self.browser:SetMouseInputEnabled( false )
+		self.browser.FinishedURL = waitOnFinish
+		
+	-- Create prev and next buttons.
+	panel.Prev = exsto.CreateButton( 15, panel:GetTall() - 40, 84, 27, "Previous", panel )
+		panel.Prev:SetStyle( "negative" )
+		panel.Prev:SetVisible( false )
+		
+		panel.Prev.OnClick = function()
+			if panel.CurrentIndex == 1 then return end
+			
+			panel.CurrentIndex = panel.CurrentIndex - 1
+			self.browser:SetHTML( self:CreateHTML( self.DropLink .. self.Pics[ panel.CurrentIndex ] ) )
+			self.browser:SetVisible( false )
+			panel:PushLoad()
+			
+			panel.Next:SetVisible( true )
+			if panel.CurrentIndex == 1 then panel.Prev:SetVisible( false ) end
+		end
+
+	panel.Next = exsto.CreateButton( panel:GetWide() - 74 - 15,panel:GetTall() - 40, 74, 27, "Next", panel )
+		panel.Next:SetStyle( "positive" )
+		
+		panel.Next.OnClick = function()
+			if panel.CurrentIndex == #self.Pics then return end
+			
+			panel.CurrentIndex = panel.CurrentIndex + 1
+			self.browser:SetHTML( self:CreateHTML( self.DropLink .. self.Pics[ panel.CurrentIndex ] ) )
+			self.browser:SetVisible( false )
+			panel:PushLoad()
+			
+			panel.Prev:SetVisible( true )
+			if panel.CurrentIndex == #self.Pics then panel.Next:SetVisible( false ) end
+		end
 		
 	for _, data in ipairs( newTable ) do
-		local page = tabs:CreatePage( panel )
-		
-		page.CurrentIndex = 1
-		
-		-- Create the HTML thing.  Thank you WebKit.
-		local browser = vgui.Create( "HTML", page )
-			browser:SetHTML( self:CreateHTML( self.DropLink .. data.Pics[1] ) )
-			browser:SetSize( 595, 305 )
-			browser:SetPos( ( panel:GetWide() / 2 ) - ( browser:GetWide() / 2 ), 5 )
-			
-			browser:SetMouseInputEnabled( false )
-			browser.FinishedURL = waitOnFinish
-			
-		-- Create prev and next buttons.
-		if #data.Pics > 1 then
-			page.Prev = exsto.CreateButton( 15, page:GetTall() - 40, 84, 27, "Previous", page )
-				page.Prev:SetStyle( "negative" )
-				page.Prev:SetVisible( false )
-				
-				page.Prev.OnClick = function()
-					if page.CurrentIndex == 1 then return end
-					
-					page.CurrentIndex = page.CurrentIndex - 1
-					browser:SetHTML( self:CreateHTML( self.DropLink .. data.Pics[ page.CurrentIndex ] ) )
-					browser:SetVisible( false )
-					panel:PushLoad()
-					
-					page.Next:SetVisible( true )
-					if page.CurrentIndex == 1 then page.Prev:SetVisible( false ) end
-				end
-
-			page.Next = exsto.CreateButton( page:GetWide() - 74 - 15,page:GetTall() - 40, 74, 27, "Next", page )
-				page.Next:SetStyle( "positive" )
-				
-				page.Next.OnClick = function()
-					if page.CurrentIndex == #data.Pics then return end
-					
-					page.CurrentIndex = page.CurrentIndex + 1
-					browser:SetHTML( self:CreateHTML( self.DropLink .. data.Pics[ page.CurrentIndex ] ) )
-					browser:SetVisible( false )
-					panel:PushLoad()
-					
-					page.Prev:SetVisible( true )
-					if page.CurrentIndex == #data.Pics then page.Next:SetVisible( false ) end
-				end
-		end
-			
-		tabs:AddItem( data.Category, page )
+		tabs:CreateButton( data.Category, function() self:Reset( panel, data.Pics ) end )
 	end
 	
 end	

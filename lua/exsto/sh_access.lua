@@ -26,20 +26,24 @@ exsto.LoadedRanks = {}
 exsto.RankErrors = {} -- For storing errors from ranks.
 
 if SERVER then
-	FEL.MakeTable( "exsto_data_access", {
-			Name = "varchar(255)",
-			Description = "varchar(255)",
-			Short = "varchar(255)",
-			Derive = "varchar(255)",
-			Immunity = "int",
-			Color = "varchar(255)",
-			Flags = "text",
-			DefaultFlags = "text",
-		},
-		{ 
-			PrimaryKey = "Short",
-		}
-	)
+	exsto.RankDB = FEL.CreateDatabase( "exsto_data_access" )
+		exsto.RankDB:ConstructColumns( {
+			Name = "TEXT:not_null";
+			Description = "TEXT";
+			Short = "VARCHAR(100):primary:not_null";
+			Derive = "TEXT:not_null";
+			Immunity = "INTEGER";
+			Color = "TEXT";
+			Flags = "TEXT";
+			DefaultFlags = "TEXT";
+		} )
+		
+	exsto.UserDB = FEL.CreateDatabase( "exsto_data_users" )
+		exsto.UserDB:ConstructColumns( {
+			SteamID = "VARCHAR(50):primary:not_null";
+			Name = "TEXT:not_null";
+			Rank = "TEXT:not_null";
+		} )
 	
 --[[ -----------------------------------
 	Function: ACCESS_CreateDefaults
@@ -48,24 +52,16 @@ if SERVER then
 	function ACCESS_CreateDefaults()
 		for k,v in pairs( exsto.DefaultRanks ) do
 		
-			FEL.AddData( "exsto_data_access", {
-				Look = {
-					Short = v.Short,
-				},
-				Data = {
-					Name = v.Name,
-					Description = v.Desc,
-					Short = v.Short,
-					Derive = v.Derive,
-					Color = FEL.NiceColor( v.Color ),
-					Immunity = v.Immunity,
-					Flags = FEL.NiceEncode( v.Flags ),
-					DefaultFlags = FEL.NiceEncode( v.Flags ),
-				},
-				Options = {
-					Update = false,
-				}
-			} )
+			exsto.RankDB:AddRow( {
+				Name = v.Name;
+				Description = v.Desc;
+				Short = v.Short;
+				Derive = v.Derive;
+				Color = FEL.NiceColor( v.Color );
+				Immunity = v.Immunity;
+				Flags = FEL.NiceEncode( v.Flags );
+				DefaultFlags = FEL.NiceEncode( v.Flags );
+			}, { Update = false } )
 
 		end
 		
@@ -76,7 +72,7 @@ if SERVER then
 	Description: Loads all the ranks.
 	----------------------------------- ]]
 	function ACCESS_LoadFiles()
-		for k,v in pairs( FEL.LoadTable( "exsto_data_access" ) ) do
+		for k,v in pairs( exsto.RankDB:GetAll() ) do
 
 			if v.DefaultFlags == "NULL" or v.DefaultFlags == nil or tostring( v.DefaultFlags ) == "NULL" then
 				exsto.LoadedRanks[v.Short] = {
@@ -110,7 +106,7 @@ if SERVER then
 		-- Check and see if we can do this baby.
 		if exsto.LoadedRanks[ "srv_owner" ] then
 			-- Delete existing please.
-			FEL.RemoveData( "exsto_data_ranks", "Short", "srv_owner" )
+			exsto.RankDB:DropRow( "srv_owner" )
 			exsto.LoadedRanks[ "srv_owner" ] = nil
 		end
 		
@@ -163,26 +159,18 @@ if SERVER then
 		if tableChanged then
 		
 			exsto.Print( exsto_CONSOLE, "RANKS --> " .. short .. " --> Rank has been updated with new flag information!" )
-
-			FEL.AddData( "exsto_data_access", {
-				Look = {
-					Short = data.Short,
-				},
-				Data = {
-					Name = data.Name,
-					Description = data.Desc,
-					Short = data.Short,
-					Derive = data.Derive,
-					Color = FEL.NiceColor( data.Color ),
-					Immunity = data.Immunity,
-					Flags = FEL.NiceEncode( addToFlags ),
-					DefaultFlags = FEL.NiceEncode( checkedFlags ),
-				},
-				Options = {
-					Update = true,
-				}
+			
+			exsto.RankDB:AddRow( {
+				Name = data.Name;
+				Description = data.Desc;
+				Short = data.Short;
+				Derive = data.Derive;
+				Color = FEL.NiceColor( data.Color );
+				Immunity = data.Immunity;
+				Flags = FEL.NiceEncode( addToFlags );
+				DefaultFlags = FEL.NiceEncode( checkedFlags );
 			} )
-				
+			
 			exsto.LoadedRanks[short] = {
 				Name = data.Name,
 				Desc = data.Desc,
@@ -391,24 +379,17 @@ if SERVER then
 			
 			for _, rank in pairs( data ) do
 				if !exsto.RankExists( rank.group ) then -- Ho ho lets create!
-					
-					FEL.AddData( "exsto_data_access", {
-						Look = {
-							Short = rank.group,
-						},
-						Data = {
-							Name = rank.name,
-							Description = "Imported from ULX UTeam",
-							Short = rank.group,
-							Derive = "NONE",
-							Color = FEL.NiceColor( rank.color ),
-							Immunity = 10,
-							Flags = FEL.NiceEncode( {} ),
-						},
-						Options = {
-							Update = false,
-						}
+				
+					exsto.RankDB:AddRow( {
+						Name = rank.name;
+						Description = "Imported from ULX UTeam";
+						Short = rank.group;
+						Derive = "NONE";
+						Color = FEL.NiceColor( rank.color );
+						Immunity = 10;
+						Flags = FEL.NiceEncode( {} );
 					} )
+
 				end
 			end
 			
@@ -435,22 +416,13 @@ if SERVER then
 			for k,v in pairs( info ) do
 			
 				if exsto.RankExists( v.group ) then -- That rank exists in Exsto!
-				
-					FEL.AddData( "exsto_data_users", {
-						Look = {
-							SteamID = k,
-						},
-						Data = {
-							Name = v.name or "Unknown",
-							SteamID = k,
-							Rank = v.group,
-						},
-						Options = {
-							Update = true,
-							Threaded = true,
-						},
-					} )
 					
+					exsto.UserDB:AddRow( {
+						Name = v.name or "Unknown";
+						SteamID = k;
+						Rank = v.group;
+					} )
+				
 				end
 				
 			end
@@ -478,23 +450,15 @@ if SERVER then
 					reason = reason:gsub( "\\", "" )
 				end
 				
-				FEL.AddData( "exsto_data_bans", {
-					Look = {
-						SteamID = k,
-					},
-					Data = {
-						Name = name,
-						SteamID = k,
-						Length = v["unban"],
-						Reason = reason or "None",
-						BannedBy = v["admin"] or "Unknown",
-						BannedAt = v["time"],
-					},
-					Options = {
-						Update = true,
-						Threaded = true,
-					},
+				exsto.RankDB:AddRow( {
+					Name = name;
+					SteamID = k;
+					Length = v["unban"];
+					Reason = reason or "None";
+					BannedBy = v["admin"] or "Unknown";
+					BannedAt = v["time"];
 				} )
+				
 				exsto.Print( exsto_CONSOLE_DEBUG, "Saving data for " .. name or "Unknown" .. "!" )
 			end
 			
@@ -509,7 +473,8 @@ if SERVER then
 	
 	function ACCESS_RecreateRanks( ply )
 		ply:Print( exsto_CLIENT, "ACCESS --> Deleting and recreating the rank table!" )
-		FEL.Query( "DROP TABLE exsto_data_access;" )
+		exsto.RankDB:DropTable()
+		//FEL.Query( "DROP TABLE exsto_data_access;" )
 		
 		local tblInfo = FEL.CreatedTables["exsto_data_access"]
 		
@@ -592,7 +557,7 @@ if SERVER then
 	----------------------------------- ]]
 	function exsto.AddUsersOnJoin( ply, steamid, uniqueid )
 
-		local rank, userFlags = FEL.LoadUserInfo( ply )
+		local rank, userFlags = exsto.UserDB:GetData( steamid, "Rank, UserFlags" )
 		
 		print( rank )
 
@@ -632,7 +597,11 @@ if SERVER then
 		if !isDedicatedServer() then
 			if self:IsListenServerHost() then
 				self:SetNWString( "rank", "srv_owner" )
-				FEL.SaveUserInfo( self )
+				exsto.UserDB:AddRow( {
+					SteamID = self:SteamID();
+					Rank = self:GetNWString( "rank" );
+					Name = self:Nick();
+				} )
 				
 				return { self, COLOR.NORM, "You have reset your rank to ", COLOR.NAME, "owner", COLOR.NORM, "!" }
 			else
@@ -660,7 +629,7 @@ if SERVER then
 	Description: Checks to see if there are any admin in the data server.
 	----------------------------------- ]]
 	function exsto.AnyAdmins()
-		local plys = FEL.LoadTable( "exsto_data_users" )
+		local plys = exsto.UserDB:GetAll()
 		if !plys then return false end
 		
 		for k,v in pairs( plys ) do
@@ -727,7 +696,11 @@ if SERVER then
 	----------------------------------- ]]
 	function _R.Player:SetRank( rank )
 		self:SetNetworkedString( "rank", rank )
-		FEL.SaveUserInfo( self )
+		exsto.UserDB:AddRow( {
+			SteamID = self:SteamID();
+			Rank = self:GetNWString( "rank" );
+			Name = self:Nick();
+		} )
 		hook.Call( "ExSetRank", nil, self, rank )
 	end
 	
@@ -840,6 +813,19 @@ function _R.Player:IsAllowed( flag, victim )
 		if table.HasValue( rank.AllFlags, flag ) then return true end
 	end
 	
+	return false
+end
+
+function _R.Player:HasAccessOver( ply )
+	if self:EntIndex() == 0 then return true end -- If we are console :3
+	if self:GetRank() == "srv_owner" then return true end
+	
+	local rData = exsto.GetRankData( self:GetRank() )
+	local pData = exsto.GetRankData( ply:GetRank() )
+	
+	if rData and pData then
+		if tonumber( rData.Immunity ) <= tonumber( pData.Immunity ) then return true end
+	end
 	return false
 end
 

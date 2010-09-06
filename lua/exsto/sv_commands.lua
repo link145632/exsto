@@ -120,14 +120,14 @@ function exsto.AddChatCommand( ID, info )
 	if type( info.ReturnOrder ) == "string" then
 		returnOrder = string.Explode( "-", info.ReturnOrder )
 	end
-	
+
 	exsto.Commands[ID] = {
 		ID = ID,
 		Call = info.Call,
 		Desc = info.Desc or "None Provided",
 		FlagDesc = info.Desc or "None Provided",
-		ReturnOrder = returnOrder,
-		Args = info.Args,
+		ReturnOrder = returnOrder or {},
+		Args = info.Args or {},
 		Optional = info.Optional or {},
 		Plugin = info.Plugin or nil,
 		Category = info.Category or "Unknown",
