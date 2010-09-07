@@ -61,7 +61,7 @@ function FEL.CreateDatabase( dbName )
 	obj._lastThink = CurTime()
 	
 	table.insert( FEL.Databases, obj )
-	hook.Add( "Think", dbName .. "_Think", function() obj:Think() end )
+	hook.Add( "Think", "FELDBTHINK_" .. dbName, function() obj:Think() end )
 	
 	if FEL.Config.mysql_enabled == "true" then -- Connect to a mysql server.
 		obj._mysqlDB = mysqloo.connect( FEL.Config.host, FEL.Config.username, FEL.Config.password, FEL.Config.database )
@@ -288,7 +288,7 @@ end
 
 function db:Think( force )
 	if ( CurTime() > self._lastThink + self.thinkDelay ) or force then
-		if self._mysqlSuccess != true and self._mysqlSuccess != false then -- Wait.  Just queue up;
+		if FEL.Config.mysql_enabled == "true" and self._mysqlSuccess != true and self._mysqlSuccess != false then -- Wait.  Just queue up;
 			self._lastThink = CurTime()
 			return
 		end
