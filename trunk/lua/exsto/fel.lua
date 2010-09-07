@@ -80,7 +80,7 @@ function db:OnMySQLConnect()
 end
 
 function db:OnMySQLConnectFail( err )
-	ErrorNoHalt( "FEL --> " .. self.dbName .. " --> Connect Failure: " .. err )
+	ErrorNoHalt( "FEL --> " .. self.dbName .. " --> Connect Failure: " .. tostring( err ) )
 	self._mysqlSuccess = false
 end
 
@@ -120,6 +120,7 @@ function db:ConstructColumns( columnData )
 	-- Commit and create our table!
 	self:Query( self:ConstructQuery( "create" ), false )
 	self.Cache._cache = self:Query( "SELECT * FROM " .. self.dbName, false ) or {}
+	PrintTable( self.Cache._cache )
 	self:CheckIntegrity()		
 end
 
@@ -136,9 +137,10 @@ function db:CheckIntegrity()
 	-- Check if the cache is old_fel.
 	if type( dbLocal[1] ) == "table" and type( dbLocal[2] ) == "table" then
 		print( "FEL --> " .. self.dbName .. " --> Local cache using old FEL!  Updating to support new format." )
+		self.Cache._new = table.Copy( self.Cache._cache )
 		self:DropTable( false )
 		self:Query( self:ConstructQuery( "create" ), false )
-		self.Cache._new = self.Cache._cache
+		self:Think( true )
 		
 		file.Write( "exsto_felcache/" .. self.dbName .. "_cache.txt", glon.encode( self.Columns ) )
 		return
@@ -284,8 +286,8 @@ function db:Query( str, threaded )
 	end
 end
 
-function db:Think()
-	if CurTime() > self._lastThink + self.thinkDelay then
+function db:Think( force )
+	if ( CurTime() > self._lastThink + self.thinkDelay ) or force then
 		if self._mysqlSuccess != true and self._mysqlSuccess != false then -- Wait.  Just queue up;
 			self._lastThink = CurTime()
 			return
@@ -308,7 +310,7 @@ function db:Think()
 		end
 		
 		-- Heartbeat please.
-		self:Query( "SELECT 1 + 1" )
+		if FEL.Config.mysql_enabled == "true" then self:Query( "SELECT 1 + 1" ) end
 		
 		self._lastThink = CurTime()
 	end

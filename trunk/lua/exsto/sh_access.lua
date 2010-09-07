@@ -799,7 +799,7 @@ function _R.Player:IsAllowed( flag, victim )
 	
 	if !rank then return false end
 	
-	if victim then
+	if type( victim ) == "Player" then
 	
 		local victimRank = exsto.GetRankData( victim:GetRank() )
 		if !rank.Immunity or !victimRank.Immunity then -- Just ignore it if they don't exist, we don't want to break Exsto.
