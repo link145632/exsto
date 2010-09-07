@@ -14,10 +14,11 @@ if SERVER then
 
 	exsto.TimeDB = FEL.CreateDatabase( "exsto_plugin_time" )
 		exsto.TimeDB:ConstructColumns( {
-			Player = "TEXT:not_null";
+			Player = "TEXT";
 			SteamID = "VARCHAR(50):primary:not_null";
 			Time = "INTEGER:not_null";
 			Last = "INTEGER:not_null";
+			Test = "STRING";
 		} )
 	
 	function PLUGIN:ExInitSpawn( ply, sid, uid )

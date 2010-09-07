@@ -273,6 +273,14 @@ function Menu:BuildTabMenu()
 		tab.GetListTall = function( self ) return self.Controls:GetTall() end
 		tab.GetListWide = function( self ) return self.Controls:GetWide() end
 		
+		tab.SelectByID = function( self, id )
+			for _, item in ipairs( self.Items ) do
+				if item.ID and item.ID == id then
+					item.Obj.DoClick( item.Obj )
+				end
+			end
+		end
+		
 		tab.SelectByName = function( self, str )
 			for _, item in ipairs( self.Items ) do
 				if str == item.Name then
@@ -287,7 +295,7 @@ function Menu:BuildTabMenu()
 			obj.isEnabled = true
 		end
 		
-		tab.CreateButton = function( self, name, _callback )
+		tab.CreateButton = function( self, name, _callback, id )
 			local button = exsto.CreateButton( 0, 0, self:GetWide() - 40, 27, name )
 				button:SetStyle( "secondary" )
 				button:SetSkin( "ExstoTheme" )
@@ -299,7 +307,7 @@ function Menu:BuildTabMenu()
 				button.DoClick = callback
 				
 				self.Controls:AddItem( button )
-				table.insert( self.Items, { Obj = button, Name = name, Callback = callback } )
+				table.insert( self.Items, { Obj = button, Name = name, Callback = callback, ID = id } )
 				
 				if !self.Initialized then
 					self.Initialized = true
@@ -675,8 +683,10 @@ function Menu:BuildPages( rank, flagCount )
 		if data.Panel:IsValid() then
 			data.Panel:Remove()
 		end
-		self.List[ short ] = nil
 	end
+	
+	self.ListIndex = {}
+	self.List = {}
 
 	-- Loop through what we need to build.
 	for _, data in ipairs( self.CreatePages ) do

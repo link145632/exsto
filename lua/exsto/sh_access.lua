@@ -44,6 +44,14 @@ if SERVER then
 			Name = "TEXT:not_null";
 			Rank = "TEXT:not_null";
 		} )
+		
+	exsto.AddVariable({
+		Pretty = "Server Owner Nag",
+		Dirty = "srv_owner_nag",
+		Default = true,
+		Description = "Enables or disables on-join server owner missing nag.",
+		Possible = { true, false },
+	})
 	
 --[[ -----------------------------------
 	Function: ACCESS_CreateDefaults
@@ -572,7 +580,7 @@ if SERVER then
 		if !isDedicatedServer() then
 			if ply:IsListenServerHost() and not rank then
 				ply:SetNWString( "rank", "srv_owner" )
-			elseif ply:IsListenServerHost() and ply:GetRank() != "srv_owner" then
+			elseif ply:IsListenServerHost() and ply:GetRank() != "srv_owner" and exsto.GetVar( "srv_owner_nag" ).Value == true then
 				-- If hes the host, but has a different rank, we need to give him the option to re-set as superadmin.
 				ply:Print( exsto_CHAT, COLOR.NORM, "Exsto seems to have noticed you are the host of this listen server, yet your rank isnt owner!" )
 				ply:Print( exsto_CHAT, COLOR.NORM, "If you want to reset your rank to owner, run this chat command. ", COLOR.NAME, "!updateowner" )
