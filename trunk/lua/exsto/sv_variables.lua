@@ -59,7 +59,7 @@ function exsto.AddVariable( data )
 		Value = data.Default,
 		DataType = type( data.Default ),
 		Description = data.Description or "No Description Provided!",
-		OnChange = data.OnChange or filler_function,
+		OnChange = data.OnChange or nil,
 		Possible = data.Possible or {},
 		EnvVar = data.EnvVar or false,
 	}

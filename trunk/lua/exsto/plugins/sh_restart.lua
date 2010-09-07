@@ -274,10 +274,14 @@ elseif CLIENT then
 		if !self.MapIcons then self.MapIcons = {} end
 		if self.MapIcons[ data.Name ] and self.MapIcons[ data.Name ]:IsValid() then return self.MapIcons[ data.Name ] end
 		
-		local mat = Material( data.Material )
-		if mat:GetName() == "___error" then
+		if file.Exists( "../materials" .. data.Material ) then
+			local mat = Material( data.Material )
+			if mat:GetName() == "___error" then
+				mat = "maps/noicon"
+			else mat = data.Material end
+		else
 			mat = "maps/noicon"
-		else mat = data.Material end
+		end
 		
 		self.MapIcons[ data.Name ] = vgui.Create( "DImageButton" )
 		
@@ -383,6 +387,7 @@ elseif CLIENT then
 		for _, cat in SortedPairs( self.Categories, true ) do
 			self.Tabs:CreateButton( cat, function() self.MapList:SetCategory( cat ) end )
 		end
+		self.Tabs:SelectByName( "Garry's Mod" )
 	end
 	
 	Menu:CreatePage( {

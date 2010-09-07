@@ -26,7 +26,6 @@ if SERVER then
 		Dirty = "title_limit",
 		Default = 50,
 		Description = "The limit to the number of letters in a player head title.",
-		OnChange = function( val ) print( val ) return true end
 	})
 
 	function PLUGIN:ExInitSpawn( ply, sid )

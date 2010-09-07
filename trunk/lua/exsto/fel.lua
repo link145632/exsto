@@ -115,12 +115,12 @@ function db:ConstructColumns( columnData )
 		Update = "UPDATE " .. self.dbName .. " SET %s WHERE " .. formatted._PrimaryKey .. " = %s";
 		Insert = "INSERT INTO " .. self.dbName .. "(%s) VALUES(%s)";
 		Set = "%s = %s";
+		Delete = "DELETE FROM %s WHERE %s = %s";
 	}
 	
 	-- Commit and create our table!
 	self:Query( self:ConstructQuery( "create" ), false )
 	self.Cache._cache = self:Query( "SELECT * FROM " .. self.dbName, false ) or {}
-	PrintTable( self.Cache._cache )
 	self:CheckIntegrity()		
 end
 
@@ -178,7 +178,7 @@ function db:CheckIntegrity()
 	-- Commit brother!
 	if table.Count( changedData ) > 0 then
 		
-		for _, data in ipairs( changedData ) do
+		--[[for _, data in ipairs( changedData ) do
 			if data.t == "add" then
 				self:Query( "ALTER TABLE " .. self.dbName .. " ADD " .. data.c .. " " .. data.d )
 			elseif data.t == "remove" then
@@ -186,7 +186,13 @@ function db:CheckIntegrity()
 			elseif data.t == "pk" then
 				self:Query( "ALTER TABLE " .. self.dbName .. " ADD PRIMARY KEY( " .. data.c .. " )" )
 			end
-		end
+		end]]
+		-- Screw this.  Drop and update.
+		
+		self.Cache._new = table.Copy( self.Cache._cache )
+		self:DropTable( false )
+		self:Query( self:ConstructQuery( "create" ), false )
+		self:Think( true )
 		
 		print( "FEL --> " .. self.dbName .. " --> Updating SQL content!" )
 		
@@ -195,6 +201,7 @@ function db:CheckIntegrity()
 end	
 
 function db:CheckCache( id, data )
+	self._LastKey = nil
 	for _, cached in ipairs( self.Cache[ id ] ) do
 		if cached[ self.Columns._PrimaryKey ] == data[ self.Columns._PrimaryKey ] then
 			self._LastKey = _
@@ -210,7 +217,7 @@ function db:ConstructQuery( style, data )
 		self._clk = 1
 		local count = table.Count( data )
 		for column, rowData in pairs( data ) do
-			if type( rowData ) == "string" then rowData = SQLStr( rowData ) end
+			if type( rowData ) == "string" then rowData = self:Escape( rowData ) end
 			if self._clk == count then 
 				query = string.format( query, column, rowData )
 			else
@@ -222,12 +229,12 @@ function db:ConstructQuery( style, data )
 		
 		return query
 	elseif style == "changed" then
-		local query = string.format( self.Queries.Update, "%s", type( data[ self.Columns._PrimaryKey ] ) == "string" and SQLStr( data[ self.Columns._PrimaryKey ] ) or data[ self.Columns._PrimaryKey ] )
+		local query = string.format( self.Queries.Update, "%s", type( data[ self.Columns._PrimaryKey ] ) == "string" and self:Escape( data[ self.Columns._PrimaryKey ] ) or data[ self.Columns._PrimaryKey ] )
 		
 		self._clk = 1
 		local count = table.Count( data )
 		for column, rowData in pairs( data ) do
-			if type( rowData ) == "string" then rowData = SQLStr( rowData ) end
+			if type( rowData ) == "string" then rowData = self:Escape( rowData ) end
 			if self._clk == count then
 				query = string.format( query, string.format( self.Queries.Set, column, rowData ) )
 			else
@@ -276,7 +283,7 @@ function db:Query( str, threaded )
 		end
 	else
 		local result = sql.Query( str .. ";" )
-		
+	
 		if result == false then
 			-- An error, holy buggers!
 			self:OnQueryError( sql.LastError() )
@@ -316,17 +323,34 @@ function db:Think( force )
 	end
 end
 
+function db:Escape( str )
+	if FEL.Config.mysql_enabled == "true" then return self._mysqlDB:escape( str ) end
+	return SQLStr( str )
+end
+
 function db:AddRow( data, options )
 	options = options or {}
+	
+	-- Check our _new and _changed first brother.
+	if self:CheckCache( "_new", data ) then
+		print( "Holy shit fuck, we are adding data that already exists in a _new or _changed!" )
+		table.Merge( self.Cache._new[ self._LastKey ], data )
+		return
+	elseif self:CheckCache( "_changed", data ) then
+		print( "Holy shit fuck, we are adding data that already exists in a _new or _changed!" )
+		table.Merge( self.Cache._changed[ self._LastKey ], data )
+		return
+	end
+		
 	if self:CheckCache( "_cache", data ) then
-		if options.Update == false then return end			
-		table.remove( self.Cache._cache, self._LastKey )
+		if options.Update == false then return end	
+		table.Merge( self.Cache._cache[ self._LastKey ], data )		
 		table.insert( self.Cache._changed, data )
+		return
 	else
 		table.insert( self.Cache._new, data )
+		table.insert( self.Cache._cache, data )
 	end
-	
-	table.insert( self.Cache._cache, data )
 end
 
 function db:GetAll()
@@ -354,7 +378,13 @@ end
 
 function db:DropRow( key )
 	for _, rowData in ipairs( self.Cache._cache ) do
-		if key == rowData[ self.Columns._PrimaryKey ] then table.remove( self.Cache._cache, _ ) break end
+		if key == rowData[ self.Columns._PrimaryKey ] then 
+			table.remove( self.Cache._cache, _ )
+			
+			key = type( key ) == "string" and self:Escape( key ) or key
+			self:Query( string.format( self.Queries.Delete, self.dbName, self.Columns._PrimaryKey, key ) )
+			break
+		end
 	end
 end
 

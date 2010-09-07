@@ -16,6 +16,7 @@ if SERVER then
 		//exsto.RankErrors[ args[ 1 ] ] = nil
 
 		-- Remove the data.
+		print( "dropping rank " .. args[ 1 ] )
 		exsto.RankDB:DropRow( args[ 1 ] )
 		
 		-- Reload Exsto's access controllers.
@@ -53,9 +54,10 @@ if SERVER then
 	exsto.ClientHook( "ExRecRankData", PLUGIN.CommitChanges )
 	
 	function PLUGIN.RecieveImmunityData( ply, data )
-		local tbl = exsto.RankDB:GetRow( data[1] )
-			tbl.Immunity = data[2]
-		exsto.RankDB:AddRow( tbl )
+		exsto.RankDB:AddRow( {
+			Short = data[ 1 ];
+			Immunity = tonumber( data[ 2 ] )
+		} )
 	end
 	exsto.ClientHook( "ExRecImmuneChange", PLUGIN.RecieveImmunityData )
 	
@@ -66,7 +68,6 @@ if SERVER then
 	end
 	
 	function PLUGIN:WriteAccess( name, desc, short, derive, color, flags )
-		local tbl = exsto.RankDB:GetRow( short )
 		exsto.RankDB:AddRow( {
 			Name = name;
 			Short = short;
@@ -74,7 +75,6 @@ if SERVER then
 			Derive = derive;
 			Color = FEL.NiceColor( color );
 			Flags = FEL.NiceEncode( flags );
-			Immunity = tbl and tbl.Immunity or 10
 		} )
 	end
 
@@ -148,6 +148,7 @@ elseif CLIENT then
 			self.ImmunityBox.Changed = {}
 		end
 		
+		self._LastPage = short
 		self:ReloadMenu( self.Panel )
 		
 	end
@@ -197,11 +198,13 @@ elseif CLIENT then
 		local ranks = table.Copy( exsto.Ranks )
 		for _, data in SortedPairsByMemberValue( ranks, "Immunity" ) do
 			if data.Short != "srv_owner" then				
-				self.Tabs:CreateButton( data.Name, function() self:UpdateForms( data ) end )
+				self.Tabs:CreateButton( data.Name, function() self:UpdateForms( data ) end, data.Short )
 				
 				table.insert( immunityData, { Name = data.Name, Immunity = data.Immunity, Short = data.Short } )
 			end
 		end
+		
+		if self._LastPage then self.Tabs:SelectByID( self._LastPage ) end
 
 		-- Immunity Box
 		local immunityLabel = exsto.CreateLabel( "center", 5, "Immunity", "exstoSecondaryButtons", self.Secondary )
@@ -292,7 +295,7 @@ elseif CLIENT then
 			self.deriveEntry:Clear()
 			self.deriveEntry:SetText( data.Derive )
 			for short, info in SortedPairsByMemberValue( exsto.Ranks, "Immunity" ) do
-				if short != data.Short then
+				if short != data.Short and data.Short != "srv_owner" then
 					self.deriveEntry:AddChoice( short )
 				end
 			end
@@ -395,7 +398,7 @@ elseif CLIENT then
 			self.deriveEntry:SetEditable( false )
 			
 			for short, info in SortedPairsByMemberValue( table.Copy( exsto.Ranks ), "Immunity" ) do
-				if short != data.Short then
+				if short != data.Short and data.Short != "srv_owner" then
 					self.deriveEntry:AddChoice( short )
 				end
 			end
@@ -504,10 +507,10 @@ elseif CLIENT then
 					obj.DoClick = function( obj, ... )
 						oldClick( obj, ... )
 						
-						if obj.FlagName == "issuperadmin" or obj.FlagName == "isadmin" or obj.FlagName == "menu" then return end
+						if obj.FlagName == "issuperadmin" or obj.FlagName == "isadmin" then return end
 						
 						-- If the flag exists in his main flag table, remove it.
-						if table.HasValue( self.flags, self.allFlags ) then
+						if table.HasValue( self.flags, obj.FlagName ) then
 							for _, flag in ipairs( self.flags ) do
 								if flag == obj.FlagName then
 									table.remove( self.flags, _ )
@@ -572,7 +575,7 @@ elseif CLIENT then
 				if self.descEntry:GetValue() == "" then self.descEntry:SetText( "None Provided" ) end
 				if self.deriveEntry.TextEntry:GetValue() == "" then PLUGIN.Panel:PushError( "Please enter a valid derive!" ) return end
 				
-				PLUGIN:FormulateUpdate( self.nameEntry:GetValue(), self.uidEntry:GetValue(), self.descEntry:GetValue(), self.deriveEntry.TextEntry:GetValue(), self.colorMixer:GetColor(), data.Flags )
+				PLUGIN:FormulateUpdate( self.nameEntry:GetValue(), self.uidEntry:GetValue(), self.descEntry:GetValue(), self.deriveEntry.TextEntry:GetValue(), self.colorMixer:GetColor(), self.flags )
 			end
 			
 		self.delete = exsto.CreateButton( 0, panel:GetTall() - 40, 70, 27, "Delete", panel )
@@ -581,7 +584,7 @@ elseif CLIENT then
 			self.delete:SetVisible( data.CanRemove )
 			self.delete.OnClick = function( button )
 				PLUGIN.Panel:PushLoad()
-				Menu.CallServer( "_DeleteRank", data.Short )
+				Menu.CallServer( "_DeleteRank", self.uidEntry:GetValue() )
 			end
 			
 		self.refresh = exsto.CreateButton( 0, panel:GetTall() - 40, 75, 27, "Refresh", panel )
