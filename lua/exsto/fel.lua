@@ -217,7 +217,7 @@ function db:ConstructQuery( style, data )
 		self._clk = 1
 		local count = table.Count( data )
 		for column, rowData in pairs( data ) do
-			if type( rowData ) == "string" then rowData = self:Escape( rowData ) end
+			if type( rowData ) == "string" then rowData = "\"" .. self:Escape( rowData ) .. "\"" end
 			if self._clk == count then 
 				query = string.format( query, column, rowData )
 			else
@@ -229,12 +229,12 @@ function db:ConstructQuery( style, data )
 		
 		return query
 	elseif style == "changed" then
-		local query = string.format( self.Queries.Update, "%s", type( data[ self.Columns._PrimaryKey ] ) == "string" and self:Escape( data[ self.Columns._PrimaryKey ] ) or data[ self.Columns._PrimaryKey ] )
+		local query = string.format( self.Queries.Update, "%s", type( data[ self.Columns._PrimaryKey ] ) == "string" and "\"" .. self:Escape( data[ self.Columns._PrimaryKey ] ) .. "\"" or data[ self.Columns._PrimaryKey ] )
 		
 		self._clk = 1
 		local count = table.Count( data )
 		for column, rowData in pairs( data ) do
-			if type( rowData ) == "string" then rowData = self:Escape( rowData ) end
+			if type( rowData ) == "string" then rowData = "\"" .. self:Escape( rowData ) .. "\"" end
 			if self._clk == count then
 				query = string.format( query, string.format( self.Queries.Set, column, rowData ) )
 			else
@@ -267,11 +267,10 @@ function db:ConstructQuery( style, data )
 end
 
 function db:OnQueryError( err )
-	ErrorNoHalt( "FEL --> " .. self.dbName .. " --> Error: " .. err )
+	ErrorNoHalt( "FEL --> " .. self.dbName .. " --> Error: " .. err .. "\n" )
 end
 
 function db:Query( str, threaded )
-	print( str )
 	if self._mysqlSuccess == true then -- We are MySQL baby
 		self._mysqlQuery = self._mysqlDB:query( str )
 		self._mysqlQuery.onError = function( query, err ) self:OnQueryError( err ) end
@@ -333,11 +332,9 @@ function db:AddRow( data, options )
 	
 	-- Check our _new and _changed first brother.
 	if self:CheckCache( "_new", data ) then
-		print( "Holy shit fuck, we are adding data that already exists in a _new or _changed!" )
 		table.Merge( self.Cache._new[ self._LastKey ], data )
 		return
 	elseif self:CheckCache( "_changed", data ) then
-		print( "Holy shit fuck, we are adding data that already exists in a _new or _changed!" )
 		table.Merge( self.Cache._changed[ self._LastKey ], data )
 		return
 	end
