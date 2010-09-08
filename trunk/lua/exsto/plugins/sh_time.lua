@@ -18,7 +18,6 @@ if SERVER then
 			SteamID = "VARCHAR(50):primary:not_null";
 			Time = "INTEGER:not_null";
 			Last = "INTEGER:not_null";
-			Test = "STRING";
 		} )
 	
 	function PLUGIN:ExInitSpawn( ply, sid, uid )
