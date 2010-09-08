@@ -119,11 +119,11 @@ function exsto.SaveVarInfo( dirty )
 	exsto.VarDB:AddRow( {
 		Pretty = var.Pretty;
 		Dirty = var.Dirty;
-		Value = var.Value;
+		Value = tostring( var.Value );
 		DataType = var.DataType;
 		Description = var.Description;
 		Possible = FEL.NiceEncode( var.Possible );
-		EnvVar = var.EnvVar;
+		EnvVar = tostring( var.EnvVar );
 	} )
 end
 
