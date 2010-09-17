@@ -28,6 +28,16 @@ FEL = {}
 		mysql_enabled = "false";
 	}
 	
+if exsto then
+	exsto.AddVariable({
+		Pretty = "FEL Debug",
+		Dirty = "fel_debug",
+		Default = false,
+		Description = "Prints debug information to console. (Queries, etc)",
+		Possible = { true, false },
+	})
+end
+	
 function FEL.Init()
 	if !file.Exists( "exsto_mysql_settings.txt" ) then
 		file.Write( "exsto_mysql_settings.txt", util.TableToKeyValues( FEL.DefaultConfig ) )
@@ -247,16 +257,16 @@ function db:ConstructQuery( style, data )
 		return query
 	elseif style == "create" then
 		local query = self.Queries.Create
+		local columns = table.Copy( self.Columns )
+			columns._PrimaryKey = nil
 		
 		self._clk = 1
-		local count = table.Count( self.Columns )
-		for column, dataType in pairs( self.Columns ) do
-			if column != "_PrimaryKey" then
-				if self._clk == count then
-					query = string.format( query, string.format( self.Queries.Datatypes, column, dataType ) .. ", PRIMARY KEY( " .. self.Columns._PrimaryKey .. " )" )
-				else
-					query = string.format( query, string.format( self.Queries.Datatypes, column, dataType ) .. ", %s" )
-				end
+		local count = table.Count( columns )
+		for column, dataType in pairs( columns ) do
+			if self._clk == count then
+				query = string.format( query, string.format( self.Queries.Datatypes, column, dataType ) .. ", PRIMARY KEY( " .. self.Columns._PrimaryKey .. " )" )
+			else
+				query = string.format( query, string.format( self.Queries.Datatypes, column, dataType ) .. ", %s" )
 			end
 			
 			self._clk = self._clk + 1
@@ -271,7 +281,10 @@ function db:OnQueryError( err )
 end
 
 function db:Query( str, threaded )
-	print( str )
+	if exsto and exsto.GetVar( "fel_debug" ).Value == true then
+		if str != "SELECT 1 + 1" then print( str ) end
+	end
+	
 	if self._mysqlSuccess == true then -- We are MySQL baby
 		self._mysqlQuery = self._mysqlDB:query( str )
 		self._mysqlQuery.onError = function( query, err ) self:OnQueryError( err ) end
