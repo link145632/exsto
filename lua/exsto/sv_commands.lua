@@ -279,7 +279,7 @@ function exsto.PrintReturns( data, I, multiplePeople, hide )
 			if data.Player and type( data.Player ) == "Player" then ply = data.Player:Nick() end
             
 			-- Change to himself if the acting player is the victim
-			if ply == data.Activator:Nick() then ply = "themself" end
+			if ply == data.Activator:Nick() and data.Activator:IsValid() then ply = "themself" end
 			
 			-- Format any [self] requests.
 			data.Wording = data.Wording:gsub( "%[self%]%", data.Activator:Nick() )

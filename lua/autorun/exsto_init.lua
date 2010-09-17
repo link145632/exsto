@@ -39,7 +39,7 @@ local function LoadVariables()
 	exsto.StartTime = SysTime()
 	exsto.UpdateHost = "http://94.23.154.153/Exsto/"
 	
-	exsto.VERSION = 97
+	exsto.VERSION = 98
 end
 
 local saveCount = 1

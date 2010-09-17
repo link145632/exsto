@@ -280,7 +280,11 @@ elseif CLIENT then
 	
 	usermessage.Hook( "ExBufferClear", function( um )
 		local id = um:ReadString()
-		if !reader_hooks[ id ] then exsto.ErrorNoHalt( "UMSG --> No usermessage exists for " .. id ) return end
+		if !reader_hooks[ id ] then exsto.ErrorNoHalt( "UMSG --> No usermessage exists for " .. id )
+			-- DONT PANIC TOO EARLY!  We cannot forget to clean up after this (Like I forgot to before)
+			buffer = {}
+			return 
+		end
 
 		local readers = reader_hooks[ id ]
 		for _, reader in ipairs( readers ) do
