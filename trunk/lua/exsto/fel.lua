@@ -29,13 +29,15 @@ FEL = {}
 	}
 	
 if exsto then
-	exsto.AddVariable({
-		Pretty = "FEL Debug",
-		Dirty = "fel_debug",
-		Default = false,
-		Description = "Prints debug information to console. (Queries, etc)",
-		Possible = { true, false },
-	})
+	timer.Simple( 1, function()
+		exsto.AddVariable({
+			Pretty = "FEL Debug",
+			Dirty = "fel_debug",
+			Default = false,
+			Description = "Prints debug information to console. (Queries, etc)",
+			Possible = { true, false },
+		})
+	end )
 end
 	
 function FEL.Init()
@@ -281,7 +283,7 @@ function db:OnQueryError( err )
 end
 
 function db:Query( str, threaded )
-	if exsto and exsto.GetVar( "fel_debug" ).Value == true then
+	if exsto and type( exsto.GetVar ) == "function" and type( exsto.GetVar( "fel_debug" ) ) == "table" and type( exsto.GetVar( "fel_debug" ).Value ) == "true" then
 		if str != "SELECT 1 + 1" then print( str ) end
 	end
 	
